@@ -264,7 +264,7 @@ function renderSubmissions(list) {
                 <button class="btn-icon" onclick="downloadSubmissionPdf(${s.id}, '${type}')" title="Download PDF">
                     <i class="fas fa-download"></i>
                 </button>
-                <button class="btn-icon delete" onclick="softDeleteSubmission(${s.id})" title="Move to Trash">
+                <button class="btn btn-danger btn-sm" onclick="softDeleteSubmission(${s.id})" title="Move to Trash">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </td>

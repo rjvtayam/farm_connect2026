@@ -320,12 +320,14 @@ function renderPendingTable(list) {
                 <td style="color:var(--text-light);font-size:0.85rem">${formatDate(s.created_at)}</td>
                 <td>
                     ${isLockedByOther ? lockHtml : `
-                        <button class="btn btn-primary btn-sm" onclick="viewSubmission(${s.id})">
-                            <i class="fas fa-search"></i> Review
-                        </button>
-                        <button class="btn-icon delete" onclick="softDeleteSubmission(${s.id})" title="Move to Trash" style="margin-left:0.25rem;">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                        <div style="display:flex; gap:0.5rem; align-items:center;">
+                            <button class="btn btn-primary btn-sm" onclick="viewSubmission(${s.id})">
+                                <i class="fas fa-search"></i> Review
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="softDeleteSubmission(${s.id})" title="Move to Trash">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </div>
                     `}
                 </td>
             </tr>

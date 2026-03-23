@@ -50,6 +50,7 @@ function setupSearchAndFilters() {
     const statusFilter = document.getElementById('filterStatus');
     const typeFilter = document.getElementById('filterType');
     const searchBen = document.getElementById('searchBeneficiaries');
+    const filterBrgy = document.getElementById('filterBarangay');
 
     if (searchInput) {
         searchInput.addEventListener('input', applyFilters);
@@ -61,9 +62,10 @@ function setupSearchAndFilters() {
         typeFilter.addEventListener('change', applyFilters);
     }
     if (searchBen) {
-        searchBen.addEventListener('input', function () {
-            filterBeneficiaries(this.value.toLowerCase());
-        });
+        searchBen.addEventListener('input', filterBeneficiaries);
+    }
+    if (filterBrgy) {
+        filterBrgy.addEventListener('change', filterBeneficiaries);
     }
 }
 
@@ -88,10 +90,15 @@ function applyFilters() {
     renderRegistrations(filtered);
 }
 
-function filterBeneficiaries(term) {
+function filterBeneficiaries() {
+    const term = (document.getElementById('searchBeneficiaries')?.value || '').toLowerCase();
+    const barangay = (document.getElementById('filterBarangay')?.value || '').toLowerCase();
+
     const filtered = allBeneficiaries.filter(b => {
-        return b.full_name.toLowerCase().includes(term) ||
+        const matchesTerm = b.full_name.toLowerCase().includes(term) ||
             (b.rsbsa_id && b.rsbsa_id.toLowerCase().includes(term));
+        const matchesBrgy = barangay === '' || (b.address && b.address.barangay && b.address.barangay.toLowerCase() === barangay);
+        return matchesTerm && matchesBrgy;
     });
     renderBeneficiaries(filtered);
 }
@@ -340,6 +347,7 @@ function loadBeneficiaries() {
         .then(data => {
             if (data.success) {
                 allBeneficiaries = data.beneficiaries;
+                populateBarangayFilter(allBeneficiaries);
                 renderBeneficiaries(allBeneficiaries);
             }
         })
@@ -347,6 +355,30 @@ function loadBeneficiaries() {
             console.error('Error loading beneficiaries:', error);
             if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load beneficiaries</td></tr>';
         });
+}
+
+function populateBarangayFilter(list) {
+    const filter = document.getElementById('filterBarangay');
+    if (!filter) return;
+    
+    // Extract unique barangays
+    const barangays = new Set();
+    list.forEach(b => {
+        if (b.address && b.address.barangay && b.address.barangay.trim() !== '') {
+            barangays.add(b.address.barangay);
+        }
+    });
+
+    // Keep 'All' option, clear the rest
+    filter.innerHTML = '<option value="">All Barangays</option>';
+    
+    // Sort and inject safely
+    Array.from(barangays).sort().forEach(brgy => {
+        const option = document.createElement('option');
+        option.value = brgy.toLowerCase();
+        option.textContent = brgy;
+        filter.appendChild(option);
+    });
 }
 
 function renderBeneficiaries(list) {
@@ -376,9 +408,9 @@ function renderBeneficiaries(list) {
                 <td>${b.mobile_number || '—'}</td>
                 <td style="color:var(--text-light);font-size:0.85rem">${formatDate(b.created_at)}</td>
                 <td>
-                    <div style="display:flex;gap:0.25rem;">
-                        <button class="btn-icon" onclick="viewBeneficiary(${b.id})" title="View Details">
-                            <i class="fas fa-eye"></i>
+                    <div style="display:flex;gap:0.5rem;">
+                        <button class="btn btn-primary btn-sm" onclick="viewBeneficiary(${b.id})" title="View Details">
+                            <i class="fas fa-eye"></i> View
                         </button>
                     </div>
                 </td>
@@ -456,7 +488,7 @@ function renderRegistrations(list) {
                 <td><span class="status-badge ${r.status}">${formatStatus(r.status)}</span></td>
                 <td style="color:var(--text-light);font-size:0.85rem">${formatDate(r.created_at)}</td>
                 <td>
-                    <div style="display: flex; gap: 0.25rem; align-items: center;">
+                    <div style="display: flex; gap: 0.5rem; align-items: center;">
                         ${r.status !== 'approved' ? `
                             <button class="btn btn-primary btn-sm" onclick="viewRegistration(${r.id})">
                                 <i class="fas fa-search"></i> Review
@@ -466,7 +498,7 @@ function renderRegistrations(list) {
                                 <i class="fas fa-print"></i>
                             </button>
                         `}
-                        <button class="btn-icon delete" onclick="softDeleteRegistration(${r.id})" title="Move to Trash">
+                        <button class="btn btn-danger btn-sm" onclick="softDeleteRegistration(${r.id})" title="Move to Trash">
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>

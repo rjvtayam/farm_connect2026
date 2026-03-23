@@ -286,6 +286,9 @@
                                 <i class="fas fa-search"></i>
                                 <input type="text" id="searchBeneficiaries" placeholder="Search by name or RSBSA ID...">
                             </div>
+                            <select id="filterBarangay" class="filter-select">
+                                <option value="">All Barangays</option>
+                            </select>
                         </div>
                     </div>
                     <div class="card-body">
@@ -317,7 +320,7 @@
                         <h2><i class="fas fa-list"></i> Recent Registrations</h2>
                         <div class="card-actions">
                             <button class="btn btn-sm btn-secondary" onclick="exportReport()">
-                                <i class="fas fa-download"></i> Export
+                                <i class="fas fa-download"></i> Export CSV
                             </button>
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
