@@ -63,12 +63,16 @@ function initEncoderSockets() {
 function setupSearchAndFilters() {
     const searchInput = document.getElementById('searchSubmissions');
     const statusFilter = document.getElementById('filterStatus');
+    const typeFilter = document.getElementById('filterType');
 
     if (searchInput) {
         searchInput.addEventListener('input', applyFilters);
     }
     if (statusFilter) {
         statusFilter.addEventListener('change', applyFilters);
+    }
+    if (typeFilter) {
+        typeFilter.addEventListener('change', applyFilters);
     }
 
     // Professional touch: Click search icon to focus
@@ -136,6 +140,7 @@ async function exportSubmissions() {
 async function applyFilters() {
     const term = (document.getElementById('searchSubmissions')?.value || '').toLowerCase().trim();
     const status = (document.getElementById('filterStatus')?.value || '').toLowerCase();
+    const type = (document.getElementById('filterType')?.value || '').toLowerCase();
 
     const filtered = currentSubmissions.filter(s => {
         const b = s.beneficiary || {};
@@ -153,8 +158,9 @@ async function applyFilters() {
         if (currentStatus === 'pending_verification') currentStatus = 'pending';
 
         const matchesStatus = status === '' || currentStatus === status;
+        const matchesType = type === '' || (s.form_type || '').toLowerCase() === type;
 
-        return matchesTerm && matchesStatus;
+        return matchesTerm && matchesStatus && matchesType;
     });
 
     renderSubmissions(filtered);

@@ -158,11 +158,13 @@ function setupSearchAndFilters() {
     const filterFormType = document.getElementById('filterFormType');
     const searchReviewed = document.getElementById('searchReviewed');
     const filterStatus = document.getElementById('filterStatus');
+    const filterType = document.getElementById('filterType');
 
     if (searchPending) searchPending.addEventListener('input', applyPendingFilters);
     if (filterFormType) filterFormType.addEventListener('change', applyPendingFilters);
     if (searchReviewed) searchReviewed.addEventListener('input', applyReviewedFilters);
     if (filterStatus) filterStatus.addEventListener('change', applyReviewedFilters);
+    if (filterType) filterType.addEventListener('change', applyReviewedFilters);
 }
 
 function applyPendingFilters() {
