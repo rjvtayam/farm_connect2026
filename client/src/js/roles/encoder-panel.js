@@ -255,18 +255,20 @@ function renderSubmissions(list) {
             <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
             <td style="color:var(--text-light);font-size:0.85rem">${formatDate(date)}</td>
             <td>
-                <button class="btn-icon" onclick="viewSubmission(${s.id})" title="View Details">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn-icon" onclick="editSubmission(${s.id})" title="Edit Submission">
-                    <i class="fas fa-edit"></i>
-                </button>
-                <button class="btn-icon" onclick="downloadSubmissionPdf(${s.id}, '${type}')" title="Download PDF">
-                    <i class="fas fa-download"></i>
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="softDeleteSubmission(${s.id})" title="Move to Trash">
-                    <i class="fas fa-trash-alt"></i>
-                </button>
+                <div style="display:flex; gap:0.5rem; align-items:center;">
+                    <button class="btn btn-primary btn-sm" onclick="viewSubmission(${s.id})" title="View Details">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                    <button class="btn btn-warning btn-sm" onclick="editSubmission(${s.id})" title="Edit Submission">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-success btn-sm" onclick="downloadSubmissionPdf(${s.id}, '${type}')" title="Download PDF">
+                        <i class="fas fa-download"></i>
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="softDeleteSubmission(${s.id})" title="Move to Trash">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
             </td>
         </tr>`;
     }).join('');

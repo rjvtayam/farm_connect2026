@@ -50,8 +50,6 @@ function setupSearchAndFilters() {
     const statusFilter = document.getElementById('filterStatus');
     const typeFilter = document.getElementById('filterType');
     const searchBen = document.getElementById('searchBeneficiaries');
-    const filterBrgy = document.getElementById('filterBarangay');
-
     if (searchInput) {
         searchInput.addEventListener('input', applyFilters);
     }
@@ -62,10 +60,9 @@ function setupSearchAndFilters() {
         typeFilter.addEventListener('change', applyFilters);
     }
     if (searchBen) {
-        searchBen.addEventListener('input', filterBeneficiaries);
-    }
-    if (filterBrgy) {
-        filterBrgy.addEventListener('change', filterBeneficiaries);
+        searchBen.addEventListener('input', function () {
+            filterBeneficiaries(this.value.toLowerCase());
+        });
     }
 }
 
@@ -90,15 +87,10 @@ function applyFilters() {
     renderRegistrations(filtered);
 }
 
-function filterBeneficiaries() {
-    const term = (document.getElementById('searchBeneficiaries')?.value || '').toLowerCase();
-    const barangay = (document.getElementById('filterBarangay')?.value || '').toLowerCase();
-
+function filterBeneficiaries(term) {
     const filtered = allBeneficiaries.filter(b => {
-        const matchesTerm = b.full_name.toLowerCase().includes(term) ||
+        return b.full_name.toLowerCase().includes(term) ||
             (b.rsbsa_id && b.rsbsa_id.toLowerCase().includes(term));
-        const matchesBrgy = barangay === '' || (b.address && b.address.barangay && b.address.barangay.toLowerCase() === barangay);
-        return matchesTerm && matchesBrgy;
     });
     renderBeneficiaries(filtered);
 }
@@ -347,7 +339,6 @@ function loadBeneficiaries() {
         .then(data => {
             if (data.success) {
                 allBeneficiaries = data.beneficiaries;
-                populateBarangayFilter(allBeneficiaries);
                 renderBeneficiaries(allBeneficiaries);
             }
         })
@@ -357,29 +348,7 @@ function loadBeneficiaries() {
         });
 }
 
-function populateBarangayFilter(list) {
-    const filter = document.getElementById('filterBarangay');
-    if (!filter) return;
-    
-    // Extract unique barangays
-    const barangays = new Set();
-    list.forEach(b => {
-        if (b.address && b.address.barangay && b.address.barangay.trim() !== '') {
-            barangays.add(b.address.barangay);
-        }
-    });
 
-    // Keep 'All' option, clear the rest
-    filter.innerHTML = '<option value="">All Barangays</option>';
-    
-    // Sort and inject safely
-    Array.from(barangays).sort().forEach(brgy => {
-        const option = document.createElement('option');
-        option.value = brgy.toLowerCase();
-        option.textContent = brgy;
-        filter.appendChild(option);
-    });
-}
 
 function renderBeneficiaries(list) {
     const tbody = document.getElementById('beneficiariesTableBody');
@@ -490,8 +459,8 @@ function renderRegistrations(list) {
                 <td>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
                         ${r.status !== 'approved' ? `
-                            <button class="btn btn-primary btn-sm" onclick="viewRegistration(${r.id})">
-                                <i class="fas fa-search"></i> Review
+                            <button class="btn btn-primary btn-sm" onclick="viewRegistration(${r.id})" title="Review Submission">
+                                <i class="fas fa-search"></i>
                             </button>
                         ` : `
                             <button class="btn btn-secondary btn-sm print-btn" onclick="printRegistration(${r.id})" title="Print Form">
