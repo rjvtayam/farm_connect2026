@@ -316,6 +316,9 @@
                     <div class="card-header">
                         <h2><i class="fas fa-list"></i> Recent Registrations</h2>
                         <div class="card-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="exportReport()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
                                 <input type="text" id="searchRegistrations" placeholder="Search registrations...">
@@ -336,9 +339,6 @@
                             </select>
                             <button class="btn btn-sm btn-success" id="bulkApproveBtn" style="display:none;" onclick="bulkMAOAction('approved')">
                                 <i class="fas fa-check-double"></i> Approve Selected
-                            </button>
-                            <button class="btn btn-sm btn-secondary" onclick="exportReport()">
-                                <i class="fas fa-download"></i> Export
                             </button>
                         </div>
                     </div>
