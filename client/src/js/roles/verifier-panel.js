@@ -321,8 +321,8 @@ function renderPendingTable(list) {
                 <td>
                     ${isLockedByOther ? lockHtml : `
                         <div style="display:flex; gap:0.5rem; align-items:center;">
-                            <button class="btn btn-primary btn-sm" onclick="viewSubmission(${s.id})">
-                                <i class="fas fa-search"></i> Review
+                            <button class="btn btn-primary btn-sm" onclick="viewSubmission(${s.id})" title="Review Submission">
+                                <i class="fas fa-search"></i>
                             </button>
                             <button class="btn btn-danger btn-sm" onclick="softDeleteSubmission(${s.id})" title="Move to Trash">
                                 <i class="fas fa-trash-alt"></i>
