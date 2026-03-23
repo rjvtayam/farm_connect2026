@@ -1,0 +1,1477 @@
+/**
+ * Verifier Dashboard Functionality
+ * Handles: stats, pending table, reviewed history, review modal with canvas drawing
+ */
+
+let documentCanvas;
+// ── Global Variables ──
+let currentSubmissionId = null;
+let landMap = null;
+let drawnItems = null;
+let currentGeoJSON = null;
+let canvasCtx;
+let locateHighlight = null;
+let parcelGeoMap = {};
+let activeParcelIndex = -1;
+let allPendingSubmissions = [];
+let allReviewedSubmissions = [];
+
+function updateMapAddressLabel(bgy, muni) {
+    const header = document.querySelector('.pane-right h4.info-section-title');
+    if (header) {
+        header.innerHTML = `<i class="fas fa-map-marked-alt" style="color:#10b981;"></i> GIS: <span style="color:#4f46e5">${bgy}</span>, <span style="font-size:0.8rem; color:#64748b;">${muni}</span>`;
+    }
+}
+
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', function () {
+    loadStats();
+    loadPendingSubmissions();
+    loadReviewedSubmissions();
+    setupSearchAndFilters();
+    initCanvas();
+    loadTrashCount();
+
+    // ── Real-time polling: refresh data every 5 seconds ──
+    setInterval(() => {
+        loadStats();
+        loadPendingSubmissions();
+        loadReviewedSubmissions();
+    }, 5000);
+
+    initGlobalMap();
+    initVerifierSockets();
+});
+
+/**
+ * Verifier Specific Socket Events
+ */
+function initVerifierSockets() {
+    const socket = window.socket || (typeof io !== 'undefined' ? io() : null);
+    if (!socket) return;
+
+    socket.on('new_submission', (data) => {
+        // Refresh all verifier data when a new submission arrives
+        loadStats();
+        loadPendingSubmissions();
+    });
+
+    socket.on('record_locked', (data) => {
+        const row = document.querySelector(`tr[data-id="${data.submission_id}"]`);
+        if (row) {
+            row.classList.add('locked-row');
+            const actionCell = row.querySelector('td:last-child');
+            if (actionCell) {
+                actionCell.innerHTML = `
+                    <span class="lock-indicator" title="Locked by ${data.user_name}">
+                        <i class="fas fa-lock"></i> ${data.user_name}
+                    </span>
+                `;
+            }
+        }
+    });
+
+    socket.on('record_unlocked', (data) => {
+        const row = document.querySelector(`tr[data-id="${data.submission_id}"]`);
+        if (row) {
+            row.classList.remove('locked-row');
+            // Re-render the actions for this row by refreshing or just manually
+            loadPendingSubmissions();
+        }
+    });
+
+    socket.on('status_updated', (data) => {
+        if (currentSubmissionId === data.id) {
+            showFlashMessage(`Warning: This submission status was just updated to "${data.status}" by ${data.verifier}`, 'warning');
+        }
+        loadStats();
+        loadPendingSubmissions();
+        loadReviewedSubmissions();
+    });
+}
+
+let globalMap = null;
+
+function initGlobalMap() {
+    const mapDiv = document.getElementById('globalParcelMap');
+    if (!mapDiv) return;
+
+    // Center on municipality (assuming a general center if unknown)
+    globalMap = L.map('globalParcelMap').setView([14.165, 121.24], 13);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(globalMap);
+
+    loadGlobalParcels();
+}
+
+function loadGlobalParcels() {
+    fetch('/verifier/api/gis/global', { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            if (data.success) {
+                renderGlobalParcels(data.parcels);
+            }
+        });
+}
+
+function renderGlobalParcels(parcels) {
+    if (!globalMap) return;
+
+    const group = L.featureGroup().addTo(globalMap);
+
+    parcels.forEach(p => {
+        if (p.geo_json) {
+            try {
+                const layer = L.geoJSON(JSON.parse(p.geo_json), {
+                    style: {
+                        color: p.status === 'approved' ? '#10b981' : '#3b82f6',
+                        weight: 2,
+                        opacity: 0.8,
+                        fillOpacity: 0.35
+                    }
+                }).addTo(group);
+
+                layer.bindPopup(`
+                    <div style="font-family:'Inter',sans-serif;">
+                        <strong style="color:var(--primary);">${p.beneficiary_name}</strong><br>
+                        <span style="font-size:0.75rem;color:#64748b;">${p.form_type.toUpperCase()} | ${p.barangay}</span><br>
+                        <span class="status-badge ${p.status}" style="font-size:0.65rem;margin-top:4px;">${p.status}</span>
+                    </div>
+                `);
+            } catch (e) {
+                console.error("Error parsing geo_json for parcel", p.id, e);
+            }
+        }
+    });
+
+    if (parcels.length > 0) {
+        globalMap.fitBounds(group.getBounds());
+    }
+}
+
+// ── Search & Filter ──
+function setupSearchAndFilters() {
+    const searchPending = document.getElementById('searchPending');
+    const filterFormType = document.getElementById('filterFormType');
+    const searchReviewed = document.getElementById('searchReviewed');
+    const filterStatus = document.getElementById('filterStatus');
+
+    if (searchPending) searchPending.addEventListener('input', applyPendingFilters);
+    if (filterFormType) filterFormType.addEventListener('change', applyPendingFilters);
+    if (searchReviewed) searchReviewed.addEventListener('input', applyReviewedFilters);
+    if (filterStatus) filterStatus.addEventListener('change', applyReviewedFilters);
+}
+
+function applyPendingFilters() {
+    const term = (document.getElementById('searchPending')?.value || '').toLowerCase();
+    const type = (document.getElementById('filterFormType')?.value || '').toLowerCase();
+
+    const filtered = allPendingSubmissions.filter(s => {
+        const matchesTerm = (s.beneficiary_name || '').toLowerCase().includes(term) ||
+            (s.barangay || '').toLowerCase().includes(term) ||
+            (s.encoder_name || '').toLowerCase().includes(term);
+        const matchesType = type === '' || (s.form_type || '').toLowerCase() === type;
+        return matchesTerm && matchesType;
+    });
+    renderPendingTable(filtered);
+}
+
+function applyReviewedFilters() {
+    const term = (document.getElementById('searchReviewed')?.value || '').toLowerCase();
+    const status = (document.getElementById('filterStatus')?.value || '').toLowerCase();
+
+    const filtered = allReviewedSubmissions.filter(s => {
+        const matchesTerm = (s.beneficiary_name || '').toLowerCase().includes(term) ||
+            (s.barangay || '').toLowerCase().includes(term) ||
+            (s.encoder_name || '').toLowerCase().includes(term);
+        const matchesStatus = status === '' || (s.status || '').toLowerCase() === status;
+        return matchesTerm && matchesStatus;
+    });
+    renderReviewedTable(filtered);
+}
+
+// ── Canvas Drawing for Document Review ──
+function initCanvas() {
+    const canvas = document.getElementById('documentCanvas');
+    if (!canvas) return;
+
+    documentCanvas = canvas;
+    canvasCtx = canvas.getContext('2d');
+
+    const container = canvas.parentElement;
+    canvas.width = container.offsetWidth;
+    canvas.height = container.offsetHeight || 300;
+
+    let isDrawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    function getPos(e) {
+        const rect = canvas.getBoundingClientRect();
+        return [e.clientX - rect.left, e.clientY - rect.top];
+    }
+
+    canvas.addEventListener('mousedown', (e) => {
+        isDrawing = true;
+        [lastX, lastY] = getPos(e);
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        canvasCtx.strokeStyle = '#ef4444';
+        canvasCtx.lineWidth = 2;
+        canvasCtx.lineCap = 'round';
+        canvasCtx.beginPath();
+        canvasCtx.moveTo(lastX, lastY);
+        const [x, y] = getPos(e);
+        canvasCtx.lineTo(x, y);
+        canvasCtx.stroke();
+        [lastX, lastY] = [x, y];
+    });
+
+    canvas.addEventListener('mouseup', () => { isDrawing = false; });
+    canvas.addEventListener('mouseout', () => { isDrawing = false; });
+}
+
+window.clearCanvas = function () {
+    if (canvasCtx && documentCanvas) {
+        canvasCtx.clearRect(0, 0, documentCanvas.width, documentCanvas.height);
+    }
+};
+
+// ── Stats ──
+function loadStats() {
+    fetch('/verifier/api/stats', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                animateCount('pendingReview', data.stats.pending || 0);
+                animateCount('approvedToday', data.stats.verified || 0); // Repurpose "Approved Today" to show Verified items
+                animateCount('totalReviewed', data.stats.reviewed_today || 0);
+                animateCount('rejectedCount', data.stats.rejected || 0);
+
+                if (data.trends) {
+                    updateTrendBadge('pendingReviewTrend', data.trends.pending);
+                    updateTrendBadge('approvedTodayTrend', data.trends.verified);
+                    updateTrendBadge('totalReviewedTrend', data.trends.reviewed_today);
+                    updateTrendBadge('rejectedCountTrend', data.trends.rejected);
+                }
+            }
+        })
+        .catch(error => console.error('Error loading stats:', error));
+}
+
+// updateTrendBadge() and animateCount() are provided by dashboard-common.js
+
+
+
+// ── Pending Submissions ──
+function loadPendingSubmissions() {
+    const tbody = document.getElementById('pendingTableBody');
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+
+    fetch('/verifier/api/submissions?status=pending', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                allPendingSubmissions = data.submissions;
+                applyPendingFilters(); // Use filtered render
+            }
+        })
+        .catch(error => {
+            console.error('Error loading pending:', error);
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load submissions</td></tr>';
+        });
+}
+
+function renderPendingTable(list) {
+    const tbody = document.getElementById('pendingTableBody');
+    if (!tbody) return;
+
+    if (!list.length) {
+        tbody.innerHTML = `
+            <tr><td colspan="6">
+                <div class="empty-state">
+                    <i class="fas fa-check-double"></i>
+                    <p>All submissions have been reviewed — great job!</p>
+                </div>
+            </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => {
+        const isLockedByOther = s.locked_by && s.locked_by_id !== parseInt(document.body.dataset.userId);
+        const lockHtml = s.locked_by ? `
+            <span class="lock-indicator" title="Locked by ${s.locked_by.full_name}">
+                <i class="fas fa-lock"></i> ${s.locked_by.full_name}
+            </span>` : '';
+
+        return `
+            <tr data-id="${s.id}" class="${s.locked_by ? 'locked-row' : ''}">
+                <td><span style="font-weight:600;color:var(--text-dark)">${s.beneficiary_name}</span></td>
+                <td><span class="badge badge-type">${s.form_type.toUpperCase()}</span></td>
+                <td>${s.encoder_name}</td>
+                <td>${s.barangay}</td>
+                <td style="color:var(--text-light);font-size:0.85rem">${formatDate(s.created_at)}</td>
+                <td>
+                    ${isLockedByOther ? lockHtml : `
+                        <button class="btn btn-primary btn-sm" onclick="viewSubmission(${s.id})">
+                            <i class="fas fa-search"></i> Review
+                        </button>
+                        <button class="btn-icon delete" onclick="softDeleteSubmission(${s.id})" title="Move to Trash" style="margin-left:0.25rem;">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    `}
+                </td>
+            </tr>
+        `;
+    }).join('');
+}
+
+// Bulk Actions removed by user request (Review individually)
+
+window.exportPendingSubmissions = async function () {
+    const btn = document.querySelector('button[onclick="exportPendingSubmissions()"]');
+    const originalHtml = btn.innerHTML;
+    const search = document.getElementById('searchPending')?.value || '';
+    const formType = document.getElementById('filterFormType')?.value || '';
+
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+
+        const params = new URLSearchParams();
+        params.append('status', 'pending_verification');
+        if (search) params.append('search', search);
+        if (formType) params.append('form_type', formType);
+
+        const response = await fetch(`/verifier/api/submissions/export?${params.toString()}`);
+        if (!response.ok) throw new Error('Export failed');
+
+        await handleFileDownload(response);
+        showToast('Pending Submissions exported!', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Export failed', 'error');
+    } finally {
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }, 500);
+    }
+};
+
+window.exportReviewedSubmissions = async function () {
+    const btn = document.querySelector('button[onclick="exportReviewedSubmissions()"]');
+    const originalHtml = btn.innerHTML;
+    const search = document.getElementById('searchReviewed')?.value || '';
+    const status = document.getElementById('filterStatus')?.value || '';
+
+    try {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+
+        const params = new URLSearchParams();
+        params.append('status', status || 'reviewed');
+        if (search) params.append('search', search);
+
+        const response = await fetch(`/verifier/api/submissions/export?${params.toString()}`);
+        if (!response.ok) throw new Error('Export failed');
+
+        await handleFileDownload(response);
+        showToast('Reviewed Submissions exported!', 'success');
+    } catch (e) {
+        console.error(e);
+        showToast('Export failed', 'error');
+    } finally {
+        setTimeout(() => {
+            btn.disabled = false;
+            btn.innerHTML = originalHtml;
+        }, 500);
+    }
+};
+
+async function handleFileDownload(response) {
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = 'submissions_export.csv';
+    if (contentDisposition && contentDisposition.indexOf('filename=') !== -1) {
+        filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
+    }
+
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    a.remove();
+}
+
+// ── Reviewed Submissions (History) ──
+function loadReviewedSubmissions() {
+    const tbody = document.getElementById('reviewedTableBody');
+    if (!tbody) return;
+    tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+
+    // Fetch verified + approved + rejected
+    Promise.all([
+        fetch('/verifier/api/submissions?status=verified', { credentials: 'include' }).then(r => r.json()),
+        fetch('/verifier/api/submissions?status=approved', { credentials: 'include' }).then(r => r.json()),
+        fetch('/verifier/api/submissions?status=rejected', { credentials: 'include' }).then(r => r.json())
+    ])
+        .then(([verifiedData, approvedData, rejectedData]) => {
+            allReviewedSubmissions = [
+                ...(verifiedData.success ? verifiedData.submissions : []),
+                ...(approvedData.success ? approvedData.submissions : []),
+                ...(rejectedData.success ? rejectedData.submissions : [])
+            ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+            applyReviewedFilters(); // Use filtered render
+        })
+        .catch(error => {
+            console.error('Error loading reviewed:', error);
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load history</td></tr>';
+        });
+}
+
+function renderReviewedTable(list) {
+    const tbody = document.getElementById('reviewedTableBody');
+    if (!tbody) return;
+
+    if (!list.length) {
+        tbody.innerHTML = `
+            <tr><td colspan="6">
+                <div class="empty-state">
+                    <i class="fas fa-history"></i>
+                    <p>No reviewed submissions yet</p>
+                </div>
+            </td></tr>`;
+        return;
+    }
+
+    tbody.innerHTML = list.map(s => `
+        <tr>
+            <td><span style="font-weight:600;color:var(--text-dark)">${s.beneficiary_name}</span></td>
+            <td><span class="badge badge-type">${s.form_type.toUpperCase()}</span></td>
+            <td>${s.encoder_name || '—'}</td>
+            <td>${s.barangay || '—'}</td>
+            <td><span class="status-badge ${s.status}">${s.status}</span></td>
+            <td style="color:var(--text-light);font-size:0.85rem">${formatDate(s.created_at)}</td>
+        </tr>
+    `).join('');
+}
+
+// ── Review Modal ──
+window.viewSubmission = function (id) {
+    // Attempt to lock first
+    fetch(`/verifier/api/submissions/${id}/lock`, {
+        method: 'PUT',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        credentials: 'include'
+    })
+        .then(r => r.json())
+        .then(lockData => {
+            if (!lockData.success) {
+                showFlashMessage(lockData.message || 'Could not lock record', 'error');
+                return;
+            }
+
+            currentSubmissionId = id;
+            const idEl = document.getElementById('reviewSubmissionId');
+            if (idEl) idEl.textContent = `#${id}`;
+
+            fetch(`/verifier/api/submissions/${id}`, { credentials: 'include' })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        populateReviewModal(data.submission);
+                        clearCanvas();
+                        switchReviewTab('rsbsa'); // Reset to default tab
+                        openModal('reviewModal');
+
+                        if (socket) socket.emit('join_submission', { submission_id: id });
+
+                        // Initialize Map after modal is open
+                        setTimeout(() => {
+                            initReviewMap(data.submission.geo_data);
+                        }, 300);
+                    } else {
+                        showFlashMessage('Error loading submission details', 'error');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error loading details:', error);
+                    showFlashMessage('Failed to load submission', 'error');
+                });
+        });
+};
+
+window.unlockSubmission = function (id) {
+    if (!id) return;
+    fetch(`/verifier/api/submissions/${id}/unlock`, {
+        method: 'PUT',
+        headers: { 'X-CSRFToken': getCSRFToken() },
+        credentials: 'include'
+    }).then(() => {
+        if (socket) socket.emit('leave_submission', { submission_id: id });
+    });
+};
+
+// Override closeModal to handle unlocking
+const originalCloseModal = window.closeModal;
+window.closeModal = function (modalId) {
+    if (modalId === 'reviewModal' && currentSubmissionId) {
+        unlockSubmission(currentSubmissionId);
+        currentSubmissionId = null;
+    }
+    originalCloseModal(modalId);
+};
+
+// Handle window unload to release locks
+window.addEventListener('beforeunload', () => {
+    if (currentSubmissionId) {
+        // Use sendBeacon for more reliability on exit
+        const formData = new FormData();
+        formData.append('csrf_token', getCSRFToken());
+        navigator.sendBeacon(`/verifier/api/submissions/${currentSubmissionId}/unlock`, formData);
+    }
+});
+
+function initReviewMap(existingGeoData) {
+    const container = document.getElementById('landMapContainer');
+    if (!container) return;
+
+    // Reset GIS State in sync with Map life-cycle
+    activeParcelIndex = -1;
+    parcelGeoMap = {};
+
+    // Initial Parse of GeoData
+    if (existingGeoData) {
+        try {
+            const parsedGeo = (typeof existingGeoData === 'string') ? JSON.parse(existingGeoData) : existingGeoData;
+            // Handle Multi-Parcel Map vs Legacy Single-Polygon
+            if (parsedGeo && typeof parsedGeo === 'object' && !parsedGeo.type) {
+                parcelGeoMap = parsedGeo;
+            } else {
+                parcelGeoMap["0"] = parsedGeo; // Legacy fallback
+            }
+        } catch (e) { console.error("Error loading GIS state:", e); }
+    }
+
+    // Reset container
+    container.innerHTML = '';
+
+    if (landMap) {
+        landMap.remove();
+    }
+
+    // Default to Mabitac, Laguna coordinates
+    const defaultLat = 14.4333;
+    const defaultLng = 121.4333;
+
+    landMap = L.map('landMapContainer').setView([defaultLat, defaultLng], 15);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(landMap);
+
+    drawnItems = new L.FeatureGroup();
+    landMap.addLayer(drawnItems);
+
+    const drawControl = new L.Control.Draw({
+        edit: { featureGroup: drawnItems },
+        draw: {
+            polygon: {
+                allowIntersection: false,
+                showArea: true,
+                drawError: { color: '#b00b00', timeout: 1000 },
+                shapeOptions: { color: '#3b82f6' }
+            },
+            polyline: false,
+            rectangle: false,
+            circle: false,
+            marker: true,
+            circlemarker: false
+        }
+    });
+
+    landMap.addControl(drawControl);
+
+    // Load existing data if any
+    if (existingGeoData) {
+        try {
+            const data = typeof existingGeoData === 'string' ? JSON.parse(existingGeoData) : existingGeoData;
+            if (data && typeof data === 'object' && !data.type) {
+                Object.values(data).forEach(feat => {
+                    if (feat) {
+                        try {
+                            const l = L.geoJSON(feat);
+                            l.eachLayer(layer => drawnItems.addLayer(layer));
+                        } catch (err) {}
+                    }
+                });
+            } else if (data) {
+                const l = L.geoJSON(data);
+                l.eachLayer(layer => drawnItems.addLayer(layer));
+            }
+
+            if (drawnItems.getLayers().length > 0) {
+                landMap.fitBounds(drawnItems.getBounds(), { padding: [30, 30] });
+            }
+            currentGeoJSON = JSON.stringify(data);
+        } catch (e) { console.error("Error loading GeoData:", e); }
+    }
+
+    landMap.on(L.Draw.Event.CREATED, function (event) {
+        const layer = event.layer;
+        drawnItems.clearLayers(); // Only one parcel for now
+        drawnItems.addLayer(layer);
+
+        const geo = layer.toGeoJSON();
+        currentGeoJSON = JSON.stringify(geo);
+
+        // SYNC WITH MULTI-PARCEL CACHE
+        if (activeParcelIndex !== -1) {
+            parcelGeoMap[activeParcelIndex] = geo;
+        }
+
+        // Auto-fill lat/lng if marker
+        if (event.layerType === 'marker') {
+            const latlng = layer.getLatLng();
+            document.getElementById('reviewGisLat').value = latlng.lat.toFixed(6);
+            document.getElementById('reviewGisLng').value = latlng.lng.toFixed(6);
+            document.getElementById('reviewGisSource').value = 'Google Maps';
+        }
+    });
+
+    landMap.on(L.Draw.Event.EDITED, function (event) {
+        const layers = event.layers;
+        layers.eachLayer(layer => {
+            const geo = layer.toGeoJSON();
+            currentGeoJSON = JSON.stringify(geo);
+            if (activeParcelIndex !== -1) {
+                parcelGeoMap[activeParcelIndex] = geo;
+            }
+        });
+    });
+
+    landMap.on(L.Draw.Event.DELETED, function () {
+        currentGeoJSON = null;
+        if (activeParcelIndex !== -1) {
+            delete parcelGeoMap[activeParcelIndex];
+        }
+    });
+}
+
+function populateReviewModal(data) {
+    const b = data.beneficiary || {};
+    // Backend sends parsed data in 'data' key
+    const parsedData = data.data || {};
+    const pi = parsedData.personalInfo || b;
+
+    document.getElementById('reviewFirstName').value = pi.firstName || b.first_name || '';
+    document.getElementById('reviewLastName').value = pi.surname || b.last_name || '';
+    document.getElementById('reviewMiddleName').value = pi.middleName || b.middle_name || '';
+    document.getElementById('reviewExtensionName').value = pi.extensionName || b.extension_name || '';
+    document.getElementById('reviewSex').value = pi.sex || b.sex || '';
+    document.getElementById('reviewDOB').value = pi.dateOfBirth || b.date_of_birth || '';
+    document.getElementById('reviewCivilStatus').value = pi.civilStatus || b.civil_status || '';
+    document.getElementById('reviewBarangay').value = pi.address?.barangay || b.barangay || '';
+    document.getElementById('reviewMobile').value = pi.mobileNumber || b.mobile_number || '';
+
+    // Store type and data for logic
+    const modal = document.getElementById('reviewModal');
+    modal.dataset.formType = data.form_type || 'rsbsa';
+    modal.dataset.formData = JSON.stringify(parsedData);
+
+    // Store doc data for viewer
+    modal.dataset.landDoc = pi.photo || pi.land_doc || '';
+    modal.dataset.gpxData = pi.gpx_data || '';
+
+    // GIS Fields
+    const gis = parsedData.gis || {};
+    const latEl = document.getElementById('reviewGisLat');
+    const lngEl = document.getElementById('reviewGisLng');
+    const eleEl = document.getElementById('reviewGisElevation');
+    const srcEl = document.getElementById('reviewGisSource');
+
+    if (latEl) latEl.value = gis.latitude || '';
+    if (lngEl) lngEl.value = gis.longitude || '';
+    if (eleEl) eleEl.value = gis.elevation || gis.notes || '';
+    if (srcEl) {
+        srcEl.value = gis.source || 'Estimated';
+        const gisSection = srcEl.closest('.gis-entry-section');
+        if (gisSection) {
+            gisSection.style.display = (data.form_type === 'rsba') ? 'block' : 'none';
+        }
+    }
+
+    // Reset confirmation checkbox
+    const confirmCheck = document.getElementById('confirmVerification');
+    if (confirmCheck) confirmCheck.checked = false;
+
+    // Render Encoded Parcels
+    renderEncodedParcels(parsedData.parcels);
+
+    // Render Ownership Checklist (All Forms Tab)
+    renderOwnershipChecklist(parsedData.attachedDocs, parsedData.parcels);
+
+    // Show/Hide Attachment Buttons
+    const landBtn = document.getElementById('landDocPreviewBtn');
+    const gpxBtn = document.getElementById('gpxDataBtn');
+
+    if (landBtn) landBtn.style.display = (pi.photo || pi.land_doc) ? 'block' : 'none';
+    if (gpxBtn) {
+        gpxBtn.style.display = pi.gpx_data ? 'block' : 'none';
+
+        // PROFESSIONAL: Auto-plot GPX if it exists
+        if (pi.gpx_data) {
+            setTimeout(() => {
+                showFlashMessage('Existing GIS track found. Auto-plotting...', 'info');
+                processGpx(pi.gpx_data);
+            }, 800);
+        }
+    }
+}
+
+function renderEncodedParcels(parcels) {
+    const list = document.getElementById('encodedParcelList');
+    if (!list) return;
+
+    if (!parcels || parcels.length === 0) {
+        list.innerHTML = '<div style="padding: 2rem; color: #64748b; text-align: center; background: #f8fafc; border-radius: 12px; border: 1px dashed #cbd5e1; margin-top: 1rem;">No parcel data available for this beneficiary</div>';
+        return;
+    }
+
+    let html = '<div class="parcel-cards-container" style="display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem;">';
+
+    parcels.forEach((p, i) => {
+        // Clean up crops display
+        let cropRows = '';
+        if (p.crops && p.crops.length > 0) {
+            p.crops.forEach(c => {
+                cropRows += `
+                    <tr>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #f1f5f9;">${c.commodity || '-'}</td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #f1f5f9;">${c.size || '-'}</td>
+                        <td style="padding: 0.5rem; border-bottom: 1px solid #f1f5f9;">${c.farmType || '-'}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        html += `
+            <div class="parcel-card" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.25rem; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); position: relative; transition: transform 0.2s, box-shadow 0.2s;">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 1rem; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.75rem;">
+                    <div>
+                        <span style="background: #10b981; color: white; padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.7rem; font-weight: 800; text-transform: uppercase; margin-bottom: 0.5rem; display: inline-block;">Parcel #${i + 1}</span>
+                        <h4 style="margin: 0; color: #1e293b; font-size: 1.1rem; font-weight: 700;">${p.barangay || 'Unknown Barangay'}</h4>
+                        <p style="margin: 2px 0 0 0; color: #64748b; font-size: 0.8rem;"><i class="fas fa-city" style="width: 16px;"></i> ${p.municipality || 'Mabitac'}, ${p.province || ((p.municipality || '').toLowerCase() === 'infanta' ? 'Quezon' : 'Laguna')}</p>
+                        ${p.latitude && p.longitude ? `<p style="margin: 2px 0 0 0; color: #10b981; font-size: 0.75rem; font-weight: 600;"><i class="fas fa-crosshairs" style="width: 16px;"></i> GPS: ${p.latitude}, ${p.longitude}</p>` : ''}
+                    </div>
+                    <button type="button" class="btn-locate-parcel" data-parcel-index="${i}" onclick="locateParcel('${p.barangay}', '${p.municipality || 'Mabitac'}', '${p.province || ''}', ${i}, '${p.latitude || ''}', '${p.longitude || ''}')" style="background: #EEF2FF; color: #4F46E5; border: 1px solid #C7D2FE; padding: 0.5rem 0.85rem; border-radius: 10px; cursor: pointer; font-weight: 700; font-size: 0.75rem; display: flex; align-items: center; gap: 0.5rem; transition: all 0.2s;">
+                        <i class="fas fa-map-marker-alt"></i> LOCATE
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
+                    <div style="background: #f8fafc; padding: 0.75rem; border-radius: 10px;">
+                        <span style="display: block; font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Ownership Info</span>
+                        <p style="margin: 0; font-size: 0.85rem; color: #1e293b; font-weight: 600;">${p.ownershipType || 'N/A'}</p>
+                        <p style="margin: 2px 0 0 0; font-size: 0.75rem; color: #94a3b8;">Doc: ${p.ownershipDoc || 'None'}</p>
+                    </div>
+                    <div style="background: #f8fafc; padding: 0.75rem; border-radius: 10px;">
+                        <span style="display: block; font-size: 0.65rem; color: #64748b; text-transform: uppercase; font-weight: 700; margin-bottom: 4px;">Total Area</span>
+                        <p style="margin: 0; font-size: 1rem; color: #10b981; font-weight: 800;">${p.area || '0.00'} <span style="font-size: 0.75rem; font-weight: 500;">ha</span></p>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 0.75rem; margin-bottom: 1.25rem;">
+                    <span style="font-size: 0.7rem; color: #cf841d; background: #fffbeb; border: 1px solid #fef3c7; padding: 0.25rem 0.6rem; border-radius: 6px; font-weight: 600;">
+                        <i class="fas fa-id-card"></i> ARB: ${p.arb === 'yes' ? 'YES' : 'NO'}
+                    </span>
+                    <span style="font-size: 0.7rem; color: #a855f7; background: #f5f3ff; border: 1px solid #ede9fe; padding: 0.25rem 0.6rem; border-radius: 6px; font-weight: 600;">
+                        <i class="fas fa-mountain"></i> Ancestral: ${p.ancestral === 'yes' ? 'YES' : 'NO'}
+                    </span>
+                </div>
+
+                ${cropRows ? `
+                <div style="margin-top: 1rem;">
+                    <h5 style="font-size: 0.75rem; color: #475569; text-transform: uppercase; font-weight: 700; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-seedling" style="color: #16a34a;"></i> Crops & Commodities
+                    </h5>
+                    <table style="width: 100%; border-collapse: collapse; font-size: 0.75rem;">
+                        <thead style="background: #fbfcfd; color: #64748b;">
+                            <tr>
+                                <th style="text-align: left; padding: 0.5rem; font-weight: 600;">Commodity</th>
+                                <th style="text-align: left; padding: 0.5rem; font-weight: 600;">Area/Head</th>
+                                <th style="text-align: left; padding: 0.5rem; font-weight: 600;">System</th>
+                            </tr>
+                        </thead>
+                        <tbody>${cropRows}</tbody>
+                    </table>
+                </div>
+                ` : '<p style="font-size: 0.75rem; color: #94a3b8; font-style: italic;">No specific commodities listed</p>'}
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    list.innerHTML = html;
+}
+
+function renderOwnershipChecklist(docs, parcels) {
+    const container = document.getElementById('ownershipChecklist');
+    if (!container) return;
+
+    let checkedDocs = (docs && docs.documents) ? [...docs.documents] : [];
+    const otherText = (docs && docs.other) ? docs.other : '';
+
+    // FALLBACK: If primary attachedDocs is missing/empty, sweep parcel remarks
+    // This handles cases where data was saved only in the remarks dropdown
+    if (checkedDocs.length === 0 && parcels) {
+        parcels.forEach(p => {
+            if (p.crops) {
+                p.crops.forEach(c => {
+                    if (c.remarks) {
+                        // Split "1, 2, 12" and capture individual IDs
+                        const ids = c.remarks.split(',').map(v => v.trim()).filter(v => v);
+                        ids.forEach(id => {
+                            if (!checkedDocs.includes(id)) checkedDocs.push(id);
+                        });
+                    }
+                });
+            }
+        });
+    }
+
+    const docLabels = {
+        '1': 'Certificate of Land Transfer',
+        '2': 'Emancipation Patent',
+        '3': 'Individual Certificate of Land Ownership Award (CLOA)',
+        '4': 'Collective CLOA',
+        '5': 'Co-ownership CLOA',
+        '6': 'Agricultural Sales Patent',
+        '7': 'Homestead Patent',
+        '8': 'Free Patent',
+        '9': 'Certificate of Title or Regular Title',
+        '10': 'Certificate of Ancestral Domain Title',
+        '11': 'Certificate of Ancestral Land Title',
+        '12': 'Tax Declaration',
+        '13': `Others: ${otherText || '(None specified)'}`
+    };
+
+    let html = '<div style="display: grid; grid-template-columns: 1fr; gap: 0.75rem;">';
+
+    Object.keys(docLabels).forEach(key => {
+        const isChecked = checkedDocs.includes(key);
+        html += `
+            <div style="display: flex; align-items: center; gap: 1rem; padding: 0.75rem 1rem; border-radius: 10px; background: ${isChecked ? '#f0fdf4' : '#f8fafc'}; border: 1px solid ${isChecked ? '#bbf7d0' : '#e2e8f0'}; transition: all 0.2s;">
+                <div style="width: 22px; height: 22px; border-radius: 6px; border: 2px solid ${isChecked ? '#10b981' : '#cbd5e1'}; background: ${isChecked ? '#10b981' : 'white'}; display: flex; align-items: center; justify-content: center; color: white; font-size: 0.75rem;">
+                    ${isChecked ? '<i class="fas fa-check"></i>' : ''}
+                </div>
+                <span style="font-size: 0.85rem; font-weight: ${isChecked ? '600' : '500'}; color: ${isChecked ? '#166534' : '#475569'};">
+                    ${docLabels[key]}
+                </span>
+            </div>
+        `;
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+}
+
+window.locateParcel = async function (barangay, municipality, province, index, pLat = '', pLng = '') {
+    try {
+        if (!landMap) {
+             showFlashMessage('Map engine not ready.', 'error');
+             return;
+        }
+
+        const bgy = (barangay || '').trim();
+        const muni = (municipality || 'Mabitac').trim();
+        const prov = (province || 'Laguna').trim();
+        const key = bgy.toLowerCase();
+        
+        showFlashMessage(`Searching for ${bgy}...`, 'info');
+        if (typeof updateMapAddressLabel === 'function') updateMapAddressLabel(bgy, muni);
+
+        // 1. Save current state
+        if (activeParcelIndex !== -1 && activeParcelIndex !== index) {
+            if (drawnItems && drawnItems.getLayers().length > 0) {
+                parcelGeoMap[activeParcelIndex] = drawnItems.toGeoJSON();
+            }
+        }
+
+        // 2. CHECK CACHE (Saved drawings)
+        if (parcelGeoMap[index]) {
+            const geo = parcelGeoMap[index];
+            const layer = L.geoJSON(geo);
+            if (layer.getBounds().isValid()) {
+                drawnItems.clearLayers();
+                layer.eachLayer(l => drawnItems.addLayer(l));
+                activeParcelIndex = index;
+                landMap.fitBounds(layer.getBounds(), { padding: [50, 50] });
+                showFlashMessage(`Restored drawing for parcel #${index + 1}`, 'success');
+                return;
+            }
+        }
+
+        // 3. INTERNAL MABITAC OPTIMIZATION (Speed)
+        const localMap = {
+            'amuyong': [14.4428, 121.3840],
+            'bagong silang': [14.4172, 121.4328],
+            'mabitac': [14.4333, 121.4333],
+            'famy': [14.4357, 121.4489]
+        };
+
+        // 4. PARCEL-SPECIFIC COORDINATES (Laser Precision)
+        const parcelLat = parseFloat(pLat);
+        const parcelLng = parseFloat(pLng);
+        if (!isNaN(parcelLat) && !isNaN(parcelLng) && parcelLat !== 0) {
+            const c = [parcelLat, parcelLng];
+            drawnItems.clearLayers();
+            activeParcelIndex = index;
+            // High zoom for specific fields
+            landMap.setView(c, 18);
+            if (locateHighlight) landMap.removeLayer(locateHighlight);
+            locateHighlight = L.circle(c, { radius: 50, color: '#10b981', fillOpacity: 0.2 }).addTo(landMap);
+            showFlashMessage(`Precision Match: Parcel #${index + 1} located.`, 'success');
+            return;
+        }
+
+        if (localMap[key]) {
+            const c = localMap[key];
+            drawnItems.clearLayers();
+            activeParcelIndex = index;
+            landMap.setView(c, 17);
+            if (locateHighlight) landMap.removeLayer(locateHighlight);
+            locateHighlight = L.circle(c, { radius: 100, color: '#10b981', fillOpacity: 0.15 }).addTo(landMap);
+            showFlashMessage(`Located ${bgy} (Instant Match)`, 'success');
+            return;
+        }
+
+        // 4. CHECK FORM-LEVEL COORDINATES (If encoder provided them)
+        const latVal = parseFloat(document.getElementById('reviewGisLat')?.value);
+        const lngVal = parseFloat(document.getElementById('reviewGisLng')?.value);
+        if (!isNaN(latVal) && !isNaN(lngVal) && latVal !== 0) {
+            const c = [latVal, lngVal];
+            drawnItems.clearLayers();
+            activeParcelIndex = index;
+            landMap.setView(c, 18);
+            if (locateHighlight) landMap.removeLayer(locateHighlight);
+            locateHighlight = L.circle(c, { radius: 50, color: '#4f46e5', fillOpacity: 0.1 }).addTo(landMap);
+            showFlashMessage(`Centering on Encoded Coordinates`, 'success');
+            return;
+        }
+
+        // 5. GLOBAL SEARCH (Multi-Stage Fallback)
+        showFlashMessage('Querying Global GIS Database...', 'info');
+        
+        const queries = [
+            `${bgy}, ${muni}, ${prov}, Philippines`,
+            `${bgy}, ${muni}, Philippines`,
+            `${muni}, ${prov}, Philippines`
+        ];
+
+        let foundC = null;
+        let foundZoom = 17;
+        let foundMsg = '';
+
+        for (let q of queries) {
+            try {
+                const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, {
+                    headers: { 'User-Agent': 'FarmConnectVerifier/1.1' }
+                });
+                const data = await resp.json();
+                if (data && data.length > 0) {
+                    foundC = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
+                    foundZoom = q.includes(bgy) ? 17 : 14;
+                    foundMsg = `Located via: ${q}`;
+                    break;
+                }
+            } catch (e) { continue; }
+        }
+
+        if (foundC) {
+            drawnItems.clearLayers();
+            activeParcelIndex = index;
+            landMap.setView(foundC, foundZoom);
+            if (locateHighlight) landMap.removeLayer(locateHighlight);
+            locateHighlight = L.circle(foundC, { radius: 100, color: '#10b981', fillOpacity: 0.15 }).addTo(landMap);
+            showFlashMessage(foundMsg, 'success');
+        } else {
+            showFlashMessage(`Could not find specific location. Please use manual zoom.`, 'warning');
+        }
+
+    } catch (err) {
+        console.error("GIS Global Fail:", err);
+        showFlashMessage("Localization service error.", "error");
+    }
+};
+
+window.viewAttachment = function (type) {
+    const data = document.getElementById('reviewModal').dataset[type === 'land_doc' ? 'landDoc' : 'gpxData'];
+    if (!data) return;
+
+    if (data.startsWith('data:image')) {
+        const win = window.open();
+        win.document.write(`<img src="${data}" style="max-width:100%;">`);
+    } else {
+        // For PDF or GPX (text)
+        const win = window.open();
+        win.document.write(`<pre style="word-wrap: break-word; white-space: pre-wrap;">${data}</pre>`);
+    }
+}
+
+window.useGpxData = function () {
+    const gpx = document.getElementById('reviewModal').dataset.gpxData;
+    if (!gpx) {
+        showFlashMessage('No GPX data attached to this submission.', 'warning');
+        return;
+    }
+
+    showFlashMessage('Processing attached GPX data...', 'info');
+    processGpx(gpx);
+}
+
+window.handleGisImport = function (event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const content = e.target.result;
+        const extension = file.name.split('.').pop().toLowerCase();
+
+        try {
+            if (extension === 'json' || extension === 'geojson') {
+                const geojson = JSON.parse(content);
+                processGeoJson(geojson);
+            } else if (extension === 'gpx') {
+                processGpx(content);
+            } else if (extension === 'kml') {
+                processKml(content);
+            } else {
+                showFlashMessage('Unsupported file format', 'error');
+            }
+        } catch (err) {
+            console.error('Import error:', err);
+            showFlashMessage('Failed to parse GIS file', 'error');
+        }
+        // Clear input for next use
+        event.target.value = '';
+    };
+    reader.readAsText(file);
+};
+
+function processGeoJson(data) {
+    if (!landMap || !drawnItems) return;
+    drawnItems.clearLayers();
+
+    L.geoJSON(data, {
+        onEachFeature: (feature, layer) => {
+            if (layer.getBounds) {
+                drawnItems.addLayer(layer);
+            }
+        }
+    });
+
+    if (drawnItems.getLayers().length > 0) {
+        const bounds = drawnItems.getBounds();
+        landMap.fitBounds(bounds);
+        const center = bounds.getCenter();
+        updateGisFields(center.lat, center.lng);
+
+        // Sync with global state for submission
+        currentGeoJSON = JSON.stringify(data);
+        showFlashMessage('GeoJSON data imported & plotted.', 'success');
+    }
+}
+
+function processGpx(xmlString) {
+    const latRegex = /lat="([-+]?([0-9]*[.])?[0-9]+)"/g;
+    const lonRegex = /lon="([-+]?([0-9]*[.])?[0-9]+)"/g;
+
+    let latMatch, lonMatch;
+    const points = [];
+
+    while ((latMatch = latRegex.exec(xmlString)) !== null && (lonMatch = lonRegex.exec(xmlString)) !== null) {
+        points.push([parseFloat(latMatch[1]), parseFloat(lonMatch[1])]);
+    }
+
+    if (points.length > 0) {
+        drawnItems.clearLayers();
+        const poly = L.polygon(points, { color: '#10b981', weight: 3, fillOpacity: 0.2 }).addTo(drawnItems);
+        landMap.fitBounds(poly.getBounds());
+        const center = poly.getBounds().getCenter();
+        updateGisFields(center.lat, center.lng);
+
+        // Sync with global state
+        currentGeoJSON = JSON.stringify(poly.toGeoJSON());
+        showFlashMessage(`Imported ${points.length} points from GPX.`, 'success');
+    } else {
+        showFlashMessage('No coordinates found in GPX file.', 'warning');
+    }
+}
+
+function processKml(xmlString) {
+    // Basic KML <coordinates> extraction
+    const coordMatch = xmlString.match(/<coordinates>([\s\S]*?)<\/coordinates>/);
+    if (coordMatch) {
+        const raw = coordMatch[1].trim();
+        const pairs = raw.split(/\s+/);
+        const points = pairs.map(p => {
+            const parts = p.split(',');
+            return [parseFloat(parts[1]), parseFloat(parts[0])]; // KML is lon,lat
+        }).filter(p => !isNaN(p[0]) && !isNaN(p[1]));
+
+        if (points.length > 0) {
+            drawnItems.clearLayers();
+            const poly = L.polygon(points, { color: '#3b82f6', weight: 3 }).addTo(drawnItems);
+            landMap.fitBounds(poly.getBounds());
+            const center = poly.getBounds().getCenter();
+            updateGisFields(center.lat, center.lng);
+
+            // Sync with global state
+            currentGeoJSON = JSON.stringify(poly.toGeoJSON());
+            showFlashMessage('KML coordinates imported.', 'success');
+            return;
+        }
+    }
+    showFlashMessage('Could not parse KML coordinates.', 'warning');
+}
+
+function updateGisFields(lat, lng) {
+    const latEl = document.getElementById('reviewGisLat');
+    const lngEl = document.getElementById('reviewGisLng');
+    if (latEl) latEl.value = lat.toFixed(6);
+    if (lngEl) lngEl.value = lng.toFixed(6);
+
+    // Also move map to center just in case
+    if (landMap) landMap.panTo([lat, lng]);
+}
+
+window.downloadReviewPdf = function () {
+    showFlashMessage('PDF Download is currently disabled for this review mode.', 'info');
+};
+
+let pendingSubmissionAction = null; // 'verified' or 'rejected'
+
+window.promptConfirmModal = function (status) {
+    if (!currentSubmissionId) return;
+
+    const confirmCheck = document.getElementById('confirmVerification');
+    if (status === 'verified' && confirmCheck && !confirmCheck.checked) {
+        showFlashMessage('Please confirm that you have verified all details using the checkbox', 'warning');
+        return;
+    }
+
+    pendingSubmissionAction = status;
+
+    // Reset modal fields
+    const remarksField = document.getElementById('reviewRemarks');
+    remarksField.value = '';
+    remarksField.classList.remove('error');
+    document.getElementById('remarksError').style.display = 'none';
+
+    // Configure Modal UI based on action
+    const header = document.getElementById('confirmModalHeader');
+    const title = document.getElementById('confirmModalTitle');
+    const message = document.getElementById('confirmModalMessage');
+    const label = document.getElementById('reviewRemarksLabel');
+    const btn = document.getElementById('confirmActionBtn');
+
+    if (status === 'verified') {
+        header.style.background = '#10b981';
+        title.innerHTML = '<i class="fas fa-check-circle"></i> Approve Submission';
+        message.innerHTML = 'You are about to <strong>Approve</strong> this submission. It will be sent to the Municipal Agriculturist Office (MAO).';
+        label.innerText = 'Remarks (Optional)';
+        btn.style.background = '#10b981';
+        btn.style.borderColor = '#10b981';
+        btn.innerText = 'Complete Verification';
+    } else {
+        header.style.background = '#ef4444';
+        title.innerHTML = '<i class="fas fa-times-circle"></i> Reject Submission';
+        message.innerHTML = 'You are about to <strong>Reject</strong> this submission. It will be returned to the Encoder.';
+        label.innerHTML = 'Reason for Rejection <span style="color: #ef4444;">*</span>';
+        btn.style.background = '#ef4444';
+        btn.style.borderColor = '#ef4444';
+        btn.innerText = 'Reject & Return';
+    }
+
+    openModal('confirmReviewModal');
+};
+
+window.proceedSubmission = function () {
+    if (!pendingSubmissionAction || !currentSubmissionId) return;
+
+    const status = pendingSubmissionAction;
+    const remarksField = document.getElementById('reviewRemarks');
+    let remarks = remarksField.value.trim();
+
+    // Rejection validation
+    if (status === 'rejected' && remarks === '') {
+        remarksField.style.borderColor = '#ef4444';
+        document.getElementById('remarksError').style.display = 'block';
+        remarksField.focus();
+        showFlashMessage('Rejection reason is required', 'warning');
+        return;
+    }
+
+    const formType = document.getElementById('reviewModal').dataset.formType;
+    let gisData = null;
+
+    if (formType === 'rsba' && status === 'verified') {
+        gisData = {
+            latitude: document.getElementById('reviewGisLat')?.value || '',
+            longitude: document.getElementById('reviewGisLng')?.value || '',
+            elevation: document.getElementById('reviewGisElevation')?.value || '',
+            source: document.getElementById('reviewGisSource')?.value || ''
+        };
+    }
+
+    const payload = {
+        status: status,
+        beneficiary_updates: {
+            first_name: document.getElementById('reviewFirstName')?.value,
+            last_name: document.getElementById('reviewLastName')?.value,
+            barangay: document.getElementById('reviewBarangay')?.value,
+            mobile_number: document.getElementById('reviewMobile')?.value
+        },
+        gis_data: gisData,
+        geo_data: JSON.stringify(parcelGeoMap), // Send multi-parcel map
+        remarks: remarks
+    };
+
+    // Disable buttons during submit - fixed selectors to match modal trigger
+    const actionBtn = document.getElementById('confirmActionBtn');
+    const approveBtn = document.querySelector('[onclick="promptConfirmModal(\'verified\')"]');
+    const rejectBtn = document.querySelector('[onclick="promptConfirmModal(\'rejected\')"]');
+
+    if (actionBtn) { actionBtn.disabled = true; actionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...'; }
+    if (approveBtn) approveBtn.disabled = true;
+    if (rejectBtn) rejectBtn.disabled = true;
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    fetch(`/verifier/api/submissions/${currentSubmissionId}/review`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+        },
+        body: JSON.stringify(payload)
+    })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('confirmReviewModal');
+                closeModal('reviewModal');
+                loadStats();
+                loadPendingSubmissions();
+                loadReviewedSubmissions();
+                showFlashMessage(`Submission ${status === 'verified' ? 'verified' : 'rejected'} successfully`, 'success');
+
+            } else {
+                showFlashMessage('Error: ' + data.message, 'error');
+                // Reset buttons on error
+                if (actionBtn) {
+                    actionBtn.disabled = false;
+                    actionBtn.innerText = 'Confirm'; // Assuming 'Confirm' is the default text
+                }
+                if (approveBtn) approveBtn.disabled = false;
+                if (rejectBtn) rejectBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting review:', error);
+            showFlashMessage('Failed to submit review. Server error.', 'error');
+            // Reset buttons on error
+            if (actionBtn) {
+                actionBtn.disabled = false;
+                actionBtn.innerText = 'Confirm'; // Assuming 'Confirm' is the default text
+            }
+            if (approveBtn) approveBtn.disabled = false;
+            if (rejectBtn) rejectBtn.disabled = false;
+        })
+        .finally(() => {
+            // This finally block will ensure buttons are re-enabled even if the above error handling
+            // didn't explicitly catch it or if there's a network issue before the .then/.catch.
+            // However, the specific text reset for actionBtn is handled in the .catch and .then(else)
+            // to allow for specific messages if needed.
+            if (approveBtn) approveBtn.disabled = false;
+            if (rejectBtn) rejectBtn.disabled = false;
+        });
+};
+
+// ═══════════════════════════════════════════════════════
+// System Settings — Profile, Password, Account Deletion
+// ═══════════════════════════════════════════════════════
+
+
+
+/* ── Review Modal Tab Logic ── */
+window.switchReviewTab = function (tabName) {
+    // Hide all contents
+    document.querySelectorAll('.tab-content-area').forEach(tab => {
+        tab.style.display = 'none';
+    });
+
+    // Deactivate all buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+
+    // Show selected content
+    const contentId = 'tabContent' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+    const content = document.getElementById(contentId);
+    if (content) content.style.display = 'block';
+
+    // Activate selected button
+    const btnId = 'tabBtn' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
+    const btn = document.getElementById(btnId);
+    if (btn) btn.classList.add('active');
+};
+
+// ── Trash Bin Functions ─────────────────────────────────────────────────────
+
+const TRASH_API_BASE_V = '/verifier';
+
+window.softDeleteSubmission = window.softDeleteSubmission || async function(id) {
+    const result = await Swal.fire({
+        title: 'Move to Trash?',
+        text: 'You can restore it later from the Trash Bin.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#e3342f',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, move it'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+        const res = await fetch(`${TRASH_API_BASE_V}/api/submissions/${id}/soft-delete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+            credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) {
+            showFlashMessage('Submission moved to trash', 'success');
+            loadPendingSubmissions();
+            loadReviewedSubmissions();
+            loadStats();
+            loadTrashCount();
+        } else {
+            showFlashMessage(data.message || 'Failed to delete', 'error');
+        }
+    } catch (e) {
+        showFlashMessage('Network error', 'error');
+    }
+};
+
+window.openTrashBin = async function() {
+    document.getElementById('trashModalOverlay').classList.add('active');
+    document.getElementById('trashModalBody').innerHTML = '<div style="text-align:center;padding:2rem;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem;color:var(--primary);"></i></div>';
+    try {
+        const res = await fetch(`${TRASH_API_BASE_V}/api/trash`, { credentials: 'include' });
+        const data = await res.json();
+        if (data.success) renderTrashItemsV(data.items);
+    } catch (e) {
+        document.getElementById('trashModalBody').innerHTML = '<div class="trash-empty-state"><i class="fas fa-exclamation-triangle"></i><h4>Failed to load</h4><p>Please try again</p></div>';
+    }
+};
+
+window.closeTrashBin = function(e) {
+    if (e && e.target && !e.target.classList.contains('trash-modal-overlay')) return;
+    document.getElementById('trashModalOverlay').classList.remove('active');
+};
+
+function renderTrashItemsV(items) {
+    const body = document.getElementById('trashModalBody');
+    if (!items || items.length === 0) {
+        body.innerHTML = '<div class="trash-empty-state"><i class="fas fa-recycle"></i><h4>Trash is empty</h4><p>Deleted submissions will appear here</p></div>';
+        return;
+    }
+    body.innerHTML = items.map(item => {
+        const name = item.beneficiary_name || 'Unknown';
+        const type = item.form_type || 'rsbsa';
+        const deletedAt = item.deleted_at ? new Date(item.deleted_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Unknown';
+        return `
+        <div class="trash-item">
+            <div class="trash-item-info">
+                <div class="trash-item-name">${name}</div>
+                <div class="trash-item-meta">
+                    <span><i class="fas fa-file-alt"></i> ${type.toUpperCase()}</span>
+                    <span><i class="fas fa-user"></i> ${item.encoder_name || 'Unknown'}</span>
+                    <span><i class="fas fa-trash"></i> Deleted ${deletedAt}</span>
+                </div>
+            </div>
+            <div class="trash-item-actions">
+                <button class="trash-btn-restore" onclick="restoreFromTrash(${item.id})">
+                    <i class="fas fa-undo"></i> Restore
+                </button>
+                <button class="trash-btn-delete" onclick="permanentDeleteFromTrash(${item.id})">
+                    <i class="fas fa-times"></i> Delete
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+window.restoreFromTrash = async function(id) {
+    try {
+        const res = await fetch(`${TRASH_API_BASE_V}/api/trash/${id}/restore`, {
+            method: 'POST', headers: { 'X-CSRFToken': getCSRFToken() }, credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) {
+            showFlashMessage('Submission restored', 'success');
+            openTrashBin(); loadPendingSubmissions(); loadStats(); loadTrashCount();
+        } else showFlashMessage(data.message || 'Restore failed', 'error');
+    } catch (e) { showFlashMessage('Network error', 'error'); }
+};
+
+window.permanentDeleteFromTrash = async function(id) {
+    const result = await Swal.fire({
+        title: 'Permanently Delete?',
+        text: 'This action cannot be undone! Are you absolutely sure?',
+        icon: 'error',
+        showCancelButton: true,
+        confirmButtonColor: '#e3342f',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Yes, delete permanently'
+    });
+    if (!result.isConfirmed) return;
+
+    try {
+        const res = await fetch(`${TRASH_API_BASE_V}/api/trash/${id}/permanent`, {
+            method: 'DELETE', headers: { 'X-CSRFToken': getCSRFToken() }, credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.success) {
+            showFlashMessage('Permanently deleted', 'success');
+            openTrashBin(); loadTrashCount();
+        } else showFlashMessage(data.message || 'Delete failed', 'error');
+    } catch (e) { showFlashMessage('Network error', 'error'); }
+};
+
+async function loadTrashCount() {
+    try {
+        const res = await fetch(`${TRASH_API_BASE_V}/api/trash/count`, { credentials: 'include' });
+        const data = await res.json();
+        const badge = document.getElementById('trashBadge');
+        if (badge && data.success) {
+            if (data.count > 0) { badge.textContent = data.count; badge.style.display = 'flex'; }
+            else badge.style.display = 'none';
+        }
+    } catch (e) { /* silent */ }
+}

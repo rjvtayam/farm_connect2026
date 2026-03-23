@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Fishing Vessel Registration Form — Farm Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms/boat-registration-form.css') }}">
+</head>
+<body>
+
+<div class="form-shell" id="formShell">
+
+<!-- ═══════════════════════════════════════════════════════
+     OFFICIAL HEADER
+══════════════════════════════════════════════════════════ -->
+<div class="form-header">
+    <div class="form-header-inner">
+        <div class="header-logo-block">
+            <!-- BFAR Seal SVG -->
+            <div class="da-seal">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="BFAR seal">
+                    <circle cx="50" cy="50" r="46" fill="none" stroke="#1a5f7a" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="#1a5f7a" stroke-width="1.5"/>
+                    <text x="50" y="22" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#1a5f7a">BUREAU OF</text>
+                    <text x="50" y="29" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#1a5f7a">FISHERIES AND</text>
+                    <text x="50" y="36" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#1a5f7a">AQUATIC RESOURCES</text>
+                    <!-- fish icon -->
+                    <path d="M 35 52 Q 50 42, 65 52 Q 50 62, 35 52 Z" fill="none" stroke="#1a5f7a" stroke-width="1.5"/>
+                    <circle cx="58" cy="51" r="2" fill="#1a5f7a"/>
+                    <path d="M 33 52 L 28 47 L 28 57 Z" fill="#1a5f7a"/>
+                    <text x="50" y="80" text-anchor="middle" font-size="5" font-weight="bold" fill="#1a5f7a">DA-BFAR</text>
+                </svg>
+            </div>
+            <div class="header-title-block">
+                <p class="form-annex">Annex A</p>
+                <h1 class="form-title-main">STANDARD FORM FOR BoatR</h1>
+                <h2 class="form-title-sub">MUNICIPAL FISHING VESSEL AND GEAR REGISTRATION</h2>
+                <p class="form-subtitle">Republic of the Philippines — Bureau of Fisheries and Aquatic Resources</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Location & MFVR Row -->
+    <div class="header-meta-row">
+        <div class="meta-left">
+            <div class="enrollment-type-row">
+                <span class="meta-label">LOCATION:</span>
+                <div class="meta-field-group">
+                    <label class="meta-field-label">Province of</label>
+                    <input type="text" id="province" class="meta-field-input">
+                </div>
+                <div class="meta-field-group">
+                    <label class="meta-field-label">Municipality/City of</label>
+                    <input type="text" id="municipality" class="meta-field-input">
+                </div>
+            </div>
+            <div class="ref-number-row">
+                <div class="ref-group">
+                    <label class="meta-label">MFVR NO.</label>
+                    <input type="text" class="ref-box ref-wide" id="mfvrNo" maxlength="12">
+                </div>
+                <div class="ref-group">
+                    <label class="meta-label">DATE OF APPLICATION</label>
+                    <input type="date" class="ref-box ref-wide" id="dateApplication" style="width:140px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div><!-- /form-header -->
+
+<form id="boatForm" novalidate>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  TYPE OF REGISTRATION               ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">I</span>
+        <span class="section-title">TYPE OF REGISTRATION</span>
+    </div>
+    <div class="section-body">
+        <div class="fg-row">
+            <div class="fg fg-full">
+                <div class="radio-row flex-wrap">
+                    <label class="check-opt"><input type="checkbox" name="regType" value="Initial Registration"> Initial Registration</label>
+                    <label class="check-opt"><input type="checkbox" name="regType" value="Issuance of New Certificate"> Issuance of New Certificate of Number (CN)</label>
+                    <label class="check-opt"><input type="checkbox" name="regType" value="Re-issuance"> Re-issuance of Certificate of Number (CN)</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  OWNER/OPERATOR INFORMATION         ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">II</span>
+        <span class="section-title">OWNER / OPERATOR INFORMATION</span>
+    </div>
+    <div class="section-body">
+        <div class="fg-row">
+            <div class="fg fg-full">
+                <label class="fg-label">NAME OF OWNER/OPERATOR <span class="fg-note">(Surname, First Name, M.I.)</span> <span class="req">*</span></label>
+                <input type="text" id="ownerName" class="fg-input" required>
+            </div>
+        </div>
+        <div class="fg-row">
+            <div class="fg fg-full">
+                <label class="fg-label">ADDRESS <span class="fg-note">(No. of Street, Barangay, Municipality/City, Province)</span> <span class="req">*</span></label>
+                <input type="text" id="ownerAddress" class="fg-input" required>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  VESSEL INFORMATION                 ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">III</span>
+        <span class="section-title">VESSEL INFORMATION</span>
+    </div>
+    <div class="section-body">
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">HOMEPORT</label>
+                <input type="text" id="homeport" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">NAME OF FISHING VESSEL <span class="req">*</span></label>
+                <input type="text" id="vesselName" class="fg-input" required>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">VESSEL TYPE</label>
+                <div class="radio-row">
+                    <label class="check-opt"><input type="radio" name="vesselType" value="Non-motorized"> Non-motorized</label>
+                    <label class="check-opt"><input type="radio" name="vesselType" value="Motorized"> Motorized</label>
+                    <label class="check-opt"><input type="radio" name="vesselType" value="Others"> Others</label>
+                    <input type="text" id="vesselTypeOther" class="fg-input inline-spec" placeholder="Specify">
+                </div>
+            </div>
+        </div>
+
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">PLACE BUILT</label>
+                <input type="text" id="placeBuilt" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">YEAR BUILT</label>
+                <input type="text" id="yearBuilt" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">MATERIAL USED</label>
+                <div class="radio-row flex-wrap">
+                    <label class="check-opt"><input type="checkbox" name="material" value="Wood"> Wood</label>
+                    <label class="check-opt"><input type="checkbox" name="material" value="Fiber glass"> Fiber glass</label>
+                    <label class="check-opt"><input type="checkbox" name="material" value="Composite"> Composite</label>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  VESSEL DIMENSIONS & TONNAGES       ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">IV</span>
+        <span class="section-title">FISHING VESSEL DIMENSIONS AND TONNAGES (METERS)</span>
+    </div>
+    <div class="section-body">
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">REGISTERED LENGTH</label>
+                <input type="number" step="0.01" id="regLength" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">REGISTERED BREADTH</label>
+                <input type="number" step="0.01" id="regBreadth" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">REGISTERED DEPTH</label>
+                <input type="number" step="0.01" id="regDepth" class="fg-input">
+            </div>
+        </div>
+
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">TONNAGE LENGTH</label>
+                <input type="number" step="0.01" id="tonnageLength" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">TONNAGE BREADTH</label>
+                <input type="number" step="0.01" id="tonnageBreadth" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">TONNAGE DEPTH</label>
+                <input type="number" step="0.01" id="tonnageDepth" class="fg-input">
+            </div>
+        </div>
+
+        <div class="fg-row">
+            <div class="fg fg-half">
+                <label class="fg-label">GROSS TONNAGE</label>
+                <input type="number" step="0.01" id="grossTonnage" class="fg-input">
+            </div>
+            <div class="fg fg-half">
+                <label class="fg-label">NET TONNAGE</label>
+                <input type="number" step="0.01" id="netTonnage" class="fg-input">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  PROPULSION SYSTEM                  ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">V</span>
+        <span class="section-title">PARTICULARS OF PROPULSION SYSTEM</span>
+    </div>
+    <div class="section-body">
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">ENGINE MAKE</label>
+                <input type="text" id="engineMake" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">SERIAL NUMBER</label>
+                <input type="text" id="serialNumber" class="fg-input">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">HORSEPOWER</label>
+                <input type="number" id="horsepower" class="fg-input">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  CLASSIFICATION OF FISHING GEAR     ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card gear-card">
+    <div class="section-header-bar">
+        <span class="section-num">VI</span>
+        <span class="section-title">CLASSIFICATION OF FISHING GEAR</span>
+    </div>
+    <div class="section-body">
+        <div class="gear-grid">
+            <!-- Hook and Line -->
+            <div class="gear-column-card">
+                <h4 class="gear-category-title">Hook and Line</h4>
+                <div class="gear-checks">
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Simple-hand line"> Simple-hand line</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Multiple-hand line"> Multiple-hand line</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Bottom set long line"> Bottom set long line</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Drift long line"> Drift long line</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Troll line"> Troll line</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Jig"> Jig</label>
+                </div>
+
+                <h4 class="gear-category-title">Gill Nets</h4>
+                <div class="gear-checks">
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Surface set gill net"> Surface set gill net</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Drift gill net"> Drift gill net</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Bottom set gill net"> Bottom set gill net</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Trammel net"> Trammel net</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Encircling gill net"> Encircling gill net</label>
+                </div>
+
+                <h4 class="gear-category-title">Seine Nets</h4>
+                <div class="gear-checks">
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Beach seine"> Beach seine</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Fry dozer or gatherer"> Fry dozer or gatherer</label>
+                </div>
+            </div>
+
+            <!-- Pots, Traps, Lift Nets -->
+            <div class="gear-column-card">
+                <h4 class="gear-category-title">Pots and Traps</h4>
+                <div class="gear-checks">
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Fish pots"> Fish pots</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Crab pots"> Crab pots</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Squid pots"> Squid pots</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Fyke nets/filter nets"> Fyke nets / filter nets</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Fish corrals"> Fish corrals (Baklad)</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Set net"> Set net (Lambaklad)</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Barrier net"> Barrier net (Likus)</label>
+                </div>
+
+                <h4 class="gear-category-title">Lift Nets</h4>
+                <div class="gear-checks">
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Crab lift nets"> Crab lift nets (Bintol)</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Fish lift nets"> Fish lift nets (basnig) / Bagnet</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="New look or Zapra"> "New look" or "Zapra"</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Shrimp lift nets"> Shrimp lift nets</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Lever net"> Lever net</label>
+                </div>
+
+                <h4 class="gear-category-title">Falling Gear</h4>
+                <div class="gear-checks">
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Cast net"> Cast net</label>
+                </div>
+            </div>
+
+            <!-- Scoop Nets, Miscellaneous -->
+            <div class="gear-column-card">
+                <h4 class="gear-category-title">Scoop Nets</h4>
+                <div class="gear-checks">
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Man push nets"> Man push nets</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Scoop nets"> Scoop nets</label>
+                </div>
+
+                <h4 class="gear-category-title">Miscellaneous Fishing Gears</h4>
+                <div class="gear-checks">
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Spear"> Spear</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Octopus/squid luring device"> Octopus/squid luring device</label>
+                    <label class="check-opt"><input type="checkbox" name="gear" value="Gaff hook"> Gaff hook</label>
+                </div>
+
+                <h4 class="gear-category-title">Others</h4>
+                <textarea id="gearsOther" class="fg-input" rows="4" placeholder="Specify other fishing gears..."></textarea>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  CERTIFICATION & SIGNATURE          ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card cert-card">
+    <div class="section-header-bar">
+        <span class="section-num">VII</span>
+        <span class="section-title">CERTIFICATION</span>
+    </div>
+    <div class="section-body">
+        <p class="cert-text">
+            I hereby certify that all information contained herein is true and correct.
+        </p>
+
+        <div class="sig-grid">
+            <div class="sig-block">
+                <div class="sig-line-area">
+                    <input type="text" id="ownerPrintedName" class="sig-text-input" placeholder="">
+                </div>
+                <div class="sig-label">PRINTED NAME OF OWNER</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line-area sig-pad-wrap">
+                    <canvas id="ownerSignature" class="signature-pad"></canvas>
+                    <button type="button" class="btn-clear-sig" onclick="clearSignature('owner')">Clear</button>
+                </div>
+                <div class="sig-label">SIGNATURE OF OWNER</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line-area thumbmark-zone" onclick="document.getElementById('thumbmarkUpload').click()" title="Upload thumbmark">
+                    <img id="thumbmarkPreview" style="display:none; max-width:80px; max-height:80px;">
+                    <span id="thumbmarkHint">Click to upload</span>
+                    <input type="file" id="thumbmarkUpload" accept="image/*" style="display:none;">
+                </div>
+                <div class="sig-label">THUMBMARK</div>
+            </div>
+        </div>
+
+        <!-- Official Use -->
+        <div class="verifier-block">
+            <div class="verifier-header">FOR OFFICIAL USE:</div>
+            <div class="verifier-sig-grid">
+                <div class="vsig-block">
+                    <div class="vsig-line"></div>
+                    <div class="vsig-label">ENUMERATOR<br><small>NAME / DESIGNATION AND SIGNATURE</small></div>
+                </div>
+                <div class="vsig-block">
+                    <div class="vsig-line"></div>
+                    <div class="vsig-label">NOTED BY<br><small>MUNICIPAL / CITY AGRICULTURIST</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form Actions -->
+<div class="form-action-bar">
+    <span></span>
+    <div class="action-right">
+        <button type="button" class="btn-download" id="downloadPdfBtn" onclick="downloadPDF()">
+            ⬇ Download Pre-filled PDF
+        </button>
+        <button type="submit" class="btn-submit" id="submitBtn">
+            ✓ Submit Boat Registration
+        </button>
+    </div>
+</div>
+
+<div id="successMessage" class="success-toast" style="display:none;">
+    ✓ Boat registration submitted successfully!
+</div>
+
+</form>
+</div><!-- /form-shell -->
+
+<script src="{{ url_for('static', filename='js/forms/boat-registration-form.js') }}"></script>
+</body>
+</html>

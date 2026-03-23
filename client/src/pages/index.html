@@ -1,0 +1,1096 @@
+{% extends "base.html" %} {% block title %}Farm Connect World - Transform Your
+Agricultural Journey{% endblock %} {% block content %}
+<!-- Hero Section -->
+<section id="home" class="hero">
+    <div class="container">
+        <div class="hero-content">
+            <span class="hero-badge animate-fade-delay">Connecting Farmers.
+                Empowering Fisheries. Strengthening Laguna.</span>
+            <h1 class="animate-fade">
+                Unified Agriculture & Fisheries Information System
+            </h1>
+            <p class="animate-fade-delay">
+                A centralized digital platform for managing agri-fishery
+                beneficiaries,
+                government interventions, and land property data with secure NFC
+                access,
+                mapping, and real-time analytics.
+            </p>
+            <div class="hero-buttons animate-fade-delay-2">
+                <a href="#features" class="btn btn-primary">Scan NFC / QR Code<i
+                        class="fas fa-arrow-right"></i></a>
+                <a href="#about" class="btn btn-outline">Discover More</a>
+            </div>
+            <div class="hero-stats animate-fade-delay-3">
+                <div class="stat-item">
+                    <span class="stat-number">1200+</span>
+                    <span class="stat-label">Registered Beneficiaries</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">15</span>
+                    <span class="stat-label">Barangays Covered</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">5000+</span>
+                    <span class="stat-label">Recorded Interventions</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-images animate-fade-delay-3">
+            <div class="image-container">
+                <img
+                    src="{{ url_for('public.static', filename='images/farmers_img.png') }}"
+                    alt="Rice Field in Laguna"
+                    class="main-image" />
+            </div>
+            <div class="image-container">
+                <img
+                    src="{{ url_for('public.static', filename='images/fisherfolk_img.png') }}"
+                    alt="Fishery Operations"
+                    class="main-image" />
+            </div>
+            <div class="floating-cards">
+                <div class="float-card">
+                    <i class="fas fa-id-card"></i>
+                    <span>NFC Authentication</span>
+                </div>
+                <div class="float-card">
+                    <i class="fas fa-map-marked-alt"></i>
+                    <span>GIS Mapping</span>
+                </div>
+                <div class="float-card">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>Secure Data</span>
+                </div>
+                <div class="float-card">
+                    <i class="fas fa-users"></i>
+                    <span>Multi-Role Access</span>
+                </div>
+                <div class="float-card">
+                    <i class="fas fa-chart-bar"></i>
+                    <span>Real-Time Analytics</span>
+                </div>
+            </div>
+        </div>
+        <div class="hero-background"></div>
+        <div class="hero-decoration">
+            <div class="decoration-circle"></div>
+            <div class="decoration-circle"></div>
+            <div class="decoration-circle"></div>
+        </div>
+    </div>
+</section>
+
+<!-- Banner Section -->
+<section class="banner-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-badge">Government Partners</span>
+            <h2>Trusted Agencies &amp; Programs</h2>
+            <p>Working hand-in-hand with national and local agencies to serve our agri-fishery communities</p>
+        </div>
+        <div class="banner-slider" id="bannerSlider">
+            <!-- DA Banner -->
+            <div class="banner-slide">
+                <a href="https://www.da.gov.ph" target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="{{ url_for('public.static', filename='images/banner-img-1-doa.png') }}"
+                            alt="Department of Agriculture" />
+                        <div class="banner-text">
+                            <h3>Department of Agriculture</h3>
+                            <p>National programs for agricultural development and food security</p>
+                            <span class="banner-cta">Visit DA Portal</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- BFAR Banner -->
+            <div class="banner-slide">
+                <a href="https://www.bfar.da.gov.ph" target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="{{ url_for('public.static', filename='images/banner-img-2-bfar.png') }}"
+                            alt="BFAR" />
+                        <div class="banner-text">
+                            <h3>Bureau of Fisheries (BFAR)</h3>
+                            <p>Fishery registration, boat licensing, and aquatic resource management</p>
+                            <span class="banner-cta">Learn More</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- PFDA Banner -->
+            <div class="banner-slide">
+                <a href="https://pfda.gov.ph" target="_blank" class="banner-link">
+                    <div class="banner-content">
+                        <img src="{{ url_for('public.static', filename='images/banner-img-3-pfda.png') }}" alt="PFDA" />
+                        <div class="banner-text">
+                            <h3>Philippine Fisheries Development Authority</h3>
+                            <p>Post-harvest facilities and infrastructure for fisherfolk</p>
+                            <span class="banner-cta">View Services</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- NFRDI Banner -->
+            <div class="banner-slide">
+                <a href="https://nfrdi.da.gov.ph" target="_blank" class="banner-link">
+                    <div class="banner-content">
+                        <img src="{{ url_for('public.static', filename='images/banner-img-7-nfrri.png') }}" alt="NFRDI" />
+                        <div class="banner-text">
+                            <h3>National Fisheries Research Institute</h3>
+                            <p>Scientific research and stock assessment for sustainable fisheries</p>
+                            <span class="banner-cta">Explore Research</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- RSBSA Banner -->
+            <div class="banner-slide">
+                <a href="https://rsbsa.da.gov.ph" target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="{{ url_for('public.static', filename='images/banner-img-1-doa.png') }}"
+                            alt="RSBSA" />
+                        <div class="banner-text">
+                            <h3>RSBSA Registry</h3>
+                            <p>Registry System for Basic Sectors in Agriculture</p>
+                            <span class="banner-cta">Verify Status</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- PhilRice Banner -->
+            <div class="banner-slide">
+                <a href="https://www.philrice.gov.ph" target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="{{ url_for('public.static', filename='images/banner-img-4-prri.png') }}"
+                            alt="PhilRice" />
+                        <div class="banner-text">
+                            <h3>Philippine Rice Research Institute</h3>
+                            <p>Rice research, technologies, and farmer support programs</p>
+                            <span class="banner-cta">Explore Research</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- PCIC Banner -->
+            <div class="banner-slide">
+                <a href="https://pcic.gov.ph" target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="{{ url_for('public.static', filename='images/banner-img-6-pcic.png') }}"
+                            alt="PCIC" />
+                        <div class="banner-text">
+                            <h3>Philippine Crop Insurance (PCIC)</h3>
+                            <p>Crop and fishery insurance protection for farmers</p>
+                            <span class="banner-cta">Check Coverage</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Province of Laguna -->
+            <div class="banner-slide">
+                <a href="https://www.laguna.gov.ph" target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="{{ url_for('public.static', filename='images/banner-img-5-pol.png') }}"
+                            alt="Province of Laguna" />
+                        <div class="banner-text">
+                            <h3>Province of Laguna</h3>
+                            <p>Provincial agriculture office and local programs</p>
+                            <span class="banner-cta">Visit Portal</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <button class="banner-nav prev" id="prevBtn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="banner-nav next" id="nextBtn">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <div class="banner-dots" id="bannerDots"></div>
+    </div>
+</section>
+
+<!-- About Section -->
+<section id="about" class="about">
+    <div class="container">
+        <div class="section-header reveal-fade">
+            <span class="section-badge">About Farm Connect</span>
+            <h2>Modernizing Agri-Fishery Data Management in Laguna</h2>
+            <p>
+                A centralized digital platform designed to streamline beneficiary
+                registration, government interventions, and agricultural data
+                across municipalities
+            </p>
+        </div>
+
+        <div class="about-content">
+            <!-- Purpose Section -->
+            <div class="purpose-section reveal-fade">
+                <div class="purpose-card">
+                    <div class="purpose-content">
+                        <div class="purpose-icon">
+                            <i class="fas fa-bullseye"></i>
+                        </div>
+                        <h3>Our Purpose</h3>
+                        <p>
+                            Farm Connect is dedicated to empowering local
+                            government units and Municipal Agriculture Offices
+                            with a secure, efficient system for managing
+                            farmer and fisherfolk registrations, land records,
+                            and intervention tracking — ensuring no
+                            beneficiary is left behind.
+                        </p>
+                    </div>
+
+                    <div class="purpose-image-container">
+                        <img
+                            src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=800&q=80"
+                            alt="Filipino Farmers Working Together"
+                            class="purpose-image"
+                            loading="lazy" />
+
+                        <!-- Floating Feature Cards inside image container -->
+                        <div class="image-feature-cards">
+                            <div class="image-feature">
+                                <div class="feature-icon">
+                                    <i class="fas fa-address-book"></i>
+                                </div>
+                                <h4>Beneficiary Registry</h4>
+                                <p>Complete RSBSA, FishR, BoatR, and NCFRS
+                                    enrollment management</p>
+                            </div>
+
+                            <div class="image-feature">
+                                <div class="feature-icon">
+                                    <i class="fas fa-map-marked-alt"></i>
+                                </div>
+                                <h4>GIS Farm Mapping</h4>
+                                <p>Geo-tagged parcels and land property
+                                    visualization</p>
+                            </div>
+
+                            <div class="image-feature">
+                                <div class="feature-icon">
+                                    <i class="fas fa-hand-holding-heart"></i>
+                                </div>
+                                <h4>Intervention Tracking</h4>
+                                <p>Monitor aid distribution and government
+                                    program delivery</p>
+                            </div>
+                        </div>
+
+                        <!-- Floating Info Cards -->
+                        <div class="floating-info">
+                            <div class="info-card">
+                                <i class="fas fa-seedling"></i>
+                                <span>Agriculture First</span>
+                            </div>
+                            <div class="info-card">
+                                <i class="fas fa-shield-alt"></i>
+                                <span>Data Security</span>
+                            </div>
+                            <div class="info-card">
+                                <i class="fas fa-chart-line"></i>
+                                <span>Smart Analytics</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+
+
+<!-- System Capabilities Section -->
+<section class="capabilities-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-badge">Powerful Features</span>
+            <h2>System Capabilities</h2>
+            <p>
+                Built with cutting-edge technology to modernize
+                agri-fishery data management across Laguna
+            </p>
+        </div>
+        <div class="capabilities-grid">
+            <!-- NFC Authentication -->
+            <div class="capability-card">
+                <div class="capability-icon">
+                    <i class="fas fa-id-card"></i>
+                </div>
+                <h4>NFC Smart Card Access</h4>
+                <p>
+                    Tap-to-authenticate NFC cards for field staff,
+                    enabling secure offline access even in remote barangays
+                </p>
+                <img
+                    src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=800&q=80"
+                    alt="NFC Card Authentication"
+                    loading="lazy" />
+            </div>
+
+            <!-- Real-Time Analytics -->
+            <div class="capability-card">
+                <div class="capability-icon">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <h4>Real-Time Analytics</h4>
+                <p>
+                    Live dashboards showing registration status, beneficiary
+                    counts, and intervention metrics per municipality
+                </p>
+                <img
+                    src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80"
+                    alt="Analytics Dashboard"
+                    loading="lazy" />
+            </div>
+
+            <!-- GIS Mapping -->
+            <div class="capability-card">
+                <div class="capability-icon">
+                    <i class="fas fa-map-marked-alt"></i>
+                </div>
+                <h4>GIS Farm Mapping</h4>
+                <p>
+                    Interactive maps with geo-tagged farm parcels,
+                    fishing zones, and barangay-level data visualization
+                </p>
+                <img
+                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80"
+                    alt="GIS Mapping"
+                    loading="lazy" />
+            </div>
+
+            <!-- Multi-Program Registration -->
+            <div class="capability-card">
+                <div class="capability-icon">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <h4>Multi-Program Registration</h4>
+                <p>
+                    Unified enrollment for RSBSA, FishR, BoatR, and NCFRS
+                    programs with digital form processing
+                </p>
+                <img
+                    src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=800&q=80"
+                    alt="Digital Registration"
+                    loading="lazy" />
+            </div>
+
+            <!-- Role-Based Workflow -->
+            <div class="capability-card">
+                <div class="capability-icon">
+                    <i class="fas fa-users-cog"></i>
+                </div>
+                <h4>Role-Based Workflow</h4>
+                <p>
+                    Structured approval pipeline from Encoder → Verifier → MAO
+                    with complete audit trail
+                </p>
+                <img
+                    src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=800&q=80"
+                    alt="Team Workflow"
+                    loading="lazy" />
+            </div>
+
+            <!-- Municipality Isolation -->
+            <div class="capability-card">
+                <div class="capability-icon">
+                    <i class="fas fa-lock"></i>
+                </div>
+                <h4>Data Privacy &amp; Isolation</h4>
+                <p>
+                    Municipality-level data isolation ensuring each LGU
+                    can only access their own beneficiary records
+                </p>
+                <img
+                    src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?auto=format&fit=crop&w=800&q=80"
+                    alt="Data Security"
+                    loading="lazy" />
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section id="features" class="features-showcase">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-badge">Features</span>
+            <h1 class="showcase-heading">Why Choose Farm Connect</h1>
+            <p class="showcase-description">
+                Streamline your municipality's agri-fishery operations with
+                a platform built for real field conditions.
+            </p>
+        </div>
+
+        <div class="showcase-grid">
+            <!-- Main Feature Display -->
+            <div class="feature-main">
+                <div class="feature-main-image-container">
+                    <img
+                        src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80"
+                        alt="Digital Agricultural Management"
+                        class="feature-main-image"
+                        id="mainFeatureImage" />
+                    <div class="feature-main-overlay">
+                        <h2 id="mainFeatureTitle">Unified Registration Hub</h2>
+                        <p id="mainFeatureDesc">
+                            A single platform for managing RSBSA, FishR, BoatR,
+                            and NCFRS enrollments — eliminating paperwork
+                            and ensuring accurate, up-to-date beneficiary
+                            records for every barangay.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Feature List -->
+            <div class="feature-list">
+                <!-- Feature 1 -->
+                <div class="feature-item active" data-feature="1">
+                    <img
+                        src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=400&q=80"
+                        alt="Unified Registration"
+                        class="feature-item-image" />
+                    <div class="feature-item-content">
+                        <h3>Unified Registration Hub</h3>
+                        <p>One platform for RSBSA, FishR, BoatR, and NCFRS
+                            enrollments.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 2 -->
+                <div class="feature-item" data-feature="2">
+                    <img
+                        src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?auto=format&fit=crop&w=400&q=80"
+                        alt="Offline Capability"
+                        class="feature-item-image" />
+                    <div class="feature-item-content">
+                        <h3>Offline-Ready Operations</h3>
+                        <p>NFC card auth and offline queue for areas with
+                            limited connectivity.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 3 -->
+                <div class="feature-item" data-feature="3">
+                    <img
+                        src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=400&q=80"
+                        alt="Approval Workflow"
+                        class="feature-item-image" />
+                    <div class="feature-item-content">
+                        <h3>Structured Approval Workflow</h3>
+                        <p>Encoder → Verifier → MAO pipeline with full
+                            audit trail.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 4 -->
+                <div class="feature-item" data-feature="4">
+                    <img
+                        src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=400&q=80"
+                        alt="Analytics Dashboard"
+                        class="feature-item-image" />
+                    <div class="feature-item-content">
+                        <h3>MAO Analytics Dashboard</h3>
+                        <p>Visual charts for registration trends, status
+                            distribution, and barangay coverage.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 5 -->
+                <div class="feature-item" data-feature="5">
+                    <img
+                        src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=400&q=80"
+                        alt="GIS Mapping"
+                        class="feature-item-image" />
+                    <div class="feature-item-content">
+                        <h3>Geospatial Farm Mapping</h3>
+                        <p>Geo-tagged parcels with interactive map
+                            visualization.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 6 -->
+                <div class="feature-item" data-feature="6">
+                    <img
+                        src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=400&q=80"
+                        alt="Multi-Factor Security"
+                        class="feature-item-image" />
+                    <div class="feature-item-content">
+                        <h3>Multi-Factor Security</h3>
+                        <p>Email OTP, Google OAuth, and NFC card
+                            authentication layers.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 7 -->
+                <div class="feature-item" data-feature="7">
+                    <img
+                        src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=400&q=80"
+                        alt="Document Management"
+                        class="feature-item-image" />
+                    <div class="feature-item-content">
+                        <h3>Document Management</h3>
+                        <p>Upload and manage supporting documents per
+                            registration.</p>
+                    </div>
+                </div>
+
+                <!-- Feature 8 -->
+                <div class="feature-item" data-feature="8">
+                    <img
+                        src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=400&q=80"
+                        alt="Municipality Isolation"
+                        class="feature-item-image" />
+                    <div class="feature-item-content">
+                        <h3>Municipality Data Isolation</h3>
+                        <p>Each LGU sees only their own data — privacy
+                            by design.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Newsletter Section -->
+<section class="newsletter">
+    <div class="newsletter-decoration">
+        <div class="decoration-circle"></div>
+        <div class="decoration-circle"></div>
+    </div>
+    <div class="container">
+        <div class="newsletter-content">
+            <div class="newsletter-text">
+                <h2>Stay Informed!</h2>
+                <p>
+                    Subscribe to receive updates on new agricultural programs,
+                    system features, and important announcements
+                    from the Municipal Agriculture Office
+                </p>
+            </div>
+            <form class="newsletter-form">
+                <div class="form-group">
+                    <input
+                        type="email"
+                        name="email"
+                        placeholder="Enter your email address"
+                        required />
+                    <button type="submit">
+                        Subscribe <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</section>
+<!-- FAQ Section -->
+<section id="faqs" class="faq-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-badge">Frequently Asked Questions</span>
+            <h2>Got Questions? We've Got Answers</h2>
+            <p>Everything you need to know about Farm Connect and our services</p>
+        </div>
+
+        <div class="faq-container">
+            <div class="faq-illustration">
+                <div class="faq-illustration-inner">
+                    <div class="faq-icon-main">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="faq-floating-badge badge-1">
+                        <i class="fas fa-leaf"></i>
+                    </div>
+                    <div class="faq-floating-badge badge-2">
+                        <i class="fas fa-fish"></i>
+                    </div>
+                    <div class="faq-floating-badge badge-3">
+                        <i class="fas fa-tractor"></i>
+                    </div>
+                    <p class="faq-support-text">Can't find your answer?<br>
+                        <a href="#contact" class="faq-contact-link">Contact our support team <i class="fas fa-arrow-right"></i></a>
+                    </p>
+                </div>
+            </div>
+
+            <div class="faq-list">
+                <!-- FAQ 1 -->
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span class="faq-q-icon"><i class="fas fa-seedling"></i></span>
+                        <span>What is Farm Connect and who can use it?</span>
+                        <i class="fas fa-chevron-down faq-chevron"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Farm Connect is a centralized agri-fishery information system for municipalities in Laguna. It is used by Municipal Agriculture Office (MAO) staff, Encoders, Verifiers, and System Administrators to manage farmer and fisherfolk registrations, beneficiary records, and government intervention tracking.</p>
+                    </div>
+                </div>
+
+                <!-- FAQ 2 -->
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span class="faq-q-icon"><i class="fas fa-id-card"></i></span>
+                        <span>How do I register as a beneficiary?</span>
+                        <i class="fas fa-chevron-down faq-chevron"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Beneficiary registration is handled through authorized MAO staff and Encoders at your local Municipal Agriculture Office. Visit your nearest MAO office with your valid IDs and supporting documents. The Encoder will input your information into Farm Connect for processing and verification.</p>
+                    </div>
+                </div>
+
+                <!-- FAQ 3 -->
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span class="faq-q-icon"><i class="fas fa-clipboard-list"></i></span>
+                        <span>What programs are supported by the system?</span>
+                        <i class="fas fa-chevron-down faq-chevron"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Farm Connect currently supports enrollment for <strong>RSBSA</strong> (Registry System for Basic Sectors in Agriculture), <strong>FishR</strong> (Fisherfolk Registration), <strong>BoatR</strong> (Boat Registration), and <strong>NCFRS</strong> (National Coordination Framework for Relief and Sustainable Development). Additional programs may be added as needed.</p>
+                    </div>
+                </div>
+
+                <!-- FAQ 4 -->
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span class="faq-q-icon"><i class="fas fa-shield-alt"></i></span>
+                        <span>How is my personal data protected?</span>
+                        <i class="fas fa-chevron-down faq-chevron"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>We take data privacy seriously. Farm Connect implements municipality-level data isolation, meaning your municipality's data is completely separate from other LGUs. The system uses two-factor authentication, encrypted connections, and role-based access control to ensure only authorized personnel can access records.</p>
+                    </div>
+                </div>
+
+                <!-- FAQ 5 -->
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span class="faq-q-icon"><i class="fas fa-mobile-alt"></i></span>
+                        <span>Can I access Farm Connect on mobile devices?</span>
+                        <i class="fas fa-chevron-down faq-chevron"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes! Farm Connect is fully responsive and works on smartphones, tablets, and desktops. Staff in the field can use NFC-enabled devices for quick authentication and data entry even in areas with limited connectivity, thanks to our offline-ready functionality.</p>
+                    </div>
+                </div>
+
+                <!-- FAQ 6 -->
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span class="faq-q-icon"><i class="fas fa-sync-alt"></i></span>
+                        <span>What is the registration approval workflow?</span>
+                        <i class="fas fa-chevron-down faq-chevron"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Registrations follow a structured pipeline: <strong>Encoder</strong> creates the record → <strong>Verifier</strong> reviews and validates → <strong>MAO Staff</strong> gives final approval. Each step is fully tracked with an audit trail for transparency and accountability.</p>
+                    </div>
+                </div>
+
+                <!-- FAQ 7 -->
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span class="faq-q-icon"><i class="fas fa-map-marked-alt"></i></span>
+                        <span>Does Farm Connect include GIS mapping?</span>
+                        <i class="fas fa-chevron-down faq-chevron"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>Yes, the system includes GIS-based farm parcel mapping that allows geo-tagging of agricultural land, fishing zones, and barangay-level data visualization. This helps MAO staff monitor land use, plan interventions, and visualize beneficiary distribution across the municipality.</p>
+                    </div>
+                </div>
+
+                <!-- FAQ 8 -->
+                <div class="faq-item">
+                    <button class="faq-question" aria-expanded="false">
+                        <span class="faq-q-icon"><i class="fas fa-headset"></i></span>
+                        <span>How do I get technical support?</span>
+                        <i class="fas fa-chevron-down faq-chevron"></i>
+                    </button>
+                    <div class="faq-answer">
+                        <p>For technical support, you can contact our team through the <a href="#contact">Contact Us</a> section below, email us at <strong>support@lspu.edu.ph</strong>, or call the helpdesk at <strong>(049) 557-1142</strong>. Our support team is available during office hours, Monday to Friday.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Community Section -->
+<section id="community" class="community-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-badge">Join the Movement</span>
+            <h2>Farm Connect Community</h2>
+            <p>Connect with fellow agricultural stakeholders and be part of a growing network</p>
+        </div>
+
+        <div class="community-grid">
+            <!-- Community Forum Card -->
+            <div class="community-card">
+                <div class="community-card-icon icon-forum">
+                    <i class="fas fa-comments"></i>
+                </div>
+                <h3>Discussion Forums</h3>
+                <p>Share best practices, ask questions, and connect with MAO staff and farmers across Laguna's municipalities.</p>
+                <div class="community-card-stats">
+                    <span><i class="fas fa-users"></i> 450+ Members</span>
+                    <span><i class="fas fa-comment-dots"></i> 1.2K Topics</span>
+                </div>
+                <a href="{{ url_for('community.feed_page') }}" class="community-card-btn">
+                    Join Forum <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <!-- Events Card -->
+            <div class="community-card">
+                <div class="community-card-icon icon-events">
+                    <i class="fas fa-calendar-days"></i>
+                </div>
+                <h3>Events & Trainings</h3>
+                <p>Attend agricultural seminars, system training sessions, and field demonstrations organized by MAO offices.</p>
+                <div class="community-card-stats">
+                    <span><i class="fas fa-calendar-check"></i> 12 Upcoming</span>
+                    <span><i class="fas fa-graduation-cap"></i> Free Training</span>
+                </div>
+                <a href="#" class="community-card-btn">
+                    View Events <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <!-- Partner Organizations Card -->
+            <div class="community-card">
+                <div class="community-card-icon icon-partners">
+                    <i class="fas fa-handshake"></i>
+                </div>
+                <h3>Partner Organizations</h3>
+                <p>Collaborate with government agencies, NGOs, and agricultural cooperatives building a stronger future for farming.</p>
+                <div class="community-card-stats">
+                    <span><i class="fas fa-building"></i> 8 Partners</span>
+                    <span><i class="fas fa-globe-asia"></i> Provincial</span>
+                </div>
+                <a href="#" class="community-card-btn">
+                    See Partners <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+
+            <!-- Resource Library Card -->
+            <div class="community-card">
+                <div class="community-card-icon icon-resources">
+                    <i class="fas fa-book-open"></i>
+                </div>
+                <h3>Resource Library</h3>
+                <p>Access user guides, policy documents, crop calendars, and technical manuals for effective farm management.</p>
+                <div class="community-card-stats">
+                    <span><i class="fas fa-file-alt"></i> 60+ Docs</span>
+                    <span><i class="fas fa-download"></i> Free Access</span>
+                </div>
+                <a href="#" class="community-card-btn">
+                    Browse Library <i class="fas fa-arrow-right"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- Community CTA Banner -->
+        <div class="community-cta">
+            <div class="community-cta-content">
+                <h3><i class="fas fa-seedling"></i> Ready to make a difference?</h3>
+                <p>Join hundreds of agricultural professionals using Farm Connect to modernize farming in Laguna.</p>
+            </div>
+            <a href="{{ url_for('community.community_login') }}" class="community-cta-btn">
+                Join the Community <i class="fas fa-arrow-right"></i>
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section id="contact" class="contact-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-badge">Get in Touch</span>
+            <h2>Contact Us</h2>
+            <p>Have questions? We're here to help!</p>
+        </div>
+
+        <div class="contact-grid">
+            <div class="contact-top">
+                <!-- Info Cards -->
+                <div class="contact-info">
+                    <!-- Location Card -->
+                    <div class="info-card" onclick="openLocation()">
+                        <div class="info-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="info-content">
+                            <h3>Visit Us</h3>
+                            <p>
+                                Laguna State Polytechnic
+                                University<br />Siniloan (Host)
+                                Campus<br />Siniloan, Laguna
+                            </p>
+                            <a href="javascript:void(0)" class="info-link">
+                                Get Directions <i
+                                    class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Email Card -->
+                    <div class="info-card" onclick="openEmailForm()">
+                        <div class="info-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="info-content">
+                            <h3>Email Us</h3>
+                            <p>info@lspu.edu.ph<br />support@lspu.edu.ph</p>
+                            <a href="javascript:void(0)" class="info-link">
+                                Send Email <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- Phone Card -->
+                    <div class="info-card" onclick="openCallOptions()">
+                        <div class="info-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="info-content">
+                            <h3>Call Us</h3>
+                            <p>(049) 557-1142<br />(049) 557-1141</p>
+                            <a href="javascript:void(0)" class="info-link">
+                                Call Now <i class="fas fa-arrow-right"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Contact Form -->
+                <form class="contact-form" id="contactForm">
+                    <div class="form-header">
+                        <h3>Send us a Message</h3>
+                        <p>We'll get back to you as soon as possible</p>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label for="name">Full Name</label>
+                            <i class="fas fa-user"></i>
+                            <input type="text" id="name" name="name" required />
+                        </div>
+
+                        <div class="form-group">
+                            <label for="email">Email Address</label>
+                            <i class="fas fa-envelope"></i>
+                            <input type="email" id="email" name="email"
+                                required />
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="subject">Subject</label>
+                            <i class="fas fa-pen"></i>
+                            <input type="text" id="subject" name="subject"
+                                required />
+                        </div>
+
+                        <div class="form-group full-width">
+                            <label for="message">Message</label>
+                            <textarea id="message" name="message"
+                                required></textarea>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-block">
+                        Send Message <i class="fas fa-paper-plane"></i>
+                    </button>
+                </form>
+            </div>
+
+            <!-- Map Container -->
+            <div class="map-container">
+                <div id="map" style="width: 100%; height: 100%"></div>
+            </div>
+        </div>
+
+        <!-- Call Modal -->
+        <div id="callModal" class="call-modal">
+            <div class="call-modal-content">
+                <span class="call-modal-close">&times;</span>
+                <h2>Contact Numbers</h2>
+                <div class="call-options">
+                    <a href="tel:+6349557-1142" class="call-option">
+                        <i class="fas fa-phone"></i>
+                        (049) 557-1142
+                        <span class="call-label">Main Line</span>
+                    </a>
+                    <a href="tel:+6349557-1141" class="call-option">
+                        <i class="fas fa-phone"></i>
+                        (049) 557-1141
+                        <span class="call-label">Alternative</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Resources Banner Section -->
+<section class="banner-section">
+    <div class="container">
+        <div class="section-header">
+            <span class="section-badge">Helpful Resources</span>
+            <h2>Agricultural Resources &amp; Tools</h2>
+            <p>Access essential government portals and agricultural tools for farmers and fisherfolk</p>
+        </div>
+
+        <div class="banner-slider" id="resourceBannerSlider">
+            <!-- DA CALABARZON -->
+            <div class="banner-slide">
+                <a
+                    href="https://calabarzon.da.gov.ph"
+                    target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Department_of_Agriculture_%28DA%29.svg/1200px-Department_of_Agriculture_%28DA%29.svg.png"
+                            alt="DA CALABARZON" />
+                        <div class="banner-text">
+                            <h3>DA CALABARZON</h3>
+                            <p>Regional agriculture programs and services for Laguna</p>
+                            <span class="banner-cta">Visit Portal</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- ATI -->
+            <div class="banner-slide">
+                <a
+                    href="https://ati.da.gov.ph"
+                    target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Department_of_Agriculture_%28DA%29.svg/1200px-Department_of_Agriculture_%28DA%29.svg.png"
+                            alt="Agricultural Training Institute" />
+                        <div class="banner-text">
+                            <h3>Agricultural Training Institute</h3>
+                            <p>Training programs and extension services for farmers</p>
+                            <span class="banner-cta">View Programs</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- Land Bank -->
+            <div class="banner-slide">
+                <a
+                    href="https://www.landbank.com"
+                    target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="https://upload.wikimedia.org/wikipedia/en/thumb/2/2e/Land_Bank_of_the_Philippines_%28logo%29.svg/1200px-Land_Bank_of_the_Philippines_%28logo%29.svg.png"
+                            alt="Land Bank" />
+                        <div class="banner-text">
+                            <h3>Land Bank of the Philippines</h3>
+                            <p>Financial services and loans for smallholder farmers</p>
+                            <span class="banner-cta">Check Services</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- SEAFDEC Banner -->
+            <div class="banner-slide">
+                <a href="https://www.seafdec.org.ph" target="_blank" class="banner-link">
+                    <div class="banner-content">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/7/77/Southeast_Asian_Fisheries_Development_Center_logo.svg/1200px-Southeast_Asian_Fisheries_Development_Center_logo.svg.png" alt="SEAFDEC" />
+                        <div class="banner-text">
+                            <h3>SEAFDEC/AQD</h3>
+                            <p>Aquaculture technologies and technical training for fisherfolk</p>
+                            <span class="banner-cta">Access Resources</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- FishR Banner -->
+            <div class="banner-slide">
+                <a href="https://www.bfar.da.gov.ph/fisherfolk-registration/" target="_blank" class="banner-link">
+                    <div class="banner-content">
+                        <img src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Bureau_of_Fisheries_and_Aquatic_Resources_%28BFAR%29.svg/1200px-Bureau_of_Fisheries_and_Aquatic_Resources_%28BFAR%29.svg.png" alt="FishR" />
+                        <div class="banner-text">
+                            <h3>FishR Registration</h3>
+                            <p>National Program for Municipal Fisherfolk Registration</p>
+                            <span class="banner-cta">Register Now</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+
+            <!-- NIA -->
+            <div class="banner-slide">
+                <a
+                    href="https://www.nia.gov.ph"
+                    target="_blank"
+                    class="banner-link">
+                    <div class="banner-content">
+                        <img
+                            src="https://upload.wikimedia.org/wikipedia/commons/thumb/2/2e/National_Irrigation_Administration_%28NIA%29.svg/1200px-National_Irrigation_Administration_%28NIA%29.svg.png"
+                            alt="NIA" />
+                        <div class="banner-text">
+                            <h3>National Irrigation Administration</h3>
+                            <p>Irrigation services and water management programs</p>
+                            <span class="banner-cta">Learn More</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <button class="banner-nav prev" id="resourcePrevBtn">
+            <i class="fas fa-chevron-left"></i>
+        </button>
+        <button class="banner-nav next" id="resourceNextBtn">
+            <i class="fas fa-chevron-right"></i>
+        </button>
+
+        <div class="banner-dots" id="resourceBannerDots"></div>
+    </div>
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+<!-- Leaflet JS for Map -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<!-- EmailJS -->
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+{% endblock %}

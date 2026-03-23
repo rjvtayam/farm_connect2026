@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}400 - Bad Request{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/errors/errors.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-content">
+        <div class="error-image">
+            <img
+                src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn3d.iconscout.com%2F3d%2Fpremium%2Fthumb%2Fblue-screen-error-6343159-5231333.png&f=1&nofb=1&ipt=9d2e31704b672d78c0e0b81afe5867a08cb799433c9939428a21f0ec71aa20c7&ipo=images"
+                alt="400 Error Illustration"
+                loading="lazy"
+                width="400"
+                height="300">
+        </div>
+        <div class="error-text">
+            <h1>400</h1>
+            <h2>Bad Request</h2>
+            <p>Sorry, we couldn't process your request. Please check your input
+                and try again.</p>
+            <div class="error-actions">
+                <button onclick="history.back()" class="btn btn-primary">
+                    <i class="fas fa-arrow-left"></i> Go Back
+                </button>
+                <a href="{{ url_for('main.index') }}" class="btn btn-outline">
+                    <i class="fas fa-home"></i> Go Home
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

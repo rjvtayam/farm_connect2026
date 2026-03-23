@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+
+{% block title %}429 - Too Many Requests{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/errors/errors.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-content">
+        <div class="error-image">
+            <img
+                src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fimg.freepik.com%2Ffree-vector%2Ferror-429-concept-illustration_114360-4108.jpg%3Fw%3D1380%26t%3Dst%3D1708385998~exp%3D1708386598~hmac%3Dca0616b3755028152b71631f21930fa24162da73b1de1998e37965761c65b2cb&f=1&nofb=1&ipt=9f6ae007a20b27e1456997c03cdca2ad0612622e754aeb7dfab580514e8a0b23&ipo=images"
+                alt="429 Error Illustration"
+                loading="lazy"
+                width="400"
+                height="300">
+        </div>
+        <div class="error-text">
+            <h1>429</h1>
+            <h2>Too Many Requests</h2>
+            <p>You've made too many requests. Please wait a while before trying
+                again.</p>
+            <div class="error-timer">
+                <i class="fas fa-clock"></i>
+                <span>Please try again in {{ retry_after }} seconds</span>
+            </div>
+            <div class="error-actions">
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                    <i class="fas fa-home"></i> Go Home
+                </a>
+            </div>
+            <div class="error-help">
+                <p>If you believe this is a mistake, please contact support:</p>
+                <a href="mailto:support@farmconnect.com" class="support-link">
+                    <i class="fas fa-envelope"></i> support@farmconnect.com
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

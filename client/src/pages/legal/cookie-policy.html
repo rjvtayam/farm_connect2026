@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/legal/legal.css') }}">
+{% endblock %}
+
+{% block title %}Cookie Policy - Farm Connect{% endblock %}
+
+{% block content %}
+<div class="legal-container">
+    <div class="legal-header">
+        <div class="header-image">
+            <img src="public/images/protection.png" alt="Cookie Policy">
+        </div>
+        <h1>Cookie Policy</h1>
+        <p class="last-updated">Last updated: December 18, 2024</p>
+    </div>
+
+    <div class="legal-content">
+        <div class="content-illustration">
+            <img src="public/images/data-protection-icon.png" alt="Cookie Protection" class="floating-image">
+        </div>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-cookie-bite"></i>
+            </div>
+            <h2>1. Introduction</h2>
+            <p>This Cookie Policy explains how Farm Connect ("we", "us", or "our") uses cookies and similar technologies when you visit our website. By continuing to browse our site, you consent to our use of cookies as described in this policy.</p>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <h2>2. What Are Cookies?</h2>
+            <p>Cookies are small text files that are stored on your device when you visit a website. They help make websites work more efficiently and provide information to website owners about how users interact with their site.</p>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-cookie"></i>
+            </div>
+            <h2>3. Types of Cookies We Use</h2>
+            
+            <div class="info-category">
+                <h3>3.1 Essential Cookies</h3>
+                <p>These cookies are necessary for the website to function properly. They enable core functionality such as security, network management, and accessibility.</p>
+            </div>
+            
+            <div class="info-category">
+                <h3>3.2 Analytics Cookies</h3>
+                <p>We use these cookies to help us understand how visitors interact with our website, which helps us improve our services. They collect information anonymously.</p>
+            </div>
+            
+            <div class="info-category">
+                <h3>3.3 Functional Cookies</h3>
+                <p>These cookies enable enhanced functionality and personalization, such as remembering your preferences and settings.</p>
+            </div>
+            
+            <div class="info-category">
+                <h3>3.4 Performance Cookies</h3>
+                <p>These cookies collect information about how you use our website, helping us improve its performance and user experience.</p>
+            </div>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-cog"></i>
+            </div>
+            <h2>4. How We Use Cookies</h2>
+            <p>We use cookies to:</p>
+            <ul class="feature-list">
+                <li><i class="fas fa-check"></i>Remember your login status and preferences</li>
+                <li><i class="fas fa-check"></i>Understand how you use our website</li>
+                <li><i class="fas fa-check"></i>Personalize your learning experience</li>
+                <li><i class="fas fa-check"></i>Improve our website's performance and security</li>
+                <li><i class="fas fa-check"></i>Provide relevant content and recommendations</li>
+            </ul>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-sliders-h"></i>
+            </div>
+            <h2>5. Managing Cookies</h2>
+            <p>You can control and manage cookies in your browser settings. Please note that removing or blocking cookies may impact your user experience and some features of our website may not function properly.</p>
+            
+            <div class="info-category">
+                <h3>Browser Settings</h3>
+                <ul class="browser-list">
+                    <li><i class="fab fa-chrome"></i>Chrome: Settings → Privacy and Security → Cookies and other site data</li>
+                    <li><i class="fab fa-firefox"></i>Firefox: Options → Privacy & Security → Cookies and Site Data</li>
+                    <li><i class="fab fa-safari"></i>Safari: Preferences → Privacy → Cookies and website data</li>
+                    <li><i class="fab fa-edge"></i>Edge: Settings → Cookies and site permissions → Manage and delete cookies</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-share-alt"></i>
+            </div>
+            <h2>6. Third-Party Cookies</h2>
+            <p>Some of our pages may contain content from third-party services (like video platforms or analytics tools). These services may use their own cookies. We do not control these cookies and recommend checking the privacy policies of these third parties.</p>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-sync"></i>
+            </div>
+            <h2>7. Updates to This Policy</h2>
+            <p>We may update this Cookie Policy from time to time to reflect changes in our practices or for operational, legal, or regulatory reasons. We encourage you to review this policy periodically.</p>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-envelope"></i>
+            </div>
+            <h2>8. Contact Us</h2>
+            <p>If you have any questions about our use of cookies, please contact us at:</p>
+            <a href="mailto:support@farmconnect.com" class="support-link">
+                <i class="fas fa-envelope"></i> support@farmconnect.com
+            </a>
+            <p><i class="fas fa-map-marker-alt"></i> Address: 123 Learning Street, Education Valley, CA 94025</p>
+        </section>
+    </div>
+</div>
+{% endblock %}

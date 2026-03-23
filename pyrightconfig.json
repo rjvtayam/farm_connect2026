@@ -1,0 +1,18 @@
+{
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Windows",
+  "venvPath": "server",
+  "venv": "venv",
+  "extraPaths": [
+    "server"
+  ],
+  "executionEnvironments": [
+    {
+      "root": "server",
+      "pythonVersion": "3.12",
+      "extraPaths": ["server"]
+    }
+  ],
+  "reportMissingModuleSource": false,
+  "reportMissingImports": true
+}

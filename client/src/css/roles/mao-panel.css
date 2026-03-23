@@ -1,0 +1,228 @@
+/* ============================================
+   MAO Panel — Role-Specific Overrides
+   Base shared styles are in dashboard.css
+   ============================================ */
+
+/* ── MAO Accent Colors ── */
+.user-avatar-small {
+    background: linear-gradient(135deg, #0ea5e9 0%, #67e8f9 100%);
+}
+
+.nav-item.active {
+    background: #E0F2FE;
+    color: #0284C7;
+}
+
+.nav-item:hover {
+    color: #0284C7;
+}
+
+/* ── Header Content Layout ── */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+}
+
+/* ── Charts Grid Override ── */
+.charts-grid {
+    margin-bottom: 2.5rem;
+}
+
+.charts-grid .content-card {
+    min-height: 350px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}
+
+/* ── Enhanced Review Modal Tabs ── */
+.modal-tab-btn {
+    padding: 1rem 1.5rem;
+    background: transparent;
+    border: none;
+    border-bottom: 3px solid transparent;
+    color: #64748b;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.modal-tab-btn:hover {
+    color: #1e293b;
+    background: #f1f5f9;
+}
+
+.modal-tab-btn.active {
+    color: #3b82f6;
+    border-bottom-color: #3b82f6;
+    background: white;
+}
+
+.modal-tab-btn i {
+    font-size: 1rem;
+}
+
+.review-tab-content {
+    animation: tabFadeIn 0.3s ease-out;
+}
+
+@keyframes tabFadeIn {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── GIS Overlay ── */
+.map-overlay-info h4 {
+    border-bottom: 2px solid #f1f5f9;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+}
+
+.map-overlay-info div {
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.4;
+}
+
+.highlight-row {
+    background-color: #f0fdf4 !important;
+}
+
+.highlight-row:hover {
+    background-color: #dcfce7 !important;
+}
+
+/* ── Premium Analytics Grid ── */
+.analytics-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+}
+
+.full-width-chart {
+    grid-column: span 2;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px;
+    width: 100%;
+}
+
+.radar-container {
+    height: 350px;
+}
+
+@media (max-width: 1024px) {
+    .analytics-grid {
+        grid-template-columns: 1fr;
+    }
+    .full-width-chart {
+        grid-column: span 1;
+    }
+}
+
+.chart-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    border: 1px solid rgba(226, 232, 240, 0.8) !important;
+    overflow: hidden;
+}
+
+/* ── Status Badge Polish ── */
+.status-badge.approved {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+/* ── Structured Review Components (Unique Classes) ── */
+.mao-review-header {
+    display: grid; 
+    grid-template-columns: repeat(3, 1fr); 
+    gap: 1.25rem; 
+    margin-bottom: 2rem; 
+    background: #f8fafc; 
+    padding: 1.5rem; 
+    border-radius: 16px; 
+    border: 1px solid #e2e8f0;
+}
+
+.mao-data-section {
+    margin-bottom: 2rem;
+}
+
+.mao-section-title {
+    margin: 0 0 1rem 0; 
+    color: #1e293b; 
+    font-size: 1rem; 
+    font-weight: 700; 
+    display: flex; 
+    align-items: center; 
+    gap: 0.6rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #f1f5f9;
+}
+
+.review-inventory-table {
+    width: 100%; 
+    border-collapse: collapse; 
+    font-size: 0.85rem;
+    background: white; 
+    border: 1px solid #e2e8f0; 
+    border-radius: 12px; 
+    overflow: hidden; 
+}
+
+.review-inventory-table thead {
+    background: #f1f5f9; 
+    color: #475569;
+}
+
+.review-inventory-table th {
+    padding: 0.75rem 1rem; 
+    text-align: left; 
+    font-weight: 600;
+}
+
+.review-inventory-table td {
+    padding: 0.75rem 1rem; 
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.review-inventory-table tr:last-child td {
+    border-bottom: none;
+}
+
+.badge-livelihood {
+    background: #f5f3ff; 
+    color: #7c3aed; 
+    padding: 0.4rem 0.8rem; 
+    border-radius: 8px; 
+    font-size: 0.75rem; 
+    font-weight: 600; 
+    border: 1px solid #ddd6fe; 
+    display: inline-flex; 
+    align-items: center; 
+    gap: 0.4rem;
+}
+
+.commodity-tag {
+    background: #eff6ff; 
+    color: #3b82f6; 
+    padding: 2px 6px; 
+    border-radius: 4px; 
+    font-size: 0.65rem; 
+    font-weight: 600;
+}

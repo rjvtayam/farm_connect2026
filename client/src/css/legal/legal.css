@@ -1,0 +1,317 @@
+/* Professional Legal Pages Styling */
+.legal-container {
+    max-width: 900px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+}
+
+/* Header Styling */
+.legal-header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding: 2rem;
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+}
+
+.header-image {
+    width: 60px;
+    height: 60px;
+    margin: 0 auto 1rem;
+}
+
+.header-image img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0.9;
+}
+
+.legal-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin-bottom: 0.5rem;
+}
+
+.last-updated {
+    font-size: 0.85rem;
+    color: var(--text-light);
+}
+
+/* Section Styling */
+.legal-section {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+}
+
+.section-icon {
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+}
+
+.section-icon i {
+    font-size: 1.2rem;
+    color: white;
+}
+
+/* Typography */
+.legal-section h2 {
+    font-size: 1.4rem;
+    color: var(--text-dark);
+    margin-bottom: 1.25rem;
+    font-weight: 600;
+}
+
+.legal-section h3 {
+    font-size: 1.1rem;
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+}
+
+/* Info Categories */
+.info-category {
+    background: var(--bg-light);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border-left: 3px solid var(--primary);
+}
+
+/* List Styling */
+.legal-section ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+.legal-section ul li {
+    padding: 0.6rem 0;
+    font-size: 0.95rem;
+    color: var(--text-dark);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    display: flex;
+    align-items: center;
+}
+
+.legal-section ul li:before {
+    content: '•';
+    color: var(--primary);
+    margin-right: 0.75rem;
+    font-weight: bold;
+}
+
+.legal-section ul li:last-child {
+    border-bottom: none;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .legal-container {
+        margin: 1rem auto;
+        padding: 0 1rem;
+    }
+
+    .legal-header {
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .header-image {
+        width: 50px;
+        height: 50px;
+    }
+
+    .legal-header h1 {
+        font-size: 1.75rem;
+    }
+
+    .legal-section {
+        padding: 1.5rem;
+    }
+
+    .info-category {
+        padding: 1.25rem;
+    }
+
+    .legal-section h2 {
+        font-size: 1.3rem;
+    }
+
+    .legal-section h3 {
+        font-size: 1rem;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .legal-container {
+        margin: 0;
+        padding: 1rem;
+    }
+
+    .legal-section,
+    .info-category {
+        box-shadow: none;
+        border: 1px solid #eee;
+        page-break-inside: avoid;
+    }
+}
+
+/* Content Illustration Styling - Updated for both pages */
+.content-illustration {
+    display: none;  /* Hidden by default on mobile */
+}
+
+/* Show illustration on larger screens */
+@media (min-width: 1200px) {
+    .content-illustration {
+        display: block;
+        position: fixed;
+        right: 2rem;
+        top: 50%;
+        transform: translateY(-50%);
+        width: 120px;
+    }
+
+    .floating-image {
+        width: 100%;
+        height: auto;
+        opacity: 0.8;
+        animation: floatAnimation 4s ease-in-out infinite;
+    }
+
+    /* Adjust main content width when illustration is shown */
+    .terms-content,
+    .privacy-content {
+        max-width: calc(800px - 120px);
+        margin-right: 140px;  /* Space for floating illustration */
+    }
+}
+
+/* Animation for floating effect */
+@keyframes floatAnimation {
+    0%, 100% {
+        transform: translateY(0);
+    }
+    50% {
+        transform: translateY(-10px);
+    }
+}
+
+/* Terms of Service Specific Styles */
+.terms-content {
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.terms-box {
+    background: var(--bg-light);
+    border-radius: 12px;
+    padding: 1.75rem;
+    border-left: 3px solid var(--primary);
+    margin-top: 1rem;
+}
+
+.terms-box p {
+    color: var(--text-dark);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+/* Feature List Styling */
+.feature-list {
+    list-style: none;
+    padding: 0;
+    margin: 1rem 0;
+}
+
+.feature-list li {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+    color: var(--text-dark);
+}
+
+.feature-list li:last-child {
+    border-bottom: none;
+}
+
+.feature-list li i {
+    color: var(--primary);
+    margin-right: 1rem;
+    font-size: 1rem;
+}
+
+/* Section Icons for Terms */
+.terms-content .section-icon {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    width: 45px;
+    height: 45px;
+    border-radius: 10px;
+    margin-bottom: 1.25rem;
+}
+
+.terms-content .section-icon i {
+    font-size: 1.3rem;
+}
+
+/* Highlight Important Terms */
+.important-term {
+    background: rgba(var(--primary-rgb), 0.05);
+    border-radius: 8px;
+    padding: 1.25rem;
+    margin: 1rem 0;
+    border: 1px solid rgba(var(--primary-rgb), 0.1);
+}
+
+.important-term h4 {
+    color: var(--primary);
+    margin-bottom: 0.75rem;
+    font-weight: 600;
+    font-size: 1.1rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    .terms-box {
+        padding: 1.25rem;
+    }
+
+    .feature-list li {
+        padding: 0.5rem 0;
+        font-size: 0.95rem;
+    }
+
+    .terms-content .section-icon {
+        width: 40px;
+        height: 40px;
+    }
+
+    .terms-content .section-icon i {
+        font-size: 1.1rem;
+    }
+}
+
+/* Print Styles for Terms */
+@media print {
+    .terms-box {
+        border: 1px solid #eee;
+        page-break-inside: avoid;
+    }
+
+    .feature-list li i {
+        color: #333 !important;
+    }
+}

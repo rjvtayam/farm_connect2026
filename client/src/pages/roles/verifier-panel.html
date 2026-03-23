@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Verifier Dashboard - Farm Connect</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="preload" href="{{ url_for('static', filename='fontawesome/webfonts/fa-solid-900.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+
+    <!-- Styles: base variables + shared dashboard + verifier-specific -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/roles/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/roles/verifier-panel.css') }}">
+
+    <!-- Leaflet GIS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css" />
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('public.static', filename='favicon/favicon.ico') }}">
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <img src="{{ url_for('public.static', filename='FARM CONNECT LOGO/sample_logo.png') }}" alt="Farm Connect Logo" class="nav-logo" style="height: 40px; margin-right: 10px;">
+                <span>Farm Connect</span>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar-small" id="sidebarAvatar">
+                    {% if current_user.avatar_url %}
+                        <img src="{{ current_user.avatar_url }}" alt="Profile" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+                    {% else %}
+                        <i class="fas fa-user-check"></i>
+                    {% endif %}
+                </div>
+                <div class="user-details">
+                    <span class="user-name">{{ current_user.full_name }}</span>
+                    <span class="user-role">Verification Officer</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#pending" class="nav-item">
+                <i class="fas fa-hourglass-half"></i>
+                <span>Pending Reviews</span>
+            </a>
+            <a href="#reviewed" class="nav-item">
+                <i class="fas fa-history"></i>
+                <span>Reviewed History</span>
+            </a>
+            <a href="#settings" class="nav-item">
+                <i class="fas fa-sliders-h"></i>
+                <span>System Settings</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="nav-item logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Dashboard Home -->
+            <div id="dashboard-home">
+                <!-- Welcome Banner -->
+                <div class="welcome-banner" id="welcomeBanner" data-user-name="{{ current_user.full_name }}">
+                    <div class="welcome-banner-content">
+                        <p class="welcome-greeting"><span class="welcome-wave">👋</span> Welcome back!</p>
+                        <p class="welcome-subtitle">Here's your dashboard overview.</p>
+                        <p class="welcome-date"></p>
+                    </div>
+                    <div class="welcome-banner-actions">
+                        <button class="trash-bin-btn" onclick="openTrashBin()" title="Trash Bin">
+                            <i class="fas fa-trash-restore-alt"></i>
+                            <span class="trash-badge" id="trashBadge" style="display:none;">0</span>
+                        </button>
+                        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                            <i class="fas fa-moon"></i>
+                            <i class="fas fa-sun"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Header -->
+                <div class="dashboard-header">
+                    <div class="header-content">
+                        <div class="header-text">
+                            <h1>Verifier Dashboard</h1>
+                            <p class="current-date" id="currentDate"></p>
+                        </div>
+                        <div class="header-actions">
+                            <div class="notification-bell" id="notificationBell">
+                                <button class="bell-btn" onclick="toggleNotifications()">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+                                </button>
+                                <div class="notif-dropdown" id="notifDropdown">
+                                    <div class="notif-dropdown-header">
+                                        <h4><i class="fas fa-bell"></i> Notifications</h4>
+                                        <button class="notif-mark-all" onclick="markAllNotificationsRead()">Mark all read</button>
+                                    </div>
+                                    <div class="notif-dropdown-body" id="notifList">
+                                        <div class="notif-empty">
+                                            <i class="fas fa-check-circle"></i>
+                                            <p>No notifications</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-warning">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="pendingReview">0</h3>
+                            <p>Pending Review</p>
+                            <span class="trend-badge neutral" id="pendingReviewTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-success">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="approvedToday">0</h3>
+                            <p>Verified Today</p>
+                            <span class="trend-badge neutral" id="approvedTodayTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-primary">
+                            <i class="fas fa-tasks"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalReviewed">0</h3>
+                            <p>Total Reviewed Today</p>
+                            <span class="trend-badge neutral" id="totalReviewedTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-danger">
+                            <i class="fas fa-times-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="rejectedCount">0</h3>
+                            <p>Rejected</p>
+                            <span class="trend-badge neutral" id="rejectedCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="content-card activity-feed-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-stream"></i> Recent Activity</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-feed-timeline" id="activityFeedList">
+                            <div class="activity-empty">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading activity...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pending Submissions -->
+            <div id="pending" class="content-section">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-hourglass-half"></i> Pending Submissions</h2>
+                        <div class="card-actions">
+                            <div class="search-box">
+                                <input type="text" id="searchPending" placeholder="Search pending...">
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="exportPendingSubmissions()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <button class="btn btn-sm btn-success" id="bulkVerifyBtn" style="display:none;" onclick="bulkAction('verified')">
+                                <i class="fas fa-check-double"></i> Verify Selected
+                            </button>
+                            <select id="filterFormType" class="filter-select">
+                                <option value="">All Forms</option>
+                                <option value="rsbsa">RSBSA</option>
+                                <option value="fish">Fish Registration</option>
+                                <option value="boat">Boat Registration</option>
+                                <option value="ncfrs">NCFRS</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Beneficiary Name</th>
+                                        <th>Form Type</th>
+                                        <th>Encoder</th>
+                                        <th>Barangay</th>
+                                        <th>Submitted</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="pendingTableBody">
+                                    <!-- Pending submissions will be loaded via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reviewed Submissions -->
+            <div id="reviewed" class="content-section">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-history"></i> Recently Reviewed</h2>
+                        <div class="card-actions">
+                            <div class="search-box">
+                                <input type="text" id="searchReviewed" placeholder="Search history...">
+                            </div>
+                            <button class="btn btn-sm btn-secondary" onclick="exportReviewedSubmissions()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                            <select id="filterStatus" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="verified">Verified</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Beneficiary Name</th>
+                                        <th>Form Type</th>
+                                        <th>Encoder</th>
+                                        <th>Barangay</th>
+                                        <th>Status</th>
+                                        <th>Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="reviewedTableBody">
+                                    <!-- Reviewed submissions will be loaded via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings Section -->
+            <div id="settings" class="content-section" style="display: none;">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-sliders-h"></i> System Settings</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="settings-grid">
+                            <div class="setting-card">
+                                <div class="setting-icon icon-profile">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <h3>Profile Settings</h3>
+                                <p>Update your personal information, profile picture, and display name.</p>
+                                <button class="btn btn-primary" onclick="openModal('profileModal')">
+                                    <i class="fas fa-user-edit"></i> Edit My Profile
+                                </button>
+                            </div>
+
+                            <div class="setting-card">
+                                <div class="setting-icon icon-password">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <h3>Change Password</h3>
+                                <p>Keep your account secure by updating your password regularly.</p>
+                                <div class="password-form">
+                                    <div class="form-group">
+                                        <label><i class="fas fa-key"></i> New Password</label>
+                                        <div class="form-input-wrapper">
+                                            <i class="fas fa-key input-icon"></i>
+                                            <input type="password" id="newPassword" placeholder="Enter new password" minlength="8">
+                                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this, 'newPassword')">
+                                                <i class="fas fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><i class="fas fa-check-double"></i> Confirm Password</label>
+                                        <div class="form-input-wrapper">
+                                            <i class="fas fa-lock input-icon"></i>
+                                            <input type="password" id="confirmPassword" placeholder="Confirm new password" minlength="8">
+                                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this, 'confirmPassword')">
+                                                <i class="fas fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button class="btn-change-password" onclick="changePassword()">
+                                        <i class="fas fa-shield-alt"></i> Update Password
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="setting-card danger-zone">
+                                <div class="setting-icon icon-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <h3>Danger Zone</h3>
+                                <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                                <button class="btn btn-danger" onclick="confirmDeleteAccount()">
+                                    <i class="fas fa-trash-alt"></i> Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Profile Edit Modal -->
+<div id="profileModal" class="modal">
+    <div class="modal-overlay" onclick="closeModal('profileModal')"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-circle" style="color: var(--primary); margin-right: 0.5rem;"></i> Edit Profile</h3>
+            <button class="modal-close" onclick="closeModal('profileModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="profile-avatar-section">
+                <div class="profile-avatar-large" id="profileAvatarPreview">
+                    <i class="fas fa-user-check"></i>
+                </div>
+                <label class="profile-avatar-upload-btn">
+                    <i class="fas fa-camera"></i> Change Photo
+                    <input type="file" id="avatarUpload" accept="image/*" onchange="handleProfileFile(this.files[0])">
+                </label>
+            </div>
+            <div class="form-grid" style="margin-top: 1.25rem;">
+                <div class="form-group full-width">
+                    <label>Full Name</label>
+                    <div class="form-input-wrapper">
+                        <i class="fas fa-id-card input-icon"></i>
+                        <input type="text" id="profileFullName" value="{{ current_user.full_name }}" placeholder="Enter your full name">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('profileModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveProfile()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Confirmation -->
+<div id="deleteAccountOverlay" class="delete-confirm-overlay">
+    <div class="delete-confirm-card">
+        <div class="danger-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3>Delete Your Account?</h3>
+        <p>This action is permanent and cannot be undone. All your data, settings, and history will be permanently removed.</p>
+        <div class="form-group">
+            <label style="font-size: 0.825rem; font-weight: 600; color: var(--text-dark);">Enter your password to confirm</label>
+            <input type="password" id="deleteAccountPassword" placeholder="Your password" style="width: 100%; padding: 0.7rem 0.875rem; border-radius: 10px; border: 1px solid var(--border); font-family: inherit; font-size: 0.9rem; margin-top: 0.35rem;">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="cancelDeleteAccount()">Cancel</button>
+            <button class="btn btn-danger" onclick="executeDeleteAccount()"><i class="fas fa-trash-alt"></i> Delete Forever</button>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modal -->
+<div id="reviewModal" class="modal">
+    <div class="modal-overlay" onclick="closeModal('reviewModal')"></div>
+    <div class="modal-content premium-modal">
+        <!-- Premium Header -->
+        <div class="modal-header-premium">
+            <div class="header-titles">
+                <h2 style="margin:0; font-size: 1.25rem; font-weight: 800; color: #1e293b;">
+                    <i class="fas fa-clipboard-check" style="color: #10b981; margin-right: 0.5rem;"></i>
+                    Verification Review <span id="reviewSubmissionId" style="color: #64748b; font-weight: 400; font-size: 1rem;">#--</span>
+                </h2>
+                <p style="margin: 0.25rem 0 0 1.8rem; font-size: 0.8rem; color: #64748b;">Professional Data Validation & GIS Mapping</p>
+            </div>
+            <button class="btn-icon" onclick="closeModal('reviewModal')"><i class="fas fa-times"></i></button>
+        </div>
+
+        <!-- Dual Pane Body -->
+        <div class="modal-body-dual">
+            
+            <!-- LEFT PANE: Information & Data -->
+            <div class="pane-left">
+                <!-- Tab Navigation -->
+                <div class="tab-nav">
+                    <button class="tab-btn active" onclick="switchReviewTab('rsbsa')" id="tabBtnRsbsa">
+                        <i class="fas fa-file-alt"></i> RSBSA
+                    </button>
+                    <button class="tab-btn" onclick="switchReviewTab('parcels')" id="tabBtnParcels">
+                        <i class="fas fa-seedling"></i> Parcels
+                    </button>
+                    <button class="tab-btn" onclick="switchReviewTab('allforms')" id="tabBtnAllForms">
+                        <i class="fas fa-layer-group"></i> All Forms
+                    </button>
+                </div>
+
+                <!-- Tab Content: RSBSA Data -->
+                <div id="tabContentRsbsa" class="tab-content-area">
+                    <div class="info-section">
+                        <h4 class="info-section-title"><i class="fas fa-user"></i> Personal Information</h4>
+                        <div class="data-row">
+                            <div class="data-item">
+                                <span class="data-label">First Name</span>
+                                <input type="text" id="reviewFirstName" class="data-value">
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Last Name</span>
+                                <input type="text" id="reviewLastName" class="data-value">
+                            </div>
+                        </div>
+                        <div class="data-row">
+                            <div class="data-item">
+                                <span class="data-label">Middle Name</span>
+                                <input type="text" id="reviewMiddleName" class="data-value">
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Extension</span>
+                                <input type="text" id="reviewExtensionName" class="data-value">
+                            </div>
+                        </div>
+                        <div class="data-row">
+                            <div class="data-item">
+                                <span class="data-label">Date of Birth</span>
+                                <input type="text" id="reviewDOB" class="data-value">
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Sex</span>
+                                <input type="text" id="reviewSex" class="data-value">
+                            </div>
+                        </div>
+                        <div class="data-row">
+                            <div class="data-item">
+                                <span class="data-label">Civil Status</span>
+                                <input type="text" id="reviewCivilStatus" class="data-value">
+                            </div>
+                            <div class="data-item">
+                                <span class="data-label">Mobile Number</span>
+                                <input type="text" id="reviewMobile" class="data-value">
+                            </div>
+                        </div>
+                        <div class="data-item" style="margin-top: 1rem;">
+                            <span class="data-label">Address (Barangay)</span>
+                            <input type="text" id="reviewBarangay" class="data-value">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: Parcels -->
+                <div id="tabContentParcels" class="tab-content-area" style="display:none;">
+                    <div class="info-section">
+                        <h4 class="info-section-title"><i class="fas fa-th-list"></i> Encoded Parcel List</h4>
+                        <div id="encodedParcelList" style="background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden;">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab Content: All Forms / Attachments -->
+                <div id="tabContentAllForms" class="tab-content-area" style="display:none;">
+                    <div class="info-section" style="margin-bottom: 2rem;">
+                        <h4 class="info-section-title"><i class="fas fa-check-double"></i> Ownership Document Checklist</h4>
+                        <div id="ownershipChecklist" style="background: white; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.5rem; margin-top: 1rem;">
+                            <!-- Dynamically populated -->
+                        </div>
+                    </div>
+
+                    <div class="info-section">
+                        <h4 class="info-section-title"><i class="fas fa-paperclip"></i> Digital Attachments</h4>
+                        <div class="attachment-grid-premium" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 1rem;">
+                            <div id="landDocPreviewBtn" class="attachment-card-premium" onclick="viewAttachment('land_doc')">
+                                <div class="attachment-icon"><i class="fas fa-file-image"></i></div>
+                                <div class="attachment-details">
+                                    <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">Land Title / Proof</div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">View digital document</div>
+                                </div>
+                            </div>
+                            <div id="gpxDataBtn" class="attachment-card-premium" onclick="useGpxData()">
+                                <div class="attachment-icon"><i class="fas fa-route"></i></div>
+                                <div class="attachment-details">
+                                    <div style="font-weight: 700; font-size: 0.9rem; color: #1e293b;">GPX Route Data</div>
+                                    <div style="font-size: 0.75rem; color: #64748b;">Load GPS coordinates onto map</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- RIGHT PANE: Map & GIS Tools -->
+            <div class="pane-right">
+                <div class="pane-right-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h4 class="info-section-title" style="margin: 0;"><i class="fas fa-map-marked-alt"></i> Interactive GIS Workspace</h4>
+                    
+                    <div class="import-gis-wrapper">
+                        <input type="file" id="verifierGisImport" style="display:none;" accept=".gpx,.kml,.json,.geojson" onchange="handleGisImport(event)">
+                        <button type="button" class="btn btn-secondary btn-import-gis" onclick="document.getElementById('verifierGisImport').click()" style="background: #EEF2FF; color: #4F46E5; font-weight: 700; border: 1px solid #C7D2FE; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.75rem;">
+                            <i class="fas fa-file-import"></i> IMPORT GIS
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="square-map-wrapper">
+                    <div id="landMapContainer"></div>
+                </div>
+
+                <div class="gis-entry-section" style="background: white; border: 1px solid #e2e8f0; padding: 1.5rem; border-radius: 16px;">
+                    <h5 style="margin-top: 0; margin-bottom: 1.25rem; color: #1e293b; font-size: 0.9rem; font-weight: 700;">
+                        <i class="fas fa-crosshairs" style="color: #10b981; margin-right: 0.5rem;"></i> Digitization Controls
+                    </h5>
+                    
+                    <div class="data-row" style="margin-bottom: 1.25rem;">
+                        <div class="data-item">
+                            <span class="data-label">Latitude</span>
+                            <input type="text" id="reviewGisLat" placeholder="14.XXXX" class="data-value" style="font-size: 0.85rem; padding: 0.5rem;">
+                        </div>
+                        <div class="data-item">
+                            <span class="data-label">Longitude</span>
+                            <input type="text" id="reviewGisLng" placeholder="121.XXXX" class="data-value" style="font-size: 0.85rem; padding: 0.5rem;">
+                        </div>
+                    </div>
+
+                    <div class="data-item" style="margin-bottom: 1.25rem;">
+                        <span class="data-label">Coordinate Source</span>
+                        <select id="reviewGisSource" style="width: 100%; border-radius: 8px; border: 1px solid #e2e8f0; font-size: 0.85rem; padding: 0.6rem; background: #f8fafc; font-weight: 500;">
+                            <option value="GPS Device">GPS Device</option>
+                            <option value="Mobile Phone">Mobile Phone (GPS)</option>
+                            <option value="Google Maps">Google Maps</option>
+                            <option value="Estimated">Estimated / Approximated</option>
+                        </select>
+                    </div>
+
+                    <div class="data-item">
+                        <span class="data-label">Internal Remarks (Verifier Only)</span>
+                        <textarea id="reviewGisElevation" placeholder="Area notes..." class="data-value" style="min-height: 80px; resize: none; font-size: 0.85rem; padding: 0.6rem;"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Premium Footer -->
+        <div class="modal-footer-premium">
+            <div class="footer-hint">
+                <input type="checkbox" id="confirmVerification"> 
+                <span>I have digitally verified this land parcel and beneficiary data.</span>
+            </div>
+            
+            <button type="button" class="btn btn-danger" onclick="promptConfirmModal('rejected')" style="padding: 0.65rem 1.5rem; border-radius: 10px;">
+                <i class="fas fa-times-circle"></i> Reject
+            </button>
+            
+            <button type="button" class="btn btn-primary" onclick="promptConfirmModal('verified')" style="background: #10b981; border: none; padding: 0.65rem 2rem; border-radius: 10px; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+                <i class="fas fa-check-circle"></i> Complete Verification
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- Confirmation Modal (Replaces Browser Prompt) -->
+<!-- ========================================== -->
+<div id="confirmReviewModal" class="modal" style="z-index: 1050;">
+    <div class="modal-content" style="max-width: 500px; padding: 0; overflow: hidden; border-radius: 16px;">
+        <div class="modal-header" id="confirmModalHeader" style="background: #1e293b; color: white; padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between;">
+            <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;" id="confirmModalTitle">
+                <i class="fas fa-shield-alt"></i> Confirm Action
+            </h3>
+            <button type="button" class="close" onclick="closeModal('confirmReviewModal')" style="color: white; opacity: 0.8; font-size: 1.5rem; background: none; border: none; cursor: pointer;">&times;</button>
+        </div>
+        
+        <div class="modal-body" style="padding: 1.5rem;">
+            <p id="confirmModalMessage" style="color: #475569; margin-bottom: 1rem; font-size: 0.95rem;">
+                Are you sure you want to proceed?
+            </p>
+            
+            <div class="data-item">
+                <label for="reviewRemarks" id="reviewRemarksLabel" style="display: block; font-weight: 600; color: #1e293b; margin-bottom: 0.5rem; font-size: 0.85rem;">Remarks (Optional)</label>
+                <textarea id="reviewRemarks" class="data-value" placeholder="Enter remarks..." style="width: 100%; min-height: 100px; resize: none; font-size: 0.9rem; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 8px;"></textarea>
+                <div id="remarksError" style="color: #ef4444; font-size: 0.8rem; margin-top: 0.25rem; display: none;">Remarks are required for rejection.</div>
+            </div>
+        </div>
+        
+        <div class="modal-footer" style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('confirmReviewModal')" style="padding: 0.5rem 1rem; border-radius: 8px;">Cancel</button>
+            <button type="button" id="confirmActionBtn" class="btn btn-primary" onclick="proceedSubmission()" style="padding: 0.5rem 1.5rem; border-radius: 8px; font-weight: 600;">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='js/roles/dashboard-common.js') }}"></script>
+<script src="{{ url_for('static', filename='js/roles/verifier-panel.js') }}"></script>
+
+<!-- Trash Bin Modal -->
+<div class="trash-modal-overlay" id="trashModalOverlay" onclick="closeTrashBin(event)">
+    <div class="trash-modal" onclick="event.stopPropagation()">
+        <div class="trash-modal-header">
+            <h3><i class="fas fa-trash-alt"></i> Trash Bin</h3>
+            <button class="trash-modal-close" onclick="closeTrashBin()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="trash-modal-body" id="trashModalBody">
+            <div class="trash-empty-state">
+                <i class="fas fa-recycle"></i>
+                <h4>Trash is empty</h4>
+                <p>Deleted submissions will appear here</p>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

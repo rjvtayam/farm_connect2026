@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="csrf-token" content="{{ csrf_token() }}" />
+    <title>{% block title %}Farm Connect{% endblock %}</title>
+
+    <!-- Fonts and Icons -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet" />
+
+    <!-- FontAwesome CSS -->
+    <link rel="preload"
+      href="{{ url_for('static', filename='fontawesome/webfonts/fa-solid-900.woff2') }}"
+      as="font"
+      type="font/woff2" crossorigin />
+    <link rel="preload"
+      href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}"
+      as="style" />
+    <link rel="stylesheet"
+      href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}" />
+
+    <!-- Styles -->
+    <link rel="stylesheet"
+      href="{{ url_for('static', filename='css/base.css') }}" />
+    <link rel="stylesheet"
+      href="{{ url_for('static', filename='css/style.css') }}" />
+
+
+    {% block extra_css %}{% endblock %}
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon"
+      href="{{ url_for('public.static', filename='favicon/favicon.ico') }}" />
+    <link rel="icon" type="image/png" sizes="16x16"
+      href="{{ url_for('public.static', filename='favicon/favicon-16x16.png') }}" />
+    <link rel="icon" type="image/png" sizes="32x32"
+      href="{{ url_for('public.static', filename='favicon/favicon-32x32.png') }}" />
+    <link rel="apple-touch-icon" sizes="180x180"
+      href="{{ url_for('public.static', filename='favicon/apple-touch-icon.png') }}" />
+    <link rel="manifest"
+      href="{{ url_for('public.static', filename='favicon/site.webmanifest') }}" />
+
+
+  </head>
+
+  <body>
+    <!-- Header/Navbar section -->
+    <header class="main-header">
+      <nav class="navbar">
+        <div class="navbar-left">
+          <button class="mobile-menu-btn" id="mobileMenuBtn">
+            <i class="fas fa-bars"></i>
+          </button>
+          <div class="navbar-brand">
+            <a href="{{ url_for('main.index') }}" class="brand-link"> 
+              <img
+                src="{{ url_for('public.static', filename='FARM CONNECT LOGO/sample_logo.png') }}"
+                alt="Farm Connect Logo"
+                class="nav-logo" />
+              <span class="brand-text">Farm Connect</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="navbar-menu" id="navbarMenu">
+          <div class="nav-links">
+            <a href="#home" class="nav-link active">
+              <i class="fas fa-home"></i>
+              Home
+            </a>
+            <a href="#about" class="nav-link">
+              <i class="fas fa-book"></i>
+              About
+            </a>
+
+            <a href="#features" class="nav-link">
+              <i class="fas fa-shapes"></i>
+              Features
+            </a>
+
+            <a href="#faqs" class="nav-link">
+              <i class="fas fa-circle-question"></i>
+              FAQs
+            </a>
+
+            <a href="#community" class="nav-link">
+              <i class="fas fa-people-group"></i>
+              Community
+            </a>
+
+            <a href="#contact" class="nav-link">
+              <i class="fas fa-envelope"></i>
+              Contact
+            </a>
+          </div>
+        </div>
+
+        <div class="navbar-end">
+          <div class="auth-buttons">
+            <a href="{{ url_for('auth.login') }}" class="btn btn-login {% if request.endpoint == 'auth.login' %}active{% endif %}">
+              <i class="fas fa-arrow-right moving-arrow"></i> Authorized Login
+            </a>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <!-- Flash Messages -->
+
+    <div id="flash-messages" class="flash-messages">
+      {% include 'partials/flash-messages.html' %}
+    </div>
+
+    <!-- Main Content -->
+    <main>{% block content %}{% endblock %}</main>
+
+    <!-- Footer -->
+    <footer class="footer" aria-label="Website Footer">
+      <div class="footer-content">
+        <div class="footer-logo">
+          <img
+            src="{{ url_for('public.static', filename='FARM CONNECT LOGO/sample_logo.png') }}"
+            alt="Farm Connect Logo" />
+          <p>
+            Farm Connect is the official agri-fishery information and management
+            system for municipalities in Laguna. Streamlining beneficiary
+            registration, government interventions, and agricultural data
+            management through secure digital tools.
+          </p>
+        </div>
+        <div class="footer-links">
+          <div class="footer-column">
+            <h3>Programs</h3>
+            <ul>
+              <li><a href="#">RSBSA Enrollment</a></li>
+              <li><a href="#">FishR Registration</a></li>
+              <li><a href="#">BoatR Registration</a></li>
+              <li><a href="#">NCFRS Enrollment</a></li>
+              <li><a href="#">Intervention Tracking</a></li>
+              <li><a href="#">Beneficiary Verification</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h3>Government Resources</h3>
+            <ul>
+              <li><a href="https://www.da.gov.ph" target="_blank">Department of Agriculture</a></li>
+              <li><a href="https://www.bfar.da.gov.ph" target="_blank">Bureau of Fisheries (BFAR)</a></li>
+              <li><a href="https://rsbsa.da.gov.ph" target="_blank">RSBSA Registry</a></li>
+              <li><a href="https://pcic.gov.ph" target="_blank">Crop Insurance (PCIC)</a></li>
+              <li><a href="https://www.philrice.gov.ph" target="_blank">PhilRice</a></li>
+              <li><a href="https://www.laguna.gov.ph" target="_blank">Province of Laguna</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h3>Quick Links</h3>
+            <ul>
+              <li><a href="#home">Home</a></li>
+              <li><a href="#about">About Us</a></li>
+              <li><a href="#features">Features</a></li>
+              <li><a href="#faqs">FAQs</a></li>
+              <li><a href="#community">Community</a></li>
+              <li><a href="#contact">Contact</a></li>
+              <li><a href="{{ url_for('auth.login') }}">Staff Login</a></li>
+            </ul>
+          </div>
+          <div class="footer-column">
+            <h3>Municipal Services</h3>
+            <ul>
+              <li><a href="#">NFC Card Enrollment</a></li>
+              <li><a href="#">Farm Parcel Mapping</a></li>
+              <li><a href="#">Beneficiary Lookup</a></li>
+              <li><a href="#">Report Generation</a></li>
+              <li><a href="#">Data Export</a></li>
+              <li><a href="#">Help & Support</a></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-text">
+          Empowering Laguna's agricultural communities through digital
+          innovation — connecting farmers, fisherfolk, and government services.
+        </p>
+        <div class="social-media">
+          <a href="#" class="social-icon"><i class="fab fa-facebook-f"></i></a>
+          <a href="#" class="social-icon"><i class="fab fa-twitter"></i></a>
+          <a href="#" class="social-icon"><i class="fab fa-linkedin-in"></i></a>
+          <a href="#" class="social-icon"><i class="fab fa-instagram"></i></a>
+          <a href="#" class="social-icon"><i class="fab fa-youtube"></i></a>
+        </div>
+        <div class="legal-links">
+          <a href="{{ url_for('main.privacy_policy') }}">Privacy Policy</a>
+          <span class="separator">|</span>
+          <a href="{{ url_for('main.terms_of_service') }}">Terms of Service</a>
+          <span class="separator">|</span>
+          <a href="{{ url_for('main.cookie_policy') }}">Cookie Policy</a>
+        </div>
+        <p class="copyright">&copy; 2026 Farm Connect. All rights reserved.</p>
+      </div>
+    </footer>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <!-- Base JavaScript (Navigation, Mobile Menu, Core Functionality) -->
+    <script src="{{ url_for('static', filename='js/base.js') }}"></script>
+    
+    <!-- Page specific scripts -->
+    {% block scripts %}{% endblock %}
+  </body>
+
+</html>

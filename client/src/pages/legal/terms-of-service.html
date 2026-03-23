@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block head %}
+    {{ super() }}
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/legal/legal.css') }}">
+{% endblock %}
+
+{% block title %}Terms of Service - Farm Connect{% endblock %}
+
+{% block content %}
+<div class="legal-container">
+    <div class="legal-header">
+        <div class="header-image">
+            <img src="public/images/terms.png" alt="Terms of Service">
+        </div>
+        <h1>Terms of Service</h1>
+        <p class="last-updated">Last updated: December 18, 2024</p>
+    </div>
+
+    <div class="legal-content terms-content">
+        <div class="content-illustration">
+            <img src="public/images/data-protection-icon.png" alt="Terms and Conditions" class="floating-image">
+        </div>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-handshake"></i>
+            </div>
+            <h2>1. Acceptance of Terms</h2>
+            <div class="terms-box">
+                <p>By accessing and using Farm Connect's agricultural management platform, you acknowledge that you have read, understood, and agreed to be bound by these Terms of Service.</p>
+            </div>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-tasks"></i>
+            </div>
+            <h2>2. Service Description</h2>
+            <div class="terms-box">
+                <p>Farm Connect provides an agricultural platform that:</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i>Assesses and tracks student skills and competencies</li>
+                    <li><i class="fas fa-check-circle"></i>Recommends personalized training courses</li>
+                    <li><i class="fas fa-check-circle"></i>Facilitates OJT placements</li>
+                    <li><i class="fas fa-check-circle"></i>Measures skill improvement</li>
+                    <li><i class="fas fa-check-circle"></i>Matches students with OJT opportunities</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-users"></i>
+            </div>
+            <h2>3. User Accounts</h2>
+            <div class="terms-box">
+                <p>3.1. Account Creation</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i>Users must provide accurate and complete information during registration</li>
+                    <li><i class="fas fa-check-circle"></i>Student accounts must be associated with valid student identification</li>
+                    <li><i class="fas fa-check-circle"></i>Users are responsible for maintaining the confidentiality of their account credentials</li>
+                </ul>
+
+                <p>3.2. Account Types</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i>Student Accounts: For enrolled students seeking skill assessment and OJT placement</li>
+                    <li><i class="fas fa-check-circle"></i>Industry Partner Accounts: For organizations offering OJT opportunities</li>
+                    <li><i class="fas fa-check-circle"></i>Administrator Accounts: For educational institution staff</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-chart-line"></i>
+            </div>
+            <h2>4. Assessment and Recommendations</h2>
+            <div class="terms-box">
+                <p>4.1. Skill Assessment</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i>Assessments are designed to evaluate current skill levels</li>
+                    <li><i class="fas fa-check-circle"></i>Results are used to generate personalized course recommendations</li>
+                    <li><i class="fas fa-check-circle"></i>Assessment data may be shared with potential OJT partners</li>
+                </ul>
+
+                <p>4.2. Course Recommendations</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i>Recommendations are based on assessment results and industry requirements</li>
+                    <li><i class="fas fa-check-circle"></i>Completion of recommended courses is not guaranteed to secure OJT placement</li>
+                    <li><i class="fas fa-check-circle"></i>Course content may be updated to align with industry standards</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-briefcase"></i>
+            </div>
+            <h2>5. OJT Placement</h2>
+            <div class="terms-box">
+                <p>5.1. Matching Process</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i>Placements are based on skill alignment and availability</li>
+                    <li><i class="fas fa-check-circle"></i>The platform facilitates connections but does not guarantee placement</li>
+                    <li><i class="fas fa-check-circle"></i>Final selection decisions rest with industry partners</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h2>6. Data Usage and Privacy</h2>
+            <div class="terms-box">
+                <p>Users acknowledge that their data will be:</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i>Collected and analyzed for skill assessment</li>
+                    <li><i class="fas fa-check-circle"></i>Used to generate course recommendations</li>
+                    <li><i class="fas fa-check-circle"></i>Shared with potential OJT partners when necessary</li>
+                    <li><i class="fas fa-check-circle"></i>Protected according to our Privacy Policy</li>
+                </ul>
+            </div>
+        </section>
+
+        <section class="legal-section">
+            <div class="section-icon">
+                <i class="fas fa-edit"></i>
+            </div>
+            <h2>7. Modifications to Service</h2>
+            <div class="terms-box">
+                <p>Farm Connect reserves the right to:</p>
+                <ul class="feature-list">
+                    <li><i class="fas fa-check-circle"></i>Modify or discontinue features without prior notice</li>
+                    <li><i class="fas fa-check-circle"></i>Update assessment criteria based on industry standards</li>
+                    <li><i class="fas fa-check-circle"></i>Adjust course recommendations based on effectiveness data</li>
+                </ul>
+            </div>
+        </section>
+    </div>
+</div>
+{% endblock %} 

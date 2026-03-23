@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}500 - Internal Server Error{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/errors/errors.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-content">
+        <div class="error-image">
+            <img
+                src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fasaan.com%2Fstatic%2Fassets%2Ficons%2F500_error.jpg&f=1&nofb=1&ipt=d4741404e168ac804cb42ac4bbf237d3ff4f26244accd923462e89ee9a58ed45&ipo=images"
+                alt="500 Error Illustration"
+                loading="lazy"
+                width="400"
+                height="300">
+        </div>
+        <div class="error-text">
+            <h1>500</h1>
+            <h2>Internal Server Error</h2>
+            <p>Something went wrong on our end. We're working to fix it.</p>
+            <div class="error-actions">
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">
+                    <i class="fas fa-home"></i> Go Home
+                </a>
+                <button onclick="location.reload()" class="btn btn-outline">
+                    <i class="fas fa-redo"></i> Try Again
+                </button>
+            </div>
+            <div class="error-help">
+                <p>If the problem persists, please contact support:</p>
+                <a href="mailto:support@farmconnect.com" class="support-link">
+                    <i class="fas fa-envelope"></i> support@farmconnect.com
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

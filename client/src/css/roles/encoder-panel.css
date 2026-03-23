@@ -1,0 +1,394 @@
+/* ============================================
+   Encoder Panel — Role-Specific Overrides
+   Base shared styles are in dashboard.css
+   ============================================ */
+
+/* ── Encoder Accent Colors ── */
+.user-avatar-small {
+    background: linear-gradient(135deg, #22c55e 0%, #86efac 100%);
+}
+
+.nav-item.active {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+.nav-item:hover {
+    color: #16A34A;
+}
+
+/* ── Custom Status Badge Overrides for Encoder ── */
+.status-badge.pending, 
+.status-badge.pending_verification { 
+    background: #E0F2FE; 
+    color: #0369A1; 
+}
+.status-badge.pending::before,
+.status-badge.pending_verification::before { 
+    background: #0ea5e9; 
+}
+
+.status-badge.approved { 
+    background: #DCFCE7; 
+    color: #15803D; 
+}
+.status-badge.approved::before { 
+    background: #22c55e; 
+}
+
+.status-badge.rejected { 
+    background: #FEF2F2; 
+    color: #991B1B; 
+}
+.status-badge.rejected::before { 
+    background: #ef4444; 
+}
+
+.status-badge.verified {
+    background: #E0F2FE;
+    color: #0369A1;
+}
+.status-badge.verified::before {
+    background: #0ea5e9;
+}
+
+/* ── Header Content Layout ── */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* ── Quick Action Cards ── */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 1.5rem;
+}
+
+.action-card {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1.5rem;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    text-decoration: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    background: white;
+}
+
+.action-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    border-color: transparent;
+}
+
+.action-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    flex-shrink: 0;
+}
+
+.action-icon.rsba-color  { background: linear-gradient(135deg, #22c55e, #86efac); }
+.action-icon.fish-color  { background: linear-gradient(135deg, #0ea5e9, #67e8f9); }
+.action-icon.boat-color  { background: linear-gradient(135deg, #8b5cf6, #c4b5fd); }
+.action-icon.ncfrs-color { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+
+.action-details h3 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--text-dark);
+    margin: 0 0 0.25rem 0;
+}
+
+.action-details p {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin: 0;
+}
+
+.action-arrow {
+    margin-left: auto;
+    color: var(--text-light);
+    transition: all 0.2s;
+}
+
+.action-card:hover .action-arrow {
+    color: var(--primary);
+    transform: translateX(4px);
+}
+
+/* ── Action Card as button reset ── */
+button.action-card {
+    cursor: pointer;
+    font-family: inherit;
+    text-align: left;
+}
+
+/* ── Active Action Card ── */
+.action-card.active {
+    border-color: #22c55e;
+    box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.18), 0 8px 20px rgba(0, 0, 0, 0.06);
+    transform: translateY(-2px);
+    background: #f0fdf4;
+}
+
+.action-card.active .action-arrow {
+    color: #22c55e;
+    transform: rotate(90deg);
+}
+
+/* ── Form Viewer (iframe section) ── */
+#form-viewer {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 2rem);
+    animation: fadeSlideUp 0.35s ease;
+}
+
+@keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.form-viewer-header {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    padding: 1rem 1.5rem;
+    background: white;
+    border-radius: 16px;
+    border: 1px solid var(--border);
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.form-viewer-header h2 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--text-dark);
+}
+
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    font-size: 1rem;
+    color: var(--text-dark);
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+}
+
+.btn-back:hover {
+    background: #f0fdf4;
+    border-color: #22c55e;
+    color: #16a34a;
+}
+
+.form-frame {
+    flex: 1;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: white;
+    min-height: 0;
+}
+
+/* ── Ultra-Premium RSBSA Modal Body ── */
+.rsbsa-modal-view {
+    font-family: 'Inter', sans-serif;
+    color: #334155;
+    background: #ffffff;
+    padding: 0;
+    border-radius: 20px;
+    overflow: hidden;
+}
+
+.rsbsa-header-official {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(248, 250, 252, 0.5);
+    backdrop-filter: blur(10px);
+    padding: 1.25rem 2.5rem;
+    border-bottom: 1px solid #e2e8f0;
+    position: relative;
+    gap: 1.5rem;
+}
+
+.official-seal-sm {
+    width: 60px;
+    height: 60px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    border: 1px solid #f1f5f9;
+}
+
+.official-title-block {
+    text-align: center;
+    flex: 1;
+}
+
+.official-title-block h4 {
+    margin: 0;
+    font-size: 0.7rem;
+    color: #64748b;
+    letter-spacing: 0.2em;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.official-title-block h3 {
+    margin: 0.15rem 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    color: #1e293b;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.official-photo-box {
+    width: 85px;
+    height: 105px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8fafc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.official-photo-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.official-photo-box .placeholder-icon {
+    font-size: 1.5rem;
+    color: #cbd5e1;
+}
+
+.rsbsa-section-label {
+    background: #f1f5f9;
+    color: #475569;
+    padding: 0.4rem 1rem;
+    font-size: 0.65rem;
+    font-weight: 800;
+    border-radius: 6px;
+    display: inline-block;
+    margin: 1.5rem 2.5rem 0.75rem;
+    border: 1px solid #e2e8f0;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.info-display-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem 2rem;
+    margin: 0 2.5rem 2rem;
+}
+
+.info-item {
+    border-bottom: 1px solid #f1f5f9;
+    padding-bottom: 0.4rem;
+}
+
+.info-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+    letter-spacing: 0.05em;
+}
+
+.info-value {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.info-value.empty {
+    color: #94a3b8;
+    font-style: italic;
+    font-size: 0.8rem;
+}
+
+.info-full-width {
+    grid-column: span 3;
+}
+
+.info-two-thirds {
+    grid-column: span 2;
+}
+
+/* ── Modal Enhancements ── */
+.premium-overlay {
+    backdrop-filter: blur(12px);
+    background: rgba(15, 23, 42, 0.45);
+}
+
+.premium-modal-content {
+    animation: modalSlideUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+@keyframes modalSlideUp {
+    from { opacity: 0; transform: scale(0.98) translateY(24px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .quick-actions-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #form-viewer {
+        height: calc(100vh - 1rem);
+    }
+
+    .form-viewer-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+    }
+}

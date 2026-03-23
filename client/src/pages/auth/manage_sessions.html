@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Active Sessions - Farm Connect{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/auth.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="sessions-card">
+        <div class="sessions-header">
+            <h2>Manage Active Sessions</h2>
+            <p>View and manage your active sessions across different devices</p>
+        </div>
+
+
+        <!-- Flash messages handled globally -->
+
+        <div class="sessions-list">
+            {% if sessions %}
+            <div class="session-controls">
+                <a href="{{ url_for('terminate_all_sessions') }}"
+                    class="btn btn-warning confirm-action"
+                    data-confirm-message="Are you sure you want to terminate all other sessions?">
+                    Terminate All Other Sessions
+                </a>
+            </div>
+
+            {% for session in sessions %}
+            <div
+                class="session-item {% if session.session_id == session['session_id'] %}current-session{% endif %}">
+                <div class="session-info">
+                    <div class="session-device">
+                        <i
+                            class="fas {% if 'Mobile' in session.user_agent %}fa-mobile-alt{% else %}fa-laptop{% endif %}"></i>
+                        <span>{{ 'Current Session' if session.session_id ==
+                            session['session_id'] else 'Other Device' }}</span>
+                    </div>
+                    <div class="session-details">
+                        <p><strong>IP Address:</strong> {{ session.ip_address
+                            }}</p>
+                        <p><strong>Last Activity:</strong> {{
+                            session.last_activity.strftime('%Y-%m-%d %H:%M:%S')
+                            }}</p>
+                        <p><strong>Created:</strong> {{
+                            session.created_at.strftime('%Y-%m-%d %H:%M:%S')
+                            }}</p>
+                    </div>
+                </div>
+                {% if session.session_id != session['session_id'] %}
+                <div class="session-actions">
+                    <a
+                        href="{{ url_for('terminate_session', session_id=session.session_id) }}"
+                        class="btn btn-danger btn-sm confirm-action"
+                        data-confirm-message="Are you sure you want to terminate this session?">
+                        Terminate Session
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+            {% else %}
+            <div class="no-sessions">
+                <p>No active sessions found.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
+{% endblock %}

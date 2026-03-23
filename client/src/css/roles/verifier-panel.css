@@ -1,0 +1,261 @@
+/* ============================================
+   Verifier Panel — Role-Specific Overrides
+   Base shared styles are in dashboard.css
+   ============================================ */
+
+/* ── Verifier Accent Colors ── */
+.user-avatar-small {
+    background: linear-gradient(135deg, #f59e0b 0%, #fbbf24 100%);
+}
+
+.nav-item.active {
+    background: #FEF3C7;
+    color: #D97706;
+}
+
+.nav-item:hover {
+    color: #D97706;
+}
+
+/* ── Header Content Layout ── */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+}
+
+/* ── Review Modal Redesign (Dual Pane) ── */
+.modal-content.premium-modal {
+    max-width: 1400px;
+    width: 98vw;
+    height: 96vh; /* Increased to accommodate taller map */
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.modal-header-premium {
+    padding: 1.25rem 2rem;
+    background: white;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-body-dual {
+    flex: 1;
+    display: flex;
+    overflow: hidden;
+    background: #f8fafc;
+}
+
+/* Left Pane: Form Content */
+.pane-left {
+    flex: 1;
+    overflow-y: auto;
+    padding: 2rem;
+    border-right: 1px solid var(--border);
+    background: white;
+}
+
+/* Right Pane: Map & Sidebar */
+.pane-right {
+    flex: 1.4; /* Give more space to map */
+    display: flex;
+    flex-direction: column;
+    padding: 2rem;
+    overflow-y: auto;
+    background: #f1f5f9;
+}
+
+/* Tab Navigation */
+.tab-nav {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 2rem;
+    background: #f1f5f9;
+    padding: 0.4rem;
+    border-radius: 12px;
+    width: fit-content;
+}
+
+.tab-btn {
+    padding: 0.6rem 1.5rem;
+    border: none;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+    background: transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.tab-btn.active {
+    background: #10b981;
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
+}
+
+.tab-btn:not(.active):hover {
+    background: rgba(0,0,0,0.05);
+    color: var(--text-dark);
+}
+
+/* Square Map Viewport - ENLARGED */
+.square-map-wrapper {
+    width: 100%;
+    height: 1200px; /* Extraordinary height for professional GIS dominance */
+    background: white;
+    border-radius: 20px;
+    padding: 0.75rem;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    border: 1px solid #e2e8f0;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+#landMapContainer {
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: 12px;
+}
+
+/* Data Sections */
+.info-section {
+    margin-bottom: 2.5rem;
+}
+
+.info-section-title {
+    font-size: 0.9rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin-bottom: 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.info-section-title i {
+    color: #10b981;
+    font-size: 1.1rem;
+}
+
+.data-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.data-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.data-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+}
+
+.data-value {
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: #1e293b;
+    padding: 0.6rem 0.85rem;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+}
+
+.modal-footer-premium {
+    padding: 1.25rem 2rem;
+    background: white;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    align-items: center;
+}
+
+.footer-hint {
+    margin-right: auto;
+    font-size: 0.85rem;
+    color: #64748b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.footer-hint input {
+    width: 18px;
+    height: 18px;
+    accent-color: #10b981;
+}
+
+/* Attachment Cards */
+.attachment-card-premium {
+    background: white;
+    border: 1px solid #e2e8f0;
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.attachment-card-premium:hover {
+    border-color: #10b981;
+    background: #f0fdf4;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.attachment-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #475569;
+    font-size: 1.2rem;
+}
+
+.attachment-card-premium:hover .attachment-icon {
+    background: #10b981;
+    color: white;
+}
+
+/* ── Responsive ── */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .review-grid {
+        grid-template-columns: 1fr;
+    }
+}

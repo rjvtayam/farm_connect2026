@@ -1,0 +1,435 @@
+/* ============================================
+   Admin Panel — Role-Specific Overrides
+   Base shared styles are in dashboard.css
+   ============================================ */
+
+/* ── Admin Accent Colors ── */
+.user-avatar-small {
+    background: linear-gradient(135deg, #4f46e5 0%, #818cf8 100%);
+}
+
+.nav-item.active {
+    background: #EEF2FF;
+    color: #4F46E5;
+}
+
+.nav-item:hover {
+    color: #4F46E5;
+}
+
+/* ── Admin-specific stat icon colors ── */
+.icon-users    { background: linear-gradient(135deg, #4f46e5, #818cf8); }
+.icon-mao      { background: linear-gradient(135deg, #0ea5e9, #67e8f9); }
+.icon-encoder  { background: linear-gradient(135deg, #22c55e, #86efac); }
+.icon-verifier { background: linear-gradient(135deg, #f59e0b, #fbbf24); }
+
+/* ── Header Content Layout ── */
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    width: 100%;
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.75rem;
+}
+
+/* ── Activity Items ── */
+.activity-item .activity-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: #EEF2FF;
+    color: #4F46E5;
+}
+
+.activity-item .activity-content {
+    flex: 1;
+}
+
+.activity-item .activity-content p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.activity-item .activity-time {
+    color: var(--text-light);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+/* ── Button Outline Override ── */
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+
+.btn-outline:hover {
+    background: var(--bg-light);
+    border-color: var(--text-light);
+}
+
+/* ── Profile Modal ── */
+.profile-upload-area {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    padding: 1.5rem;
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.profile-upload-area:hover {
+    border-color: var(--primary);
+    background: var(--primary-light);
+}
+
+.profile-preview {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: #F3F4F6;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.profile-preview i {
+    font-size: 2.5rem;
+    color: var(--text-light);
+}
+
+/* ── Admin Polish & Charts ── */
+.chart-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.chart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.trend-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    transition: all 0.3s ease;
+}
+
+.trend-badge.up {
+    background: #DCFCE7;
+    color: #16A34A;
+}
+
+.trend-badge.down {
+    background: #FEE2E2;
+    color: #DC2626;
+}
+
+.trend-badge.neutral {
+    background: #F3F4F6;
+    color: #6B7280;
+}
+
+/* ── Responsive mobile header ── */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+}
+
+/* ── Command Center Map Components ── */
+.map-floating-controls {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    padding: 1.2rem;
+    border-radius: 14px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    width: 200px;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.map-floating-controls .control-item label {
+    display: block;
+    font-size: 0.65rem;
+    font-weight: 800;
+    color: #94a3b8;
+    margin-bottom: 0.4rem;
+    letter-spacing: 0.05em;
+}
+
+.map-select {
+    width: 100%;
+    padding: 0.5rem;
+    font-size: 0.85rem;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    background-color: white;
+    color: #1e293b;
+    font-weight: 500;
+    outline: none;
+    cursor: pointer;
+}
+
+.map-select:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.1);
+}
+
+.map-legend-premium {
+    position: absolute;
+    bottom: 25px;
+    left: 20px;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.9);
+    backdrop-filter: blur(6px);
+    padding: 1rem;
+    border-radius: 12px;
+    color: white;
+    font-size: 0.75rem;
+    min-width: 160px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+}
+
+.legend-header {
+    font-weight: 800;
+    font-size: 0.65rem;
+    color: #94a3b8;
+    margin-bottom: 0.8rem;
+    letter-spacing: 0.1em;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    padding-bottom: 0.4rem;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #f1f5f9;
+}
+
+.legend-item:last-child { margin-bottom: 0; }
+
+.status-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.status-dot.pending  { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+.status-dot.verified { background: #3b82f6; box-shadow: 0 0 8px rgba(59, 130, 246, 0.5); }
+.status-dot.approved { background: #10b981; box-shadow: 0 0 8px rgba(16, 185, 129, 0.5); }
+.status-dot.returned { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+
+.staff-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+    vertical-align: middle;
+    margin-right: 8px;
+}
+.staff-dot.encoder  { background: #4f46e5; box-shadow: 0 0 8px rgba(79, 70, 229, 0.5); }
+.staff-dot.verifier { background: #f59e0b; box-shadow: 0 0 8px rgba(245, 158, 11, 0.5); }
+.staff-dot.mao      { background: #0ea5e9; box-shadow: 0 0 8px rgba(14, 165, 233, 0.5); }
+.staff-dot.admin    { background: #ef4444; box-shadow: 0 0 8px rgba(239, 68, 68, 0.5); }
+
+.legend-divider {
+    height: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 0.8rem 0;
+}
+
+.legend-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.legend-label {
+    font-size: 0.6rem;
+    font-weight: 800;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 0.2rem;
+    display: block;
+}
+
+/* Tooltip Styles */
+.admin-map-tooltip {
+    background: white;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    padding: 0.5rem 0.8rem;
+    font-family: inherit;
+    font-weight: 600;
+    color: #1e293b;
+}
+
+.admin-map-tooltip::before { border-right-color: white; }
+
+/* Pulse Animation for Markers */
+.marker-pulse {
+    width: 12px;
+    height: 12px;
+    background: #ef4444;
+    border-radius: 50%;
+    box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+    animation: pulse-marker 2s infinite;
+}
+
+@keyframes pulse-marker {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* ── Staff Map Markers ── */
+.staff-div-marker {
+    background: transparent;
+    border: none;
+}
+
+.staff-map-marker {
+    position: relative;
+    width: 32px;
+    height: 32px;
+    background: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    border: 2.5px solid white;
+    z-index: 2;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.staff-map-marker.encoder  { background: #4f46e5; color: white; }
+.staff-map-marker.verifier { background: #f59e0b; color: white; }
+.staff-map-marker.mao      { background: #0ea5e9; color: white; }
+.staff-map-marker.admin    { background: #ef4444; color: white; }
+
+/* Status States */
+.staff-map-marker.online {
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.7), 0 44px 12px rgba(0,0,0,0.3);
+    border-color: #22c55e !important;
+}
+
+.staff-map-marker.offline {
+    filter: grayscale(0.5);
+    opacity: 0.85;
+    border-color: #cbd5e1 !important;
+}
+
+.status-indicator-dot {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 13px;
+    height: 13px;
+    border-radius: 50%;
+    border: 2.5px solid white;
+    z-index: 5;
+    transition: all 0.3s ease;
+}
+
+.status-indicator-dot.online {
+    background: #22c55e;
+    box-shadow: 0 0 8px #22c55e;
+    animation: status-pulse 2s infinite;
+}
+
+.status-indicator-dot.offline {
+    background: #94a3b8;
+}
+
+@keyframes status-pulse {
+    0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+    70% { transform: scale(1.1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+    100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+}
+
+.staff-map-marker:hover {
+    transform: scale(1.2);
+    z-index: 1000;
+}
+
+.staff-pulse {
+    position: absolute;
+    top: -4px;
+    left: -4px;
+    right: -4px;
+    bottom: -4px;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    opacity: 0;
+    animation: staff-ping 2s infinite;
+}
+
+@keyframes staff-ping {
+    0% { transform: scale(0.8); opacity: 0.8; }
+    100% { transform: scale(1.5); opacity: 0; }
+}
+
+.staff-tooltip {
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+    line-height: 1.4;
+}
+
+.staff-tooltip .role-label {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    background: #f1f5f9;
+    border-radius: 4px;
+    font-weight: 800;
+    font-size: 0.65rem;
+    margin-top: 0.25rem;
+}
+
+.sub-tooltip {
+    padding: 0.3rem;
+}

@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>City Fisherfolk Registration Form — Farm Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms/fish-registration-form.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms/form-dropdowns.css') }}">
+</head>
+<body>
+
+<div class="form-shell" id="formShell">
+
+<!-- ═══════════════════════════════════════════════════════
+     OFFICIAL HEADER
+══════════════════════════════════════════════════════════ -->
+<div class="form-header">
+    <div class="form-header-inner">
+        <div class="header-logo-block">
+            <!-- BFAR Seal SVG -->
+            <div class="da-seal">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="BFAR seal">
+                    <circle cx="50" cy="50" r="46" fill="none" stroke="#1a5f7a" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="#1a5f7a" stroke-width="1.5"/>
+                    <path d="M 35 52 Q 50 42, 65 52 Q 50 62, 35 52 Z" fill="none" stroke="#1a5f7a" stroke-width="1.5"/>
+                    <circle cx="58" cy="51" r="2" fill="#1a5f7a"/>
+                    <path d="M 33 52 L 28 47 L 28 57 Z" fill="#1a5f7a"/>
+                    <text x="50" y="80" text-anchor="middle" font-size="5" font-weight="bold" fill="#1a5f7a">DA-BFAR</text>
+                </svg>
+            </div>
+            <div class="header-title-block">
+                <div class="header-location-text">
+                    <p>Republic of the Philippines · Region I</p>
+                    <p>Province of Pangasinan · City of Alaminos</p>
+                </div>
+                <h1 class="form-title-main">APPLICATION FOR CITY FISHERFOLK REGISTRATION</h1>
+                <p class="form-subtitle">Municipal Fisherfolk Registration System (MFRS)</p>
+            </div>
+        </div>
+        <div class="header-photo-block">
+            <div class="photo-upload-zone" id="photoZone" onclick="document.getElementById('photoUpload').click()" title="Upload applicant photo">
+                <img id="photoPreview" class="photo-img" alt="Applicant photo" style="display:none;">
+                <div class="photo-placeholder-inner" id="photoPlaceholder">
+                    <span class="photo-size-label">1¼×1½</span>
+                    <span class="photo-text">PICTURE</span>
+                    <span class="photo-note">Photo taken<br>within 6 months</span>
+                    <i class="photo-upload-icon">📷</i>
+                </div>
+            </div>
+            <input type="file" id="photoUpload" accept="image/*" style="display:none;">
+        </div>
+    </div>
+
+    <!-- Registration Info Row -->
+    <div class="header-meta-row">
+        <div class="meta-left">
+            <div class="enrollment-type-row">
+                <div class="ref-group">
+                    <span class="meta-label">Registration No.:</span>
+                    <input type="text" class="ref-box ref-wide" id="registrationNo" placeholder="Auto-generated" readonly style="width:180px;">
+                </div>
+                <label class="check-opt"><input type="checkbox" name="registrationType" value="new" id="newRegistration"> New Registration</label>
+                <label class="check-opt"><input type="checkbox" name="registrationType" value="renewal" id="renewal"> Renewal</label>
+            </div>
+            <div class="enrollment-type-row">
+                <div class="ref-group">
+                    <span class="meta-label">Registration Date:</span>
+                    <input type="date" class="ref-box ref-wide" id="registrationDate" style="width:160px;">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="version-stamp">MFRS FORM v2.2 | OCT 2012</div>
+</div><!-- /form-header -->
+
+<form id="fisherfolkForm" novalidate>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  PART 1 — PERSONAL INFORMATION      ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">PART 1</span>
+        <span class="section-title">PERSONAL INFORMATION</span>
+    </div>
+    <div class="section-body">
+        <!-- Salutation -->
+        <div class="fg-row">
+            <div class="fg fg-full">
+                <label class="fg-label">Complete Name — Salutation</label>
+                <div class="radio-row">
+                    <label class="check-opt"><input type="radio" name="salutation" value="Mr"> Mr</label>
+                    <label class="check-opt"><input type="radio" name="salutation" value="Ms"> Ms</label>
+                    <label class="check-opt"><input type="radio" name="salutation" value="Mrs"> Mrs</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Name Row -->
+        <div class="fg-row">
+            <div class="fg fg-quarter">
+                <label class="fg-label">LAST NAME <span class="req">*</span></label>
+                <input type="text" id="lastName" class="fg-input fg-underline" required>
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">FIRST NAME <span class="req">*</span></label>
+                <input type="text" id="firstName" class="fg-input fg-underline" required>
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">MIDDLE NAME</label>
+                <input type="text" id="middleName" class="fg-input fg-underline">
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">APPELLATION (Jr., Sr., III)</label>
+                <input type="text" id="appellation" class="fg-input fg-underline">
+            </div>
+        </div>
+
+        <!-- Residency Status -->
+        <div class="fg-row residency-row">
+            <div class="fg fg-full">
+                <label class="fg-label">ARE YOU A PERMANENT RESIDENT OF MABITAC? <span class="req">*</span></label>
+                <div class="radio-row">
+                    <label class="check-opt"><input type="radio" name="isMabitacResident" value="Yes" required> Yes</label>
+                    <label class="check-opt"><input type="radio" name="isMabitacResident" value="No"> No</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Address -->
+        <div class="fg-row address-label-row">
+            <span class="address-prefix-label">ADDRESS</span>
+        </div>
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">STREET / BARANGAY <span class="req">*</span></label>
+                <input type="text" id="street" class="fg-input" required>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">CITY / MUNICIPALITY <span class="req">*</span></label>
+                <input type="text" id="city" class="fg-input fg-locked" value="Mabitac" readonly required>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">PROVINCE <span class="req">*</span></label>
+                <input type="text" id="province" class="fg-input fg-locked" value="Laguna" readonly required>
+            </div>
+        </div>
+
+        <!-- Contact -->
+        <div class="fg-row">
+            <div class="fg fg-half">
+                <label class="fg-label">CONTACT NUMBER <span class="req">*</span></label>
+                <input type="tel" id="contactNo" class="fg-input" placeholder="+63" required>
+            </div>
+            <div class="fg fg-half">
+                <label class="fg-label">RESIDENT OF THE MUNICIPALITY SINCE (year)</label>
+                <input type="text" id="residentSince" class="fg-input" placeholder="Year">
+            </div>
+        </div>
+
+        <!-- Birth -->
+        <div class="fg-row">
+            <div class="fg fg-quarter">
+                <label class="fg-label">AGE</label>
+                <input type="number" id="age" class="fg-input" min="0" readonly>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">DATE OF BIRTH <span class="req">*</span></label>
+                <input type="date" id="dateOfBirth" class="fg-input" required>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">PLACE OF BIRTH <span class="req">*</span></label>
+                <input type="text" id="placeOfBirth" class="fg-input" placeholder="Municipality, Province" required>
+            </div>
+        </div>
+
+        <!-- Gender & Civil Status -->
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">GENDER <span class="req">*</span></label>
+                <div class="radio-row">
+                    <label class="check-opt"><input type="radio" name="gender" value="Male" required> Male</label>
+                    <label class="check-opt"><input type="radio" name="gender" value="Female"> Female</label>
+                </div>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">CIVIL STATUS <span class="req">*</span></label>
+                <div class="radio-row flex-wrap">
+                    <label class="check-opt"><input type="radio" name="civilStatus" value="Single" required> Single</label>
+                    <label class="check-opt"><input type="radio" name="civilStatus" value="Married"> Married</label>
+                    <label class="check-opt"><input type="radio" name="civilStatus" value="Legally Separated"> Legally Separated</label>
+                    <label class="check-opt"><input type="radio" name="civilStatus" value="Widowed"> Widowed</label>
+                </div>
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">NO. OF CHILDREN</label>
+                <input type="number" id="numChildren" class="fg-input" min="0">
+            </div>
+        </div>
+
+        <!-- Nationality & Education -->
+        <div class="fg-row">
+            <div class="fg fg-half">
+                <label class="fg-label">NATIONALITY</label>
+                <div class="radio-row flex-wrap">
+                    <label class="check-opt"><input type="radio" name="nationality" value="Filipino" checked> Filipino</label>
+                    <label class="check-opt"><input type="radio" name="nationality" value="Others"> Others</label>
+                    <input type="text" id="nationalityOther" class="fg-input inline-spec" placeholder="Specify" style="display:none;">
+                </div>
+            </div>
+            <div class="fg fg-half">
+                <label class="fg-label">EDUCATIONAL BACKGROUND</label>
+                <div class="radio-row flex-wrap">
+                    <label class="check-opt"><input type="radio" name="education" value="Elementary"> Elementary</label>
+                    <label class="check-opt"><input type="radio" name="education" value="High School"> High School</label>
+                    <label class="check-opt"><input type="radio" name="education" value="Vocational"> Vocational</label>
+                    <label class="check-opt"><input type="radio" name="education" value="College"> College</label>
+                    <label class="check-opt"><input type="radio" name="education" value="Post-Graduate"> Post-Graduate</label>
+                    <label class="check-opt"><input type="radio" name="education" value="Others"> Others</label>
+                </div>
+                <input type="text" id="educationOther" class="fg-input inline-spec" placeholder="Specify" style="display:none;">
+            </div>
+        </div>
+
+        <!-- Emergency Contact -->
+        <div class="fg-row">
+            <div class="fg fg-full">
+                <label class="fg-label">PERSON TO NOTIFY IN CASE OF EMERGENCY <span class="req">*</span></label>
+                <input type="text" id="emergencyPerson" class="fg-input" required>
+            </div>
+        </div>
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">RELATIONSHIP <span class="req">*</span></label>
+                <input type="text" id="relationship" class="fg-input" required>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">CONTACT NO. <span class="req">*</span></label>
+                <input type="tel" id="emergencyContact" class="fg-input" required>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">ADDRESS (Barangay, Municipality, Province)</label>
+                <input type="text" id="emergencyAddress" class="fg-input">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  PART 2 — LIVELIHOOD               ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">PART 2</span>
+        <span class="section-title">LIVELIHOOD</span>
+    </div>
+    <div class="section-body">
+        <div class="livelihood-grid">
+            <!-- Main Source of Income -->
+            <div class="livelihood-card">
+                <label class="livelihood-title-check">MAIN SOURCE OF INCOME</label>
+                <div class="livelihood-sub" style="display:flex;">
+                    <label class="check-opt"><input type="checkbox" name="mainIncome" value="Capture Fishing"> Capture Fishing <span class="fg-note">(specify gear used)</span></label>
+                    <input type="text" id="captureFishingGear" class="fg-input spec-input" placeholder="Specify gear">
+                    <label class="check-opt"><input type="checkbox" name="mainIncome" value="Aquaculture"> Aquaculture <span class="fg-note">(specify culture method)</span></label>
+                    <input type="text" id="aquacultureMethod" class="fg-input spec-input" placeholder="Specify method">
+                    <label class="check-opt"><input type="checkbox" name="mainIncome" value="Fish Vending"> Fish Vending</label>
+                    <label class="check-opt"><input type="checkbox" name="mainIncome" value="Gleaning"> Gleaning</label>
+                    <label class="check-opt"><input type="checkbox" name="mainIncome" value="Fish Processing"> Fish Processing</label>
+                    <label class="check-opt"><input type="checkbox" name="mainIncome" value="Others"> Others <span class="fg-note">(pls. specify)</span></label>
+                    <input type="text" id="mainIncomeOther" class="fg-input spec-input" placeholder="Specify">
+                </div>
+            </div>
+
+            <!-- Other Sources of Income -->
+            <div class="livelihood-card">
+                <label class="livelihood-title-check">OTHER SOURCES OF INCOME</label>
+                <div class="livelihood-sub" style="display:flex;">
+                    <label class="check-opt"><input type="checkbox" name="otherIncome" value="Capture Fishing"> Capture Fishing <span class="fg-note">(specify gear used)</span></label>
+                    <input type="text" id="otherCaptureFishingGear" class="fg-input spec-input" placeholder="Specify gear">
+                    <label class="check-opt"><input type="checkbox" name="otherIncome" value="Aquaculture"> Aquaculture <span class="fg-note">(specify culture method)</span></label>
+                    <input type="text" id="otherAquacultureMethod" class="fg-input spec-input" placeholder="Specify method">
+                    <label class="check-opt"><input type="checkbox" name="otherIncome" value="Fish Vending"> Fish Vending</label>
+                    <label class="check-opt"><input type="checkbox" name="otherIncome" value="Gleaning"> Gleaning</label>
+                    <label class="check-opt"><input type="checkbox" name="otherIncome" value="Fish Processing"> Fish Processing</label>
+                    <label class="check-opt"><input type="checkbox" name="otherIncome" value="Others"> Others <span class="fg-note">(pls. specify)</span></label>
+                    <input type="text" id="otherIncomeOther" class="fg-input spec-input" placeholder="Specify">
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  PART 3 — ORGANIZATION             ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">PART 3</span>
+        <span class="section-title">ORGANIZATION</span>
+    </div>
+    <div class="section-body">
+        <div style="overflow-x:auto;">
+        <table class="org-table">
+            <thead>
+                <tr>
+                    <th>Name of Organization</th>
+                    <th>Member Since</th>
+                    <th>Position / Official Designation</th>
+                </tr>
+            </thead>
+            <tbody id="organizationTableBody">
+                <tr>
+                    <td><input type="text" name="orgName_1"></td>
+                    <td><input type="text" name="memberSince_1" placeholder="Year"></td>
+                    <td><input type="text" name="position_1"></td>
+                </tr>
+            </tbody>
+        </table>
+        </div>
+        <button type="button" class="btn-add-parcel" onclick="addOrganizationRow()">
+            <span>＋</span> Add Organization
+        </button>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  PART 4 — CERTIFICATION             ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card cert-card">
+    <div class="section-header-bar">
+        <span class="section-num">PART 4</span>
+        <span class="section-title">CERTIFICATION</span>
+    </div>
+    <div class="section-body">
+        <p class="cert-text">
+            I have personally reviewed the information on this application and I certify under penalty of
+            perjury that to the best of my knowledge and belief the information on this application is true
+            and correct, and that I understand this information is subject to public disclosure.
+        </p>
+
+        <div class="sig-grid">
+            <div class="sig-block">
+                <div class="sig-line-area sig-pad-wrap">
+                    <canvas id="applicantSignature" class="signature-pad"></canvas>
+                    <button type="button" class="btn-clear-sig" onclick="clearSignature('applicant')">Clear</button>
+                </div>
+                <div class="sig-label">SIGNATURE OF APPLICANT</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line-area">
+                    <input type="text" id="printedName" class="sig-text-input" placeholder="">
+                </div>
+                <div class="sig-label">PRINTED NAME</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line-area">
+                    <input type="date" id="dateAccomplished" class="sig-date-input">
+                </div>
+                <div class="sig-label">DATE ACCOMPLISHED</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line-area thumbmark-zone" onclick="document.getElementById('thumbmarkUpload').click()" title="Upload thumbmark">
+                    <img id="thumbmarkPreview" style="display:none; max-width:80px; max-height:80px;">
+                    <span id="thumbmarkHint">Click to upload</span>
+                    <input type="file" id="thumbmarkUpload" accept="image/*" style="display:none;">
+                </div>
+                <div class="sig-label">THUMBMARK</div>
+            </div>
+        </div>
+
+        <!-- Authorized Personnel -->
+        <div class="verifier-block">
+            <div class="verifier-header">FOR AUTHORIZED PERSONNEL ONLY:</div>
+            <div class="verifier-sig-grid">
+                <div class="vsig-block">
+                    <div class="vsig-line"></div>
+                    <div class="vsig-label">REVIEWED BY<br><small>(Signature over printed name)</small></div>
+                </div>
+                <div class="vsig-block">
+                    <div class="vsig-line"></div>
+                    <div class="vsig-label">CERTIFIED CORRECT BY<br><small>(Signature over printed name)</small></div>
+                </div>
+                <div class="vsig-block">
+                    <div class="vsig-line"></div>
+                    <div class="vsig-label">APPROVED BY<br><small>(Signature over printed name)</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form Actions -->
+<div class="form-action-bar">
+    <span></span>
+    <div class="action-right">
+        <button type="button" class="btn-download" id="downloadPdfBtn" onclick="downloadPDF()">
+            ⬇ Download Pre-filled PDF
+        </button>
+        <button type="submit" class="btn-submit" id="submitBtn">
+            ✓ Submit Registration Form
+        </button>
+    </div>
+</div>
+
+<div id="successMessage" class="success-toast" style="display:none;">
+    ✓ Registration submitted successfully! Your registration number is <span id="generatedRegNo"></span>
+</div>
+
+</form>
+
+<div class="footer-stamp">DA-BFAR I | WWW.BFAR.DA.GOV.PH</div>
+
+</div><!-- /form-shell -->
+
+<script src="{{ url_for('static', filename='js/forms/form-dropdowns.js') }}"></script>
+<script src="{{ url_for('static', filename='js/forms/fish-registration-form.js') }}"></script>
+</body>
+</html>

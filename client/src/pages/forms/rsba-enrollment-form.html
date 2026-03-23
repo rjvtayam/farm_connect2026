@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>RSBSA Enrollment Form — Farm Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms/rsba-enrollment-form.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms/form-dropdowns.css') }}">
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════════
+     STEP PROGRESS BAR
+══════════════════════════════════════════════════════════ -->
+<div class="wizard-progress" id="wizardProgress">
+    <div class="wizard-step active" data-step="1">
+        <div class="step-bubble">1</div>
+        <span>Personal Info</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="wizard-step" data-step="2">
+        <div class="step-bubble">2</div>
+        <span>Farm Profile</span>
+    </div>
+    <div class="step-connector"></div>
+    <div class="wizard-step" data-step="3">
+        <div class="step-bubble">3</div>
+        <span>Parcels &amp; Sign</span>
+    </div>
+</div>
+
+<div class="form-shell" id="formShell">
+
+<!-- ═══════════════════════════════════════════════════════
+     OFFICIAL HEADER
+══════════════════════════════════════════════════════════ -->
+<div class="form-header">
+    <div class="form-header-inner">
+        <div class="header-logo-block">
+            <!-- DA Seal SVG placeholder -->
+            <div class="da-seal">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="Department of Agriculture seal">
+                    <circle cx="50" cy="50" r="46" fill="none" stroke="#1a5f1a" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <text x="50" y="22" text-anchor="middle" font-size="6" font-weight="bold" fill="#1a5f1a">DEPARTMENT OF</text>
+                    <text x="50" y="30" text-anchor="middle" font-size="6" font-weight="bold" fill="#1a5f1a">AGRICULTURE</text>
+                    <!-- wheat stalks -->
+                    <line x1="50" y1="38" x2="50" y2="72" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <line x1="42" y1="44" x2="50" y2="52" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <line x1="58" y1="44" x2="50" y2="52" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <line x1="40" y1="52" x2="50" y2="60" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <line x1="60" y1="52" x2="50" y2="60" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <text x="50" y="86" text-anchor="middle" font-size="7" font-weight="bold" fill="#1a5f1a">1898</text>
+                </svg>
+            </div>
+            <div class="header-title-block">
+                <h1 class="form-title-main">ANI AT KITA</h1>
+                <h2 class="form-title-sub">RSBSA ENROLLMENT FORM</h2>
+                <p class="form-subtitle">Registry System for Basic Sectors in Agriculture (RSBSA)</p>
+            </div>
+        </div>
+        <div class="header-photo-block">
+            <div class="photo-upload-zone" id="photoZone" onclick="document.getElementById('photoUpload').click()" title="Upload applicant photo">
+                <img id="photoPreview" class="photo-img" alt="Applicant photo" style="display:none;">
+                <div class="photo-placeholder-inner" id="photoPlaceholder">
+                    <span class="photo-size-label">2×2</span>
+                    <span class="photo-text">PICTURE</span>
+                    <span class="photo-note">Photo taken<br>within 6 months</span>
+                    <i class="photo-upload-icon">📷</i>
+                </div>
+            </div>
+            <input type="file" id="photoUpload" accept="image/*" style="display:none;">
+        </div>
+    </div>
+
+    <!-- Enrollment Type + Reference Number Row -->
+    <div class="header-meta-row">
+        <div class="meta-left">
+            <div class="enrollment-type-row">
+                <span class="meta-label">ENROLLMENT TYPE &amp; DATE ADMINISTERED:</span>
+                <label class="check-opt"><input type="radio" name="enrollmentType" value="new"> New</label>
+                <label class="check-opt"><input type="radio" name="enrollmentType" value="updating"> Updating</label>
+                <div class="date-boxes">
+                    <input class="date-box" type="text" maxlength="1" placeholder="M" id="dateMM1">
+                    <input class="date-box" type="text" maxlength="1" placeholder="M" id="dateMM2">
+                    <span class="date-sep">/</span>
+                    <input class="date-box" type="text" maxlength="1" placeholder="D" id="dateDD1">
+                    <input class="date-box" type="text" maxlength="1" placeholder="D" id="dateDD2">
+                    <span class="date-sep">/</span>
+                    <input class="date-box" type="text" maxlength="1" placeholder="Y" id="dateYY1">
+                    <input class="date-box" type="text" maxlength="1" placeholder="Y" id="dateYY2">
+                    <input class="date-box" type="text" maxlength="1" placeholder="Y" id="dateYY3">
+                    <input class="date-box" type="text" maxlength="1" placeholder="Y" id="dateYY4">
+                </div>
+            </div>
+            <div class="ref-number-row">
+                <span class="meta-label"><em>Reference Number:</em></span>
+                <div class="ref-boxes">
+                    <div class="ref-group">
+                        <input type="text" class="ref-box" id="refRegion" placeholder="" maxlength="3" autocomplete="off">
+                        <span class="ref-sub">REGION</span>
+                    </div>
+                    <div class="ref-group">
+                        <input type="text" class="ref-box" id="refProvince" placeholder="" maxlength="3" autocomplete="off">
+                        <span class="ref-sub">PROVINCE</span>
+                    </div>
+                    <div class="ref-group">
+                        <input type="text" class="ref-box ref-wide" id="refCityMuni" placeholder="" maxlength="4" autocomplete="off">
+                        <span class="ref-sub">CITY/MUNI</span>
+                    </div>
+                    <div class="ref-group">
+                        <input type="text" class="ref-box ref-wide" id="refBarangay" placeholder="" maxlength="4" autocomplete="off">
+                        <span class="ref-sub">BARANGAY</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="version-stamp">REVISED VERSION: 03-2021</div>
+</div><!-- /form-header -->
+
+<form id="rsbsaForm" novalidate>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  STEP 1 — PERSONAL INFORMATION       ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="form-step" id="step-1">
+    <div class="section-card">
+        <div class="section-header-bar">
+            <span class="section-num">PART I</span>
+            <span class="section-title">PERSONAL INFORMATION</span>
+        </div>
+        <div class="section-body">
+
+            <!-- Name Row -->
+            <div class="fg-row">
+                <div class="fg fg-half">
+                    <label class="fg-label">SURNAME <span class="req">*</span></label>
+                    <input type="text" id="surname" class="fg-input fg-underline" required autocomplete="family-name">
+                </div>
+                <div class="fg fg-half">
+                    <label class="fg-label">FIRST NAME <span class="req">*</span></label>
+                    <input type="text" id="firstName" class="fg-input fg-underline" required autocomplete="given-name">
+                </div>
+            </div>
+
+            <div class="fg-row">
+                <div class="fg fg-third">
+                    <label class="fg-label">MIDDLE NAME</label>
+                    <input type="text" id="middleName" class="fg-input fg-underline" autocomplete="additional-name">
+                </div>
+                <div class="fg fg-third">
+                    <label class="fg-label">EXTENSION NAME</label>
+                    <input type="text" id="extensionName" class="fg-input fg-underline" placeholder="Jr., Sr., III">
+                </div>
+                <div class="fg fg-sixth">
+                    <label class="fg-label">SEX <span class="req">*</span></label>
+                    <div class="radio-row">
+                        <label class="check-opt"><input type="radio" name="sex" value="Male" required> Male</label>
+                        <label class="check-opt"><input type="radio" name="sex" value="Female"> Female</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Residency Status -->
+            <div class="fg-row residency-row">
+                <div class="fg fg-full">
+                    <label class="fg-label">ARE YOU A PERMANENT RESIDENT OF MABITAC? <span class="req">*</span></label>
+                    <div class="radio-row">
+                        <label class="check-opt"><input type="radio" name="isMabitacResident" value="Yes" required> Yes, I live here</label>
+                        <label class="check-opt"><input type="radio" name="isMabitacResident" value="No"> No, I live in another town</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div class="fg-row address-label-row">
+                <span class="address-prefix-label">ADDRESS</span>
+            </div>
+            <div class="fg-row">
+                <div class="fg fg-third">
+                    <input type="text" id="houseNo" class="fg-input fg-underline" autocomplete="off">
+                    <label class="fg-sublabel">HOUSE/LOT/BLDG. NO./PUROK</label>
+                </div>
+                <div class="fg fg-third">
+                    <input type="text" id="street" class="fg-input fg-underline" autocomplete="off">
+                    <label class="fg-sublabel">STREET/SITIO/SUBDV.</label>
+                </div>
+                <div class="fg fg-third">
+                    <input type="text" id="barangay" class="fg-input fg-underline" required list="mabitacBarangays" autocomplete="off">
+                    <label class="fg-sublabel">BARANGAY <span class="req">*</span></label>
+                </div>
+            </div>
+            <div class="fg-row">
+                <div class="fg fg-third">
+                    <input type="text" id="municipality" class="fg-input fg-underline" required list="municipalityList" autocomplete="off">
+                    <label class="fg-sublabel">MUNICIPALITY/CITY <span class="req">*</span></label>
+                </div>
+                <div class="fg fg-third">
+                    <input type="text" id="province" class="fg-input fg-underline" required list="provinceList" autocomplete="off">
+                    <label class="fg-sublabel">PROVINCE <span class="req">*</span></label>
+                </div>
+                <div class="fg fg-third">
+                    <input type="text" id="region" class="fg-input fg-underline" required list="regionList" autocomplete="off">
+                    <label class="fg-sublabel">REGION <span class="req">*</span></label>
+                </div>
+            </div>
+
+            <!-- Contact -->
+            <div class="fg-row">
+                <div class="fg fg-half">
+                    <label class="fg-label">MOBILE NUMBER</label>
+                    <input type="tel" id="mobileNumber" class="fg-input" placeholder="+63">
+                </div>
+                <div class="fg fg-half">
+                    <label class="fg-label">LANDLINE NUMBER</label>
+                    <input type="tel" id="landlineNumber" class="fg-input">
+                </div>
+            </div>
+
+            <!-- Birth -->
+            <div class="fg-row">
+                <div class="fg fg-half">
+                    <label class="fg-label">DATE OF BIRTH <span class="req">*</span></label>
+                    <input type="date" id="dateOfBirth" class="fg-input" required>
+                </div>
+                <div class="fg fg-half">
+                    <label class="fg-label">PLACE OF BIRTH <span class="req">*</span></label>
+                    <input type="text" id="placeOfBirth" class="fg-input" placeholder="Municipality, Province/Country" required>
+                </div>
+            </div>
+
+            <!-- Religion -->
+            <div class="fg-row">
+                <div class="fg fg-full">
+                    <label class="fg-label">RELIGION</label>
+                    <div class="radio-row flex-wrap">
+                        <label class="check-opt"><input type="radio" name="religion" value="Christianity"> Christianity</label>
+                        <label class="check-opt"><input type="radio" name="religion" value="Islam"> Islam</label>
+                        <label class="check-opt"><input type="radio" name="religion" value="Others"> Others, specify:</label>
+                        <input type="text" id="religionOther" class="fg-input inline-spec" placeholder="specify">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Civil Status -->
+            <div class="fg-row">
+                <div class="fg fg-full">
+                    <label class="fg-label">CIVIL STATUS <span class="req">*</span></label>
+                    <div class="radio-row flex-wrap">
+                        <label class="check-opt"><input type="radio" name="civilStatus" value="Single" required> Single</label>
+                        <label class="check-opt"><input type="radio" name="civilStatus" value="Married"> Married</label>
+                        <label class="check-opt"><input type="radio" name="civilStatus" value="Widowed"> Widowed</label>
+                        <label class="check-opt"><input type="radio" name="civilStatus" value="Separated"> Separated</label>
+                        <label class="check-opt"><input type="radio" name="civilStatus" value="Annulled"> Annulled</label>
+                        <label class="check-opt"><input type="radio" name="civilStatus" value="Live-in"> Live-in</label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="fg-row" id="spouseRow">
+                <div class="fg fg-full">
+                    <label class="fg-label">NAME OF SPOUSE (if married)</label>
+                    <input type="text" id="spouseName" class="fg-input">
+                </div>
+            </div>
+
+            <div class="fg-row">
+                <div class="fg fg-full">
+                    <label class="fg-label">MOTHER'S MAIDEN NAME</label>
+                    <input type="text" id="motherName" class="fg-input">
+                </div>
+            </div>
+
+            <!-- Household -->
+            <div class="fg-row">
+                <div class="fg fg-auto">
+                    <label class="fg-label">HOUSEHOLD HEAD?</label>
+                    <div class="radio-row">
+                        <label class="check-opt"><input type="radio" name="householdHead" value="Yes"> Yes</label>
+                        <label class="check-opt"><input type="radio" name="householdHead" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="fg fg-auto" id="householdHeadInfo" style="display:none;">
+                    <label class="fg-label">Name of Household Head</label>
+                    <input type="text" id="householdHeadName" class="fg-input">
+                </div>
+                <div class="fg fg-auto" id="relationshipRow" style="display:none;">
+                    <label class="fg-label">Relationship</label>
+                    <input type="text" id="relationship" class="fg-input">
+                </div>
+            </div>
+
+            <div class="fg-row">
+                <div class="fg fg-quarter">
+                    <label class="fg-label">No. of living household members</label>
+                    <input type="number" id="householdMembers" class="fg-input" min="0">
+                </div>
+                <div class="fg fg-quarter">
+                    <label class="fg-label">No. of Male</label>
+                    <input type="number" id="numMale" class="fg-input" min="0">
+                </div>
+                <div class="fg fg-quarter">
+                    <label class="fg-label">No. of Female</label>
+                    <input type="number" id="numFemale" class="fg-input" min="0">
+                </div>
+            </div>
+
+            <!-- Education -->
+            <div class="fg-row">
+                <div class="fg fg-full">
+                    <label class="fg-label">HIGHEST FORMAL EDUCATION</label>
+                    <div class="checkbox-grid-2">
+                        <label class="check-opt"><input type="checkbox" name="education" value="Pre-school"> Pre-school</label>
+                        <label class="check-opt"><input type="checkbox" name="education" value="Elementary"> Elementary</label>
+                        <label class="check-opt"><input type="checkbox" name="education" value="High School (non K-12)"> High School (non K-12)</label>
+                        <label class="check-opt"><input type="checkbox" name="education" value="Junior High School (K-12)"> Junior High School (K-12)</label>
+                        <label class="check-opt"><input type="checkbox" name="education" value="Senior High School (K-12)"> Senior High School (K-12)</label>
+                        <label class="check-opt"><input type="checkbox" name="education" value="College"> College</label>
+                        <label class="check-opt"><input type="checkbox" name="education" value="Vocational"> Vocational / Technical</label>
+                        <label class="check-opt"><input type="checkbox" name="education" value="Post-graduate"> Post-graduate</label>
+                        <label class="check-opt"><input type="checkbox" name="education" value="None"> None</label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- PWD / 4Ps / IP -->
+            <div class="fg-row">
+                <div class="fg fg-third">
+                    <label class="fg-label">PERSON WITH DISABILITY (PWD)?</label>
+                    <div class="radio-row">
+                        <label class="check-opt"><input type="radio" name="pwd" value="Yes"> Yes</label>
+                        <label class="check-opt"><input type="radio" name="pwd" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="fg fg-third">
+                    <label class="fg-label">4P's BENEFICIARY?</label>
+                    <div class="radio-row">
+                        <label class="check-opt"><input type="radio" name="fourPs" value="Yes"> Yes</label>
+                        <label class="check-opt"><input type="radio" name="fourPs" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="fg fg-third">
+                    <label class="fg-label">MEMBER OF AN INDIGENOUS GROUP?</label>
+                    <div class="radio-row">
+                        <label class="check-opt"><input type="radio" name="indigenous" value="Yes"> Yes</label>
+                        <label class="check-opt"><input type="radio" name="indigenous" value="No"> No</label>
+                    </div>
+                </div>
+            </div>
+            <div class="fg-row" id="ipSpecifyRow" style="display:none;">
+                <div class="fg fg-full">
+                    <label class="fg-label">If yes, specify indigenous group:</label>
+                    <input type="text" id="indigenousSpecify" class="fg-input">
+                </div>
+            </div>
+
+            <!-- Government ID -->
+            <div class="fg-row">
+                <div class="fg fg-quarter">
+                    <label class="fg-label">WITH GOVERNMENT ID?</label>
+                    <div class="radio-row">
+                        <label class="check-opt"><input type="radio" name="govId" value="Yes"> Yes</label>
+                        <label class="check-opt"><input type="radio" name="govId" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="fg fg-third" id="govIdFields" style="display:none;">
+                    <label class="fg-label">ID Type</label>
+                    <input type="text" id="idType" class="fg-input">
+                </div>
+                <div class="fg fg-third" id="govIdNumField" style="display:none;">
+                    <label class="fg-label">ID Number</label>
+                    <input type="text" id="idNumber" class="fg-input">
+                </div>
+            </div>
+
+            <!-- Farmers Association -->
+            <div class="fg-row">
+                <div class="fg fg-half">
+                    <label class="fg-label">MEMBER OF ANY FARMERS ASSOCIATION / COOPERATIVE?</label>
+                    <div class="radio-row">
+                        <label class="check-opt"><input type="radio" name="association" value="Yes"> Yes</label>
+                        <label class="check-opt"><input type="radio" name="association" value="No"> No</label>
+                    </div>
+                </div>
+                <div class="fg fg-half" id="assocNameRow" style="display:none;">
+                    <label class="fg-label">If yes, specify:</label>
+                    <input type="text" id="associationName" class="fg-input">
+                </div>
+            </div>
+
+            <!-- Emergency Contact -->
+            <div class="fg-row">
+                <div class="fg fg-half">
+                    <label class="fg-label">PERSON TO NOTIFY IN CASE OF EMERGENCY</label>
+                    <input type="text" id="emergencyPerson" class="fg-input">
+                </div>
+                <div class="fg fg-half">
+                    <label class="fg-label">CONTACT NUMBER</label>
+                    <input type="tel" id="emergencyContact" class="fg-input">
+                </div>
+            </div>
+
+        </div><!-- /section-body -->
+    </div><!-- /section-card -->
+
+    <div class="step-nav">
+        <span></span>
+        <button type="button" class="btn-wizard-next" onclick="goToStep(2)">Next: Farm Profile <span class="nav-arrow">→</span></button>
+    </div>
+</div><!-- /step-1 -->
+
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  STEP 2 — FARM PROFILE               ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="form-step" id="step-2" style="display:none;">
+    <div class="section-card">
+        <div class="section-header-bar">
+            <span class="section-num">PART II</span>
+            <span class="section-title">FARM PROFILE</span>
+        </div>
+        <div class="section-body">
+
+            <!-- Main Livelihood -->
+            <div class="livelihood-header">
+                <span class="livelihood-main-label">MAIN LIVELIHOOD</span>
+            </div>
+            <div class="livelihood-grid">
+
+                <!-- Farmer -->
+                <div class="livelihood-card" id="cardFarmer">
+                    <label class="livelihood-title-check">
+                        <input type="checkbox" name="livelihood" value="FARMER" id="chkFarmer"> FARMER
+                    </label>
+                    <div class="livelihood-sub" id="farmerSub" style="display:none;">
+                        <p class="livelihood-for">For farmers:</p>
+                        <p class="livelihood-sub-label">Type of Farming Activity</p>
+                        <label class="check-opt"><input type="checkbox" name="farmingActivity" value="Rice"> Rice</label>
+                        <label class="check-opt"><input type="checkbox" name="farmingActivity" value="Corn"> Corn</label>
+                        <label class="check-opt"><input type="checkbox" name="farmingActivity" value="Other crops"> Other crops, please specify:</label>
+                        <input type="text" id="otherCrops" class="fg-input spec-input" placeholder="specify">
+                        <label class="check-opt"><input type="checkbox" name="farmingActivity" value="Livestock"> Livestock, please specify:</label>
+                        <input type="text" id="livestockType" class="fg-input spec-input" placeholder="specify">
+                        <label class="check-opt"><input type="checkbox" name="farmingActivity" value="Poultry"> Poultry, please specify:</label>
+                        <input type="text" id="poultryType" class="fg-input spec-input" placeholder="specify">
+                    </div>
+                </div>
+
+                <!-- Farmworker -->
+                <div class="livelihood-card" id="cardFarmworker">
+                    <label class="livelihood-title-check">
+                        <input type="checkbox" name="livelihood" value="FARMWORKER/LABORER" id="chkFarmworker"> FARMWORKER / LABORER
+                    </label>
+                    <div class="livelihood-sub" id="farmworkerSub" style="display:none;">
+                        <p class="livelihood-for">For farmworkers:</p>
+                        <p class="livelihood-sub-label">Kind of Work</p>
+                        <label class="check-opt"><input type="checkbox" name="farmWork" value="Land Preparation"> Land Preparation</label>
+                        <label class="check-opt"><input type="checkbox" name="farmWork" value="Planting/Transplanting"> Planting / Transplanting</label>
+                        <label class="check-opt"><input type="checkbox" name="farmWork" value="Cultivation"> Cultivation</label>
+                        <label class="check-opt"><input type="checkbox" name="farmWork" value="Harvesting"> Harvesting</label>
+                        <label class="check-opt"><input type="checkbox" name="farmWork" value="Others"> Others, please specify:</label>
+                        <input type="text" id="farmWorkOther" class="fg-input spec-input" placeholder="specify">
+                    </div>
+                </div>
+
+                <!-- Fisherfolk -->
+                <div class="livelihood-card" id="cardFisherfolk">
+                    <label class="livelihood-title-check">
+                        <input type="checkbox" name="livelihood" value="FISHERFOLK" id="chkFisherfolk"> FISHERFOLK
+                    </label>
+                    <div class="livelihood-sub" id="fisherfolkSub" style="display:none;">
+                        <p class="livelihood-for">For fisherfolk:</p>
+                        <p class="note-italic">The Lending Conduit shall coordinate with BFAR in the issuance of a certification that the fisherfolk-borrower under PUNLA/PLEA is registered under the Municipal Registration (FishR).</p>
+                        <p class="livelihood-sub-label">Type of Fishing Activity</p>
+                        <div class="two-col-checks">
+                            <label class="check-opt"><input type="checkbox" name="fishingActivity" value="Fish Capture"> Fish Capture</label>
+                            <label class="check-opt"><input type="checkbox" name="fishingActivity" value="Fish Processing"> Fish Processing</label>
+                            <label class="check-opt"><input type="checkbox" name="fishingActivity" value="Aquaculture"> Aquaculture</label>
+                            <label class="check-opt"><input type="checkbox" name="fishingActivity" value="Fish Vending"> Fish Vending</label>
+                            <label class="check-opt"><input type="checkbox" name="fishingActivity" value="Gleaning"> Gleaning</label>
+                        </div>
+                        <label class="check-opt"><input type="checkbox" name="fishingActivity" value="Others"> Others, specify:</label>
+                        <input type="text" id="fishingActivityOther" class="fg-input spec-input" placeholder="specify">
+                    </div>
+                </div>
+
+                <!-- Agri Youth -->
+                <div class="livelihood-card" id="cardAgriYouth">
+                    <label class="livelihood-title-check">
+                        <input type="checkbox" name="livelihood" value="AGRI YOUTH" id="chkAgriYouth"> AGRI YOUTH
+                    </label>
+                    <div class="livelihood-sub" id="agriyouthSub" style="display:none;">
+                        <p class="livelihood-for">For agri youth:</p>
+                        <p class="note-italic">For the purposes of trainings, financial assistance, and other programs catered to the youth with involvement in any agriculture activity.</p>
+                        <p class="livelihood-sub-label">Type of Involvement</p>
+                        <label class="check-opt"><input type="checkbox" name="youthInvolvement" value="part of a farming household"> part of a farming household</label>
+                        <label class="check-opt"><input type="checkbox" name="youthInvolvement" value="attending/attended formal agri-fishery related course"> attending/attended formal agri-fishery related course</label>
+                        <label class="check-opt"><input type="checkbox" name="youthInvolvement" value="attending/attended non-formal agri-fishery related course"> attending/attended non-formal agri-fishery related course</label>
+                        <label class="check-opt"><input type="checkbox" name="youthInvolvement" value="participated in any agricultural activity/program"> participated in any agricultural activity/program</label>
+                        <label class="check-opt"><input type="checkbox" name="youthInvolvement" value="others"> others, specify</label>
+                        <input type="text" id="youthInvolvementOther" class="fg-input spec-input" placeholder="specify">
+                    </div>
+                </div>
+
+            </div><!-- /livelihood-grid -->
+
+            <!-- Gross Annual Income -->
+            <div class="income-row">
+                <span class="income-label">Gross Annual Income Last Year:</span>
+                <div class="income-fields">
+                    <div class="income-field">
+                        <label class="fg-label">Farming (PHP)</label>
+                        <input type="number" id="farmingIncome" class="fg-input" min="0" placeholder="0.00">
+                    </div>
+                    <div class="income-field">
+                        <label class="fg-label">Non-farming (PHP)</label>
+                        <input type="number" id="nonFarmingIncome" class="fg-input" min="0" placeholder="0.00">
+                    </div>
+                </div>
+            </div>
+
+        </div><!-- /section-body -->
+    </div><!-- /section-card -->
+
+    <div class="step-nav">
+        <button type="button" class="btn-wizard-back" onclick="goToStep(1)"><span class="nav-arrow">←</span> Back</button>
+        <button type="button" class="btn-wizard-next" onclick="goToStep(3)">Next: Parcels &amp; Sign <span class="nav-arrow">→</span></button>
+    </div>
+</div><!-- /step-2 -->
+
+
+<!-- ╔═══════════════════════════════════════════════════╗
+     ║  STEP 3 — FARM PARCELS & CERTIFICATION           ║
+     ╚═══════════════════════════════════════════════════╝ -->
+<div class="form-step" id="step-3" style="display:none;">
+
+    <!-- Farm Parcels Section -->
+    <div class="section-card">
+        <div class="section-header-bar">
+            <span class="section-num">PART III</span>
+            <span class="section-title">FARM PARCEL INFORMATION</span>
+        </div>
+        <div class="section-body">
+
+            <!-- Parcel Summary Row -->
+            <div class="fg-row parcels-summary-row">
+                <div class="fg fg-auto">
+                    <label class="fg-label">No. of Farm Parcels:</label>
+                    <input type="number" id="numFarmParcels" class="fg-input parcel-count-box" min="0" value="1">
+                </div>
+                <div class="fg fg-grow">
+                    <label class="fg-label">Name of Farmer/s in Rotation:</label>
+                    <div class="rotation-names">
+                        <span class="rot-pref">(P1)</span><input type="text" id="rotP1" class="fg-input rotation-inp" placeholder="">
+                        <span class="rot-pref">(P2)</span><input type="text" id="rotP2" class="fg-input rotation-inp" placeholder="">
+                        <span class="rot-pref">(P3)</span><input type="text" id="rotP3" class="fg-input rotation-inp" placeholder="">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Dynamic Parcel Container -->
+            <div id="farmParcelsContainer"></div>
+
+            <button type="button" class="btn-add-parcel" id="addParcelBtn" onclick="addFarmParcel()">
+                <span>＋</span> Add Farm Parcel
+            </button>
+        </div>
+    </div>
+
+
+    <!-- Reference Legends + Required Documents to Attach -->
+    <div class="legend-grid">
+        <div class="legend-card ownership-legend">
+            <div class="legend-header">OWNERSHIP DOCUMENT * — DOCUMENTS TO ATTACH</div>
+            <p class="legend-attach-note">☑ Check the documents you have prepared and will attach to this form upon submission:</p>
+            <div class="legend-checklist">
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="1"> <span class="doc-num">1.</span> Certificate of Land Transfer</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="2"> <span class="doc-num">2.</span> Emancipation Patent</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="3"> <span class="doc-num">3.</span> Individual Certificate of Land Ownership Award (CLOA)</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="4"> <span class="doc-num">4.</span> Collective CLOA</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="5"> <span class="doc-num">5.</span> Co-ownership CLOA</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="6"> <span class="doc-num">6.</span> Agricultural Sales Patent</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="7"> <span class="doc-num">7.</span> Homestead Patent</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="8"> <span class="doc-num">8.</span> Free Patent</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="9"> <span class="doc-num">9.</span> Certificate of Title or Regular Title</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="10"> <span class="doc-num">10.</span> Certificate of Ancestral Domain Title</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="11"> <span class="doc-num">11.</span> Certificate of Ancestral Land Title</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="12"> <span class="doc-num">12.</span> Tax Declaration</label>
+                <label class="check-opt doc-check"><input type="checkbox" name="attachedDoc" value="13"> <span class="doc-num">13.</span> Others (e.g. Barangay Certification) — <input type="text" name="attachedDocOther" class="fg-input inline-spec" placeholder="specify" style="width:150px;"></label>
+            </div>
+        </div>
+        <div class="legend-card farmtype-legend">
+            <div class="legend-header">FARM TYPE **</div>
+            <p class="legend-attach-note">ℹ️ Reference for Farm Type numbers:</p>
+            <div class="legend-checklist">
+                <div class="doc-check farmtype-check" style="cursor: default;">
+                    <div class="farmtype-content">
+                        <span class="doc-num">1.</span> <span class="farmtype-name">Irrigated</span>
+                        <span class="farmtype-desc">Water-controlled rice paddies (NIA, pump, gravity)</span>
+                    </div>
+                </div>
+                <div class="doc-check farmtype-check" style="cursor: default;">
+                    <div class="farmtype-content">
+                        <span class="doc-num">2.</span> <span class="farmtype-name">Rainfed Upland</span>
+                        <span class="farmtype-desc">Depends on rainfall; above floodplain level</span>
+                    </div>
+                </div>
+                <div class="doc-check farmtype-check" style="cursor: default;">
+                    <div class="farmtype-content">
+                        <span class="doc-num">3.</span> <span class="farmtype-name">Rainfed Lowland</span>
+                        <span class="farmtype-desc">Depends on rainfall; subject to flooding</span>
+                    </div>
+                </div>
+            </div>
+            <p class="legend-note"><em>(NOTE: not applicable to agri-fishery)</em></p>
+            <div class="farmtype-reminder">
+                <span>📋</span> Also enter the number (1, 2, or 3) in the <strong>FARM TYPE</strong> column of each parcel row above.
+            </div>
+        </div>
+    </div>
+
+
+    <!-- Certification & Signature -->
+    <div class="section-card cert-card">
+        <div class="section-body">
+            <p class="cert-text">
+                I hereby declare that all information indicated above are true and correct, and that they may be used by Department of Agriculture
+                for the purposes of registration to the Registry System for Basic Sectors in Agriculture (RSBSA) and other legitimate interests of
+                the Department pursuant to its mandates.
+            </p>
+
+            <div class="sig-grid">
+                <div class="sig-block">
+                    <div class="sig-line-area">
+                        <input type="date" id="applicantDate" class="sig-date-input">
+                    </div>
+                    <div class="sig-label">DATE</div>
+                </div>
+                <div class="sig-block">
+                    <div class="sig-line-area">
+                        <input type="text" id="applicantPrintedName" class="sig-text-input" placeholder="">
+                    </div>
+                    <div class="sig-label">PRINTED NAME OF APPLICANT</div>
+                </div>
+                <div class="sig-block">
+                    <div class="sig-line-area sig-pad-wrap">
+                        <canvas id="applicantSignature" class="signature-pad"></canvas>
+                        <button type="button" class="btn-clear-sig" onclick="clearSignature()">Clear</button>
+                    </div>
+                    <div class="sig-label">SIGNATURE OF APPLICANT</div>
+                </div>
+                <div class="sig-block">
+                    <div class="sig-line-area thumbmark-zone" onclick="document.getElementById('thumbmarkUpload').click()" title="Upload thumbmark">
+                        <img id="thumbmarkPreview" style="display:none; max-width:80px; max-height:80px;">
+                        <span id="thumbmarkHint">Click to upload</span>
+                        <input type="file" id="thumbmarkUpload" accept="image/*" style="display:none;">
+                    </div>
+                    <div class="sig-label">THUMBMARK</div>
+                </div>
+            </div>
+
+            <!-- VERIFIED TRUE AND CORRECT BY -->
+            <div class="verifier-block">
+                <div class="verifier-header">VERIFIED TRUE AND CORRECT BY:</div>
+                <div class="verifier-sig-grid">
+                    <div class="vsig-block">
+                        <div class="vsig-line"></div>
+                        <div class="vsig-label">SIGNATURE ABOVE PRINTED NAME / DATE<br>
+                        <small>BARANGAY CHAIRMAN / CITY / MUN. VETERINARIAN (LIVESTOCK) / MILL DISTRICT OFFICER (SUGARCANE) / IP LEADER / C/M/PARO (ARB)</small></div>
+                    </div>
+                    <div class="vsig-block">
+                        <div class="vsig-line"></div>
+                        <div class="vsig-label">SIGNATURE ABOVE PRINTED NAME / DATE<br>
+                        <small>CITY/MUNICIPAL AGRICULTURE OFFICE</small></div>
+                    </div>
+                    <div class="vsig-block">
+                        <div class="vsig-line"></div>
+                        <div class="vsig-label">SIGNATURE ABOVE PRINTED NAME / DATE<br>
+                        <small>CAFC/MAFC CHAIRMAN</small></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DATA PRIVACY POLICY -->
+            <div class="privacy-block">
+                <div class="privacy-title">DATA PRIVACY POLICY</div>
+                <p>The collection of personal information is for documentation, planning, reporting and processing purposes in availing agricultural related interventions. Processed data shall only be shared to partner agencies for planning, reporting and other use in accordance to the mandate of the agency. This is in compliance with the Data Sharing Policy of the department.</p>
+                <p>You have the right to ask for a copy of your personal data that we hold about you as well as to ask for it to be corrected if you think it is wrong. To do so, please contact &lt;Contact Person and Contact Details&gt;.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Client's Copy (print-only tearaway) -->
+    <div class="clients-copy-section" id="clientsCopySection">
+        <div class="clients-copy-separator">
+            <span class="scissors-icon">✂</span>
+            <div class="dashed-line"></div>
+        </div>
+        <div class="clients-copy-inner">
+            <div class="clients-copy-header">
+                <div class="cc-logo-area">
+                    <div class="cc-seal-sm">
+                        <svg viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg" width="40" height="40">
+                            <circle cx="30" cy="30" r="28" fill="none" stroke="#1a5f1a" stroke-width="2"/>
+                            <text x="30" y="15" text-anchor="middle" font-size="4" font-weight="bold" fill="#1a5f1a">RSBSA</text>
+                        </svg>
+                    </div>
+                </div>
+                <div class="cc-title-area">
+                    <h3>Registry System for Basic Sectors in Agriculture (RSBSA)</h3>
+                    <h4>ENROLLMENT CLIENT'S COPY</h4>
+                </div>
+            </div>
+            <div class="cc-ref-row">
+                <span class="cc-ref-label"><em>Reference Number:</em></span>
+                <div class="cc-ref-boxes">
+                    <span class="cc-ref-box" id="ccRefRegion"></span>
+                    <span class="cc-ref-sep">|</span>
+                    <span class="cc-ref-box" id="ccRefProvince"></span>
+                    <span class="cc-ref-sep">|</span>
+                    <span class="cc-ref-box" id="ccRefCity"></span>
+                    <span class="cc-ref-sep">|</span>
+                    <span class="cc-ref-box" id="ccRefBarangay"></span>
+                </div>
+                <span class="cc-ref-sub"><small>REGION &nbsp; PROVINCE &nbsp; CITY/MUNI &nbsp; BARANGAY</small></span>
+            </div>
+            <div class="cc-name-row">
+                <div class="cc-name-block">
+                    <div class="cc-field-line" id="ccSurname"></div>
+                    <div class="cc-field-label">SURNAME</div>
+                </div>
+                <div class="cc-name-block">
+                    <div class="cc-field-line" id="ccFirstName"></div>
+                    <div class="cc-field-label">FIRST NAME</div>
+                </div>
+            </div>
+            <div class="cc-name-row">
+                <div class="cc-name-block">
+                    <div class="cc-field-line" id="ccMiddleName"></div>
+                    <div class="cc-field-label">MIDDLE NAME</div>
+                </div>
+                <div class="cc-name-block cc-name-small">
+                    <div class="cc-field-line" id="ccExtName"></div>
+                    <div class="cc-field-label">EXTENSION NAME</div>
+                </div>
+            </div>
+            <!-- Client's Copy — Second Verifier Block (matches PDF) -->
+            <div class="cc-verifier-block">
+                <div class="cc-verifier-header">VERIFIED TRUE AND CORRECT BY:</div>
+                <div class="cc-verifier-sig-grid">
+                    <div class="cc-vsig-block">
+                        <div class="cc-vsig-line"></div>
+                        <div class="cc-vsig-label">SIGNATURE ABOVE PRINTED NAME / DATE<br>
+                        <small>BARANGAY CHAIRMAN / CITY / MUN. VETERINARIAN (LIVESTOCK) / MILL DISTRICT OFFICER (SUGARCANE) / IP LEADER / C/M/PARO (ARB)</small></div>
+                    </div>
+                    <div class="cc-vsig-block">
+                        <div class="cc-vsig-line"></div>
+                        <div class="cc-vsig-label">SIGNATURE ABOVE PRINTED NAME / DATE<br>
+                        <small>CITY/MUNICIPAL AGRICULTURE OFFICE</small></div>
+                    </div>
+                    <div class="cc-vsig-block">
+                        <div class="cc-vsig-line"></div>
+                        <div class="cc-vsig-label">SIGNATURE ABOVE PRINTED NAME / DATE<br>
+                        <small>CAFC/MAFC CHAIRMAN</small></div>
+                    </div>
+                </div>
+            </div>
+            <div class="cc-not-for-sale">THIS FORM IS NOT FOR SALE</div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="form-action-bar">
+        <button type="button" class="btn-wizard-back" onclick="goToStep(2)"><span class="nav-arrow">←</span> Back</button>
+        <div class="action-right">
+            <button type="button" class="btn-download" id="downloadPdfBtn" onclick="downloadPDF()">
+                ⬇ Download Pre-filled PDF
+            </button>
+            <button type="submit" class="btn-submit" id="submitBtn">
+                ✓ Submit Enrollment Form
+            </button>
+        </div>
+    </div>
+
+    <div id="remarksDocDropdown" class="remarks-dropdown" style="display:none;">
+        <div class="dropdown-overlay" onclick="closeRemarksDropdown()"></div>
+        <div class="remarks-dropdown-content">
+            <div class="remarks-checklist">
+                <label class="check-opt doc-check"><input type="checkbox" value="1" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">1.</span> Certificate of Land Transfer</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="2" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">2.</span> Emancipation Patent</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="3" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">3.</span> Individual Certificate of Land Ownership Award (CLOA)</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="4" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">4.</span> Collective CLOA</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="5" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">5.</span> Co-ownership CLOA</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="6" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">6.</span> Agricultural Sales Patent</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="7" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">7.</span> Homestead Patent</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="8" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">8.</span> Free Patent</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="9" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">9.</span> Certificate of Title or Regular Title</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="10" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">10.</span> Certificate of Ancestral Domain Title</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="11" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">11.</span> Certificate of Ancestral Land Title</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="12" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">12.</span> Tax Declaration</label>
+                <label class="check-opt doc-check"><input type="checkbox" value="13" onchange="handleRemarksCheckboxChange()"> <span class="doc-num">13.</span> Others</label>
+            </div>
+        </div>
+    </div>
+
+    <div id="successModal" class="success-modal" style="display:none;">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+
+    <!-- Datalists for Location Dropdowns -->
+    <datalist id="regionList">
+        <option value="Region IV-A">Region IV-A (CALABARZON)</option>
+    </datalist>
+    <datalist id="provinceList">
+        <option value="Laguna">Laguna</option>
+    </datalist>
+    <datalist id="municipalityList">
+        <option value="Mabitac">Mabitac</option>
+    </datalist>
+    <datalist id="mabitacBarangays">
+        <option value="Amuyong">Amuyong</option>
+        <option value="Bayanihan">Bayanihan (Pob.)</option>
+        <option value="Burgos">Burgos</option>
+        <option value="De La Paz">De La Paz (Pob.)</option>
+        <option value="Libis ng Nayon">Libis ng Nayon (Pob.)</option>
+        <option value="Lucong">Lucong (Pob.)</option>
+        <option value="Matalatala">Matalatala</option>
+        <option value="Nanguma">Nanguma</option>
+        <option value="Numero">Numero</option>
+        <option value="Pag-asa">Pag-asa (Pob.)</option>
+        <option value="Paagahan">Paagahan</option>
+        <option value="San Antonio">San Antonio</option>
+        <option value="San Miguel">San Miguel</option>
+        <option value="Sinagtala">Sinagtala (Pob.)</option>
+        <option value="Ynang Maria">Ynang Maria (Pob.)</option>
+    </datalist>
+            <div class="modal-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+            </div>
+            <h3 class="modal-title">Enrollment Submitted!</h3>
+            <p class="modal-desc">
+                Your RSBSA enrollment form has been successfully submitted.<br><br>
+                It is now pending <strong>review by a Verifier</strong> and <strong>final approval by the Municipal Agriculture Office (MAO)</strong>.
+            </p>
+            <button type="button" class="btn-modal-close" onclick="closeSuccessModal()">Return to Dashboard</button>
+        </div>
+    </div>
+
+</div><!-- /step-3 -->
+
+</form>
+</div><!-- /form-shell -->
+
+    <script src="{{ url_for('static', filename='js/forms/form-dropdowns.js') }}"></script>
+<script src="{{ url_for('static', filename='js/forms/rsba-enrollment-form.js') }}"></script>
+</body>
+</html>

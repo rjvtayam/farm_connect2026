@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Encoder Dashboard - Farm Connect</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="preload" href="{{ url_for('static', filename='fontawesome/webfonts/fa-solid-900.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+
+    <!-- Styles: base variables + shared dashboard + encoder-specific -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/roles/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/roles/encoder-panel.css') }}">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('public.static', filename='favicon/favicon.ico') }}">
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <img src="{{ url_for('public.static', filename='FARM CONNECT LOGO/sample_logo.png') }}" alt="Farm Connect Logo" class="nav-logo" style="height: 40px; margin-right: 10px;">
+                <span>Farm Connect</span>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar-small" id="sidebarAvatar">
+                    {% if current_user.avatar_url %}
+                        <img src="{{ current_user.avatar_url }}" alt="Profile" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+                    {% else %}
+                        <i class="fas fa-keyboard"></i>
+                    {% endif %}
+                </div>
+                <div class="user-details">
+                    <span class="user-name">{{ current_user.full_name }}</span>
+                    <span class="user-role">Data Encoder</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#quick-actions" class="nav-item">
+                <i class="fas fa-bolt"></i>
+                <span>Quick Actions</span>
+            </a>
+            <a href="#my-submissions" class="nav-item">
+                <i class="fas fa-file-alt"></i>
+                <span>My Submissions</span>
+            </a>
+            <a href="#settings" class="nav-item">
+                <i class="fas fa-sliders-h"></i>
+                <span>System Settings</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="nav-item logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Dashboard Home -->
+            <div id="dashboard-home">
+                <!-- Welcome Banner -->
+                <div class="welcome-banner" id="welcomeBanner" data-user-name="{{ current_user.full_name }}">
+                    <div class="welcome-banner-content">
+                        <p class="welcome-greeting"><span class="welcome-wave">👋</span> Welcome back!</p>
+                        <p class="welcome-subtitle">Here's your dashboard overview.</p>
+                        <p class="welcome-date"></p>
+                    </div>
+                    <div class="welcome-banner-actions">
+                        <button class="trash-bin-btn" onclick="openTrashBin()" title="Trash Bin">
+                            <i class="fas fa-trash-restore-alt"></i>
+                            <span class="trash-badge" id="trashBadge" style="display:none;">0</span>
+                        </button>
+                        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                            <i class="fas fa-moon"></i>
+                            <i class="fas fa-sun"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Header -->
+                <div class="dashboard-header">
+                    <div class="header-content">
+                        <div class="header-text">
+                            <h1>Encoder Dashboard</h1>
+                            <p class="current-date" id="currentDate"></p>
+                        </div>
+                        <div class="header-actions">
+                            <div class="notification-bell" id="notificationBell">
+                                <button class="bell-btn" onclick="toggleNotifications()">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+                                </button>
+                                <div class="notif-dropdown" id="notifDropdown">
+                                    <div class="notif-dropdown-header">
+                                        <h4><i class="fas fa-bell"></i> Notifications</h4>
+                                        <button class="notif-mark-all" onclick="markAllNotificationsRead()">Mark all read</button>
+                                    </div>
+                                    <div class="notif-dropdown-body" id="notifList">
+                                        <div class="notif-empty">
+                                            <i class="fas fa-check-circle"></i>
+                                            <p>No notifications</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button class="btn btn-primary" onclick="openForm('rsbsa')">
+                                <i class="fas fa-plus"></i> New Registration
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-primary">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="mySubmissions">0</h3>
+                            <p>Total Submitted</p>
+                            <span class="trend-badge neutral" id="mySubmissionsTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="approvedCount">0</h3>
+                            <p>Approved</p>
+                            <span class="trend-badge neutral" id="approvedCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-primary">
+                            <i class="fas fa-check-double"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="verifiedCount">0</h3>
+                            <p>Verified</p>
+                            <span class="trend-badge neutral" id="verifiedCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-warning">
+                            <i class="fas fa-hourglass-half"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="pendingCount">0</h3>
+                            <p>Pending Review</p>
+                            <span class="trend-badge neutral" id="pendingCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-danger">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="rejectedCount">0</h3>
+                            <p>Returned/Rejected</p>
+                            <span class="trend-badge neutral" id="rejectedCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="content-card activity-feed-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-stream"></i> Recent Activity</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-feed-timeline" id="activityFeedList">
+                            <div class="activity-empty">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading activity...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions -->
+            <div id="quick-actions" class="content-section">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-bolt"></i> Rapid Entry Actions</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="quick-actions-grid">
+                            <button type="button" class="action-card" data-form="rsbsa" onclick="openForm('rsbsa')">
+                                <div class="action-icon rsba-color">
+                                    <i class="fas fa-seedling"></i>
+                                </div>
+                                <div class="action-details">
+                                    <h3>RSBA Enrollment</h3>
+                                    <p>Register agricultural beneficiaries</p>
+                                </div>
+                                <i class="fas fa-arrow-right action-arrow"></i>
+                            </button>
+                            <button type="button" class="action-card" data-form="fish" onclick="openForm('fish')">
+                                <div class="action-icon fish-color">
+                                    <i class="fas fa-fish"></i>
+                                </div>
+                                <div class="action-details">
+                                    <h3>Fish Registration</h3>
+                                    <p>Register fishery beneficiaries</p>
+                                </div>
+                                <i class="fas fa-arrow-right action-arrow"></i>
+                            </button>
+                            <button type="button" class="action-card" data-form="boat" onclick="openForm('boat')">
+                                <div class="action-icon boat-color">
+                                    <i class="fas fa-ship"></i>
+                                </div>
+                                <div class="action-details">
+                                    <h3>Boat Registration</h3>
+                                    <p>Register fishing boats</p>
+                                </div>
+                                <i class="fas fa-arrow-right action-arrow"></i>
+                            </button>
+                            <button type="button" class="action-card" data-form="ncfrs" onclick="openForm('ncfrs')">
+                                <div class="action-icon ncfrs-color">
+                                    <i class="fas fa-clipboard-list"></i>
+                                </div>
+                                <div class="action-details">
+                                    <h3>NCFRS Form</h3>
+                                    <p>National Corn Farmers Registry</p>
+                                </div>
+                                <i class="fas fa-arrow-right action-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mass Import Section (Inside Quick Actions) -->
+                <div class="content-card" style="margin-top: 2rem;">
+                    <div class="card-header">
+                        <h2><i class="fas fa-file-excel"></i> Mass Import Data</h2>
+                    </div>
+                    <div class="card-body" style="padding: 2rem;">
+                        <p style="color: var(--text-light); font-size: 0.95rem; margin-bottom: 1.5rem;">
+                            Upload an Excel (.xlsx) or CSV file to create multiple registrations simultaneously. The imported beneficiaries will be automatically assigned to the selected form type and sent for review.
+                        </p>
+                        
+                        <form id="massImportForm" class="mass-import-form" style="max-width: 600px; margin: 0 auto; background: var(--bg-light); border: 1px solid var(--border); border-radius: 12px; padding: 2rem;">
+                            <div class="form-group" style="margin-bottom: 1.5rem;">
+                                <label style="font-weight: 600; color: var(--text-dark); display: block; margin-bottom: 0.75rem;"><i class="fas fa-clipboard-list"></i> Target Form Type</label>
+                                <select id="massImportFormType" class="form-control" style="width: 100%; padding: 0.85rem; border-radius: 8px; border: 1px solid var(--border); font-size: 1rem; cursor: pointer;" required>
+                                    <option value="" disabled selected>Select the form you are importing for</option>
+                                    <option value="rsbsa">RSBSA Enrollment</option>
+                                    <option value="fish">Fisherfolk Registration</option>
+                                    <option value="boat">Boat Registration</option>
+                                    <option value="ncfrs">NCFRS Form</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group document-upload" style="border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2.5rem 1.5rem; text-align: center; cursor: pointer; transition: all 0.3s ease; position: relative;" id="massImportDropZone">
+                                <i class="fas fa-cloud-upload-alt" style="font-size: 3rem; color: #94a3b8; margin-bottom: 1rem;"></i>
+                                <h4 style="margin: 0 0 0.5rem 0; color: var(--text-dark);">Drag & Drop your file here</h4>
+                                <p style="color: #64748b; font-size: 0.85rem; margin: 0 0 1.5rem 0;">Supports .xlsx and .csv files (Max 5MB)</p>
+                                <input type="file" id="massImportFile" name="import_file" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer;" required>
+                                <div id="massImportFileName" style="display: none; padding: 0.75rem 1rem; background: rgba(99, 102, 241, 0.1); color: var(--primary); border-radius: 8px; font-weight: 600; font-size: 0.9rem; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <i class="fas fa-file-excel"></i> <span class="name-text">filename.xlsx</span>
+                                </div>
+                            </div>
+                            
+                            <div style="margin-top: 2rem; text-align: right;">
+                                <button type="submit" class="btn btn-primary" id="massImportBtn" style="padding: 0.85rem 2rem; border-radius: 8px; font-weight: 600; font-size: 1rem; width: 100%; justify-content: center;">
+                                    <i class="fas fa-upload"></i> Process Import
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Submissions -->
+            <div id="my-submissions" class="content-section">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-file-invoice"></i> Track Submissions</h2>
+                        <div class="card-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="exportSubmissions()">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchSubmissions" placeholder="Search...">
+                            </div>
+                            <select id="filterStatus" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="pending">Pending</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Beneficiary Name</th>
+                                        <th>Form Type</th>
+                                        <th>Status</th>
+                                        <th>Submitted</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="submissionsTableBody">
+                                    <!-- Submissions will be loaded via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings Section -->
+            <div id="settings" class="content-section" style="display: none;">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-sliders-h"></i> System Settings</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="settings-grid">
+                            <div class="setting-card">
+                                <div class="setting-icon icon-profile">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <h3>Profile Settings</h3>
+                                <p>Update your personal information, profile picture, and display name.</p>
+                                <button class="btn btn-primary" onclick="openModal('profileModal')">
+                                    <i class="fas fa-user-edit"></i> Edit My Profile
+                                </button>
+                            </div>
+
+                            <div class="setting-card">
+                                <div class="setting-icon icon-password">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <h3>Change Password</h3>
+                                <p>Keep your account secure by updating your password regularly.</p>
+                                <div class="password-form">
+                                    <div class="form-group">
+                                        <label><i class="fas fa-key"></i> New Password</label>
+                                        <div class="form-input-wrapper">
+                                            <i class="fas fa-key input-icon"></i>
+                                            <input type="password" id="newPassword" placeholder="Enter new password" minlength="8">
+                                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this, 'newPassword')">
+                                                <i class="fas fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><i class="fas fa-check-double"></i> Confirm Password</label>
+                                        <div class="form-input-wrapper">
+                                            <i class="fas fa-lock input-icon"></i>
+                                            <input type="password" id="confirmPassword" placeholder="Confirm new password" minlength="8">
+                                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this, 'confirmPassword')">
+                                                <i class="fas fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button class="btn-change-password" onclick="changePassword()">
+                                        <i class="fas fa-shield-alt"></i> Update Password
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="setting-card danger-zone">
+                                <div class="setting-icon icon-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <h3>Danger Zone</h3>
+                                <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                                <button class="btn btn-danger" onclick="confirmDeleteAccount()">
+                                    <i class="fas fa-trash-alt"></i> Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+            <!-- Form Viewer (iframe) -->
+            <div id="form-viewer" style="display:none;">
+                <div class="form-viewer-header">
+                    <button type="button" class="btn-back" onclick="closeForm()" title="Back to Dashboard">
+                        <i class="fas fa-arrow-left"></i>
+                    </button>
+                    <h2 id="formViewerTitle">Registration Form</h2>
+                </div>
+                <iframe id="formFrame" class="form-frame" src="" frameborder="0"></iframe>
+            </div>
+    </main>
+</div>
+
+<!-- Profile Edit Modal -->
+<div id="profileModal" class="modal">
+    <div class="modal-overlay" onclick="closeModal('profileModal')"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-circle" style="color: var(--primary); margin-right: 0.5rem;"></i> Edit Profile</h3>
+            <button class="modal-close" onclick="closeModal('profileModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="profile-avatar-section">
+                <div class="profile-avatar-large" id="profileAvatarPreview">
+                    <i class="fas fa-keyboard"></i>
+                </div>
+                <label class="profile-avatar-upload-btn">
+                    <i class="fas fa-camera"></i> Change Photo
+                    <input type="file" id="avatarUpload" accept="image/*" onchange="handleProfileFile(this.files[0])">
+                </label>
+            </div>
+            <div class="form-grid" style="margin-top: 1.25rem;">
+                <div class="form-group full-width">
+                    <label>Full Name</label>
+                    <div class="form-input-wrapper">
+                        <i class="fas fa-id-card input-icon"></i>
+                        <input type="text" id="profileFullName" value="{{ current_user.full_name }}" placeholder="Enter your full name">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('profileModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveProfile()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Confirmation -->
+<div id="deleteAccountOverlay" class="delete-confirm-overlay">
+    <div class="delete-confirm-card">
+        <div class="danger-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3>Delete Your Account?</h3>
+        <p>This action is permanent and cannot be undone. All your data, settings, and history will be permanently removed.</p>
+        <div class="form-group">
+            <label style="font-size: 0.825rem; font-weight: 600; color: var(--text-dark);">Enter your password to confirm</label>
+            <input type="password" id="deleteAccountPassword" placeholder="Your password" style="width: 100%; padding: 0.7rem 0.875rem; border-radius: 10px; border: 1px solid var(--border); font-family: inherit; font-size: 0.9rem; margin-top: 0.35rem;">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="cancelDeleteAccount()">Cancel</button>
+            <button class="btn btn-danger" onclick="executeDeleteAccount()"><i class="fas fa-trash-alt"></i> Delete Forever</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="{{ url_for('static', filename='js/roles/dashboard-common.js') }}"></script>
+<script src="{{ url_for('static', filename='js/roles/encoder-panel.js') }}"></script>
+
+<!-- Trash Bin Modal -->
+<div class="trash-modal-overlay" id="trashModalOverlay" onclick="closeTrashBin(event)">
+    <div class="trash-modal" onclick="event.stopPropagation()">
+        <div class="trash-modal-header">
+            <h3><i class="fas fa-trash-alt"></i> Trash Bin</h3>
+            <button class="trash-modal-close" onclick="closeTrashBin()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="trash-modal-body" id="trashModalBody">
+            <div class="trash-empty-state">
+                <i class="fas fa-recycle"></i>
+                <h4>Trash is empty</h4>
+                <p>Deleted submissions will appear here</p>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

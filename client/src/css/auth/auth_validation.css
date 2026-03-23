@@ -1,0 +1,29 @@
+/* Validation Styles */
+.form-group.has-error .input-icon input {
+    border-color: #dc2626; /* Red border */
+    background-color: #fef2f2; /* Light red background */
+}
+
+.form-group.has-error .input-icon i {
+    color: #dc2626; /* Red icon */
+}
+
+.error-message {
+    display: block;
+    color: #dc2626; /* Red text */
+    font-size: 0.85rem;
+    margin-top: 0.5rem;
+    margin-left: 0.5rem;
+    animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}

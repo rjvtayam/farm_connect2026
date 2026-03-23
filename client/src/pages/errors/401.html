@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+
+{% block title %}401 - Unauthorized{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/errors/errors.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="error-container">
+    <div class="error-content">
+        <div class="error-image">
+            <img
+                src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.colombiahosting.com.co%2Fblog%2Fwp-content%2Fuploads%2F2023%2F08%2Ferror-401.png&f=1&nofb=1&ipt=01e4aff013dea3295ca36dcd7b4ddbc8b04ea6282644465ed4ed69f446eb917f&ipo=images"
+                alt="401 Error Illustration"
+                loading="lazy"
+                width="400"
+                height="300">
+        </div>
+        <div class="error-text">
+            <h1>401</h1>
+            <h2>Unauthorized Access</h2>
+            <p>Please log in to access this page.</p>
+            <div class="error-actions">
+                <a href="{{ url_for('auth.login', next=request.path) }}"
+                    class="btn btn-primary">
+                    <i class="fas fa-sign-in-alt"></i> Login
+                </a>
+                <a href="{{ url_for('main.index') }}" class="btn btn-outline">
+                    <i class="fas fa-home"></i> Go Home
+                </a>
+            </div>
+            <div class="error-help">
+                <p>Need an account?</p>
+                <a href="{{ url_for('auth.register') }}" class="support-link">
+                    <i class="fas fa-user-plus"></i> Sign up here
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

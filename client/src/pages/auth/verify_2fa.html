@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Two-Factor Authentication - Farm Connect{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/auth.css') }}" />
+{% endblock %}
+
+{% block head %}
+{{ super() }}
+<meta name="csrf-token" content="{{ csrf_token() }}" />
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-branding">
+            <div class="twofa-shield-icon">
+                <i class="fas fa-shield-alt"></i>
+            </div>
+            <h5 class="welcome-text">Two-Factor Authentication</h5>
+            <p class="twofa-subtitle">A 6-digit verification code has been sent to your email address.</p>
+        </div>
+
+        <!-- Flash messages handled globally -->
+
+        <form id="twofa-form" class="auth-form" method="POST"
+            action="{{ url_for('auth.verify_2fa') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="verification_code" id="otpHiddenInput">
+
+            <!-- 6-Digit OTP Input Boxes -->
+            <div class="otp-digits-container">
+                <label class="otp-label"><i class="fas fa-key"></i> Enter Verification Code</label>
+                <div class="otp-digits" id="otpDigits">
+                    <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" autocomplete="one-time-code" data-index="0" autofocus>
+                    <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="1">
+                    <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="2">
+                    <span class="otp-separator">—</span>
+                    <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="3">
+                    <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="4">
+                    <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" pattern="[0-9]" data-index="5">
+                </div>
+            </div>
+
+            <!-- Countdown Timer -->
+            <div class="otp-countdown" id="otpCountdown">
+                <div class="countdown-ring">
+                    <svg viewBox="0 0 36 36">
+                        <path class="countdown-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                        <path class="countdown-progress" id="countdownRing" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    </svg>
+                    <span class="countdown-number" id="countdownNumber">60</span>
+                </div>
+                <span class="countdown-text">seconds remaining</span>
+            </div>
+
+            <button type="submit" id="verifyBtn" class="btn btn-primary btn-block">
+                <i class="fas fa-check-circle"></i> Verify Code
+            </button>
+        </form>
+
+        <!-- Resend Code Section -->
+        <div class="resend-section">
+            <p class="resend-text">Didn't receive the code?</p>
+            <button type="button" id="resendBtn" class="resend-btn" disabled onclick="resend2FACode()">
+                <i class="fas fa-redo-alt"></i> <span id="resendBtnText">Send Code Again</span>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ═══ Premium Auth Loading Overlay ═══ -->
+<div class="login-overlay" id="authOverlay">
+  <div class="login-overlay-backdrop"></div>
+  <div class="login-overlay-card">
+    <div class="login-overlay-spinner">
+      <div class="spinner-ring"></div>
+      <div class="spinner-icon" id="overlayIcon">
+        <i class="fas fa-shield-alt"></i>
+      </div>
+    </div>
+    <h3 class="login-overlay-title" id="overlayTitle">Verifying your code</h3>
+    <p class="login-overlay-sub">Please wait<span class="dot-pulse">...</span></p>
+    <div class="login-overlay-bar">
+      <div class="login-overlay-bar-fill"></div>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,114 @@
+/* ==========================================================
+   FORM DROPDOWNS — PREMIUM SEARCHABLE SELECT STYLE
+   Replaces native datalist with a professional UI
+   ========================================================== */
+
+.premium-dropdown-container {
+    position: relative;
+    width: 100%;
+}
+
+.premium-dropdown-list {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    max-height: 250px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    z-index: 1000;
+    overflow-y: auto;
+    display: none;
+    animation: dropdownFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes dropdownFadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom Scrollbar */
+.premium-dropdown-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.premium-dropdown-list::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 0 12px 12px 0;
+}
+
+.premium-dropdown-list::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 10px;
+}
+
+.premium-dropdown-list::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+.premium-dropdown-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #334155;
+    transition: all 0.2s ease;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.premium-dropdown-item:last-child {
+    border-bottom: none;
+}
+
+.premium-dropdown-item:hover,
+.premium-dropdown-item.selected {
+    background-color: #f0fdf4; /* Matches DA Green lite */
+    color: #166534;
+}
+
+.premium-dropdown-item .item-main {
+    font-weight: 600;
+}
+
+.premium-dropdown-item .item-sub {
+    font-size: 0.75rem;
+    color: #64748b;
+    font-weight: 400;
+}
+
+.premium-dropdown-item:hover .item-sub {
+    color: #166534;
+    opacity: 0.8;
+}
+
+/* No results state */
+.premium-dropdown-empty {
+    padding: 20px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+/* Input feedback */
+input[list].premium-select-active {
+    border-color: #16a34a !important;
+    box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15) !important;
+}
+
+/* Locked / Readonly State */
+.fg-locked {
+    background-color: #f3f4f6 !important;
+    cursor: not-allowed !important;
+    border-color: #d1d5db !important;
+    color: #6b7280 !important;
+}
+
+.fg-locked:focus {
+    border-color: #d1d5db !important;
+    box-shadow: none !important;
+}

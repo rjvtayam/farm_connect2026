@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Verify Your Email - Farm Connect</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .logo {
+            width: 150px;
+            margin-bottom: 20px;
+        }
+        .content {
+            padding: 0 30px;
+        }
+        .button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #6366F1 0%, #4F46E5 100%);
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            margin: 25px 0;
+            text-align: center;
+            transition: transform 0.2s;
+        }
+        .button:hover {
+            transform: translateY(-2px);
+        }
+        .verification-link {
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #666;
+            word-break: break-all;
+        }
+        .footer {
+            margin-top: 40px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            text-align: center;
+            font-size: 14px;
+            color: #666;
+        }
+        .social-icons {
+            margin: 20px 0;
+        }
+        .social-icons img {
+            width: 24px;
+            margin: 0 10px;
+        }
+        .icon {
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h2 style="color: #4F46E5; margin: 0;">Welcome to Farm Connect!</h2>
+        </div>
+        
+        <div class="content">
+            <p><strong>Hi {{ username }},</strong></p>
+            <p>
+                <img src="https://i.ibb.co/7CmXH6N/verify-icon.png" alt="✓" class="icon" style="width: 20px;">
+                Thank you for registering with Farm Connect. To complete your registration and activate your account, please click the button below:
+            </p>
+            
+            <div style="text-align: center;">
+                <a href="{{ verification_url }}" class="button">Verify Email Address</a>
+            </div>
+            
+            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+            <div class="verification-link">
+                {{ verification_url }}
+            </div>
+            
+            <p>
+                <img src="https://i.ibb.co/M6qBscf/clock-icon.png" alt="⏰" class="icon" style="width: 20px;">
+                This verification link will expire in 24 hours.
+            </p>
+            
+            <p style="color: #666; font-size: 14px;">
+                <img src="https://i.ibb.co/wrJf3hp/security-icon.png" alt="🔒" class="icon" style="width: 20px;">
+                If you didn't create an account with Farm Connect, you can safely ignore this email.
+            </p>
+            
+            <div class="footer">
+                <p><strong>Best regards,</strong><br>The Farm Connect Team</p>
+                <div class="social-icons">
+                    <a href="#"><img src="https://i.ibb.co/vxbFhLy/facebook-icon.png" alt="Facebook"></a>
+                    <a href="#"><img src="https://i.ibb.co/NsVVRQq/twitter-icon.png" alt="Twitter"></a>
+                    <a href="#"><img src="https://i.ibb.co/9H0D8Jx/linkedin-icon.png" alt="LinkedIn"></a>
+                </div>
+                <p style="color: #999; font-size: 12px;">
+                    This is an automated message, please do not reply to this email.<br>
+                    2026 Farm Connect. All rights reserved.
+                </p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

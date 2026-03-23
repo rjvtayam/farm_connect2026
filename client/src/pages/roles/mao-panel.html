@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>MAO Dashboard - Farm Connect</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- FontAwesome -->
+    <link rel="preload" href="{{ url_for('static', filename='fontawesome/webfonts/fa-solid-900.woff2') }}" as="font" type="font/woff2" crossorigin>
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+
+    <!-- Styles: base variables + shared dashboard + MAO-specific -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/roles/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/roles/mao-panel.css') }}">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/x-icon" href="{{ url_for('public.static', filename='favicon/favicon.ico') }}">
+
+    <!-- Leaflet GIS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+<div class="dashboard-wrapper">
+    <!-- Sidebar Navigation -->
+    <aside class="dashboard-sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <img src="{{ url_for('public.static', filename='FARM CONNECT LOGO/sample_logo.png') }}" alt="Farm Connect Logo" class="nav-logo" style="height: 40px; margin-right: 10px;">
+                <span>Farm Connect</span>
+            </div>
+            <div class="user-info">
+                <div class="user-avatar-small" id="sidebarAvatar">
+                    {% if current_user.avatar_url %}
+                        <img src="{{ current_user.avatar_url }}" alt="Profile" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">
+                    {% else %}
+                        <i class="fas fa-user-tie"></i>
+                    {% endif %}
+                </div>
+                <div class="user-details">
+                    <span class="user-name">{{ current_user.full_name }}</span>
+                    <span class="user-role">Municipal Agriculturist</span>
+                </div>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="#" class="nav-item active">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#registrations" class="nav-item">
+                <i class="fas fa-clipboard-list"></i>
+                <span>Registrations</span>
+            </a>
+            <a href="#beneficiaries" class="nav-item">
+                <i class="fas fa-users"></i>
+                <span>Beneficiaries</span>
+            </a>
+            <a href="#analytics" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#reports" class="nav-item">
+                <i class="fas fa-file-alt"></i>
+                <span>Reports</span>
+            </a>
+            <a href="#settings" class="nav-item">
+                <i class="fas fa-sliders-h"></i>
+                <span>System Settings</span>
+            </a>
+            <div class="nav-divider"></div>
+            <a href="{{ url_for('auth.logout') }}" class="nav-item logout">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="dashboard-main">
+        <div class="dashboard-container">
+            <!-- Dashboard Home -->
+            <div id="dashboard-home">
+                <!-- Welcome Banner -->
+                <div class="welcome-banner" id="welcomeBanner" data-user-name="{{ current_user.full_name }}">
+                    <div class="welcome-banner-content">
+                        <p class="welcome-greeting"><span class="welcome-wave">👋</span> Welcome back!</p>
+                        <p class="welcome-subtitle">Here's your dashboard overview.</p>
+                        <p class="welcome-date"></p>
+                    </div>
+                    <div class="welcome-banner-actions">
+                        <button class="trash-bin-btn" onclick="openTrashBin()" title="Trash Bin">
+                            <i class="fas fa-trash-restore-alt"></i>
+                            <span class="trash-badge" id="trashBadge" style="display:none;">0</span>
+                        </button>
+                        <button class="theme-toggle-btn" onclick="toggleTheme()" title="Toggle Dark/Light Mode">
+                            <i class="fas fa-moon"></i>
+                            <i class="fas fa-sun"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dashboard Header -->
+                <div class="dashboard-header">
+                    <div class="header-content">
+                        <div class="header-text">
+                            <h1>MAO Dashboard</h1>
+                            <p class="current-date" id="currentDate"></p>
+                        </div>
+                        <div class="header-actions">
+                            <div class="notification-bell" id="notificationBell">
+                                <button class="bell-btn" onclick="toggleNotifications()">
+                                    <i class="fas fa-bell"></i>
+                                    <span class="notif-badge" id="notifBadge" style="display:none;">0</span>
+                                </button>
+                                <div class="notif-dropdown" id="notifDropdown">
+                                    <div class="notif-dropdown-header">
+                                        <h4><i class="fas fa-bell"></i> Notifications</h4>
+                                        <button class="notif-mark-all" onclick="markAllNotificationsRead()">Mark all read</button>
+                                    </div>
+                                    <div class="notif-dropdown-body" id="notifList">
+                                        <div class="notif-empty">
+                                            <i class="fas fa-check-circle"></i>
+                                            <p>No notifications</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Stats Overview -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon icon-primary">
+                            <i class="fas fa-clipboard-list"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="totalRegistrations">0</h3>
+                            <p>Total Registrations</p>
+                            <span class="trend-badge neutral" id="totalRegistrationsTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-success">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="approvedCount">0</h3>
+                            <p>Approved</p>
+                            <span class="trend-badge neutral" id="approvedCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-warning">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="pendingCount">0</h3>
+                            <p>Awaiting Approval</p>
+                            <span class="trend-badge neutral" id="pendingCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-info">
+                            <i class="fas fa-hourglass-start"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="pendingVerificationCount">0</h3>
+                            <p>Pending Verification</p>
+                            <span class="trend-badge neutral" id="pendingVerificationCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon icon-success">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-content">
+                            <h3 id="beneficiariesCount">0</h3>
+                            <p>Active Beneficiaries</p>
+                            <span class="trend-badge neutral" id="beneficiariesCountTrend"><i class="fas fa-minus"></i> 0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Feed -->
+                <div class="content-card activity-feed-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-stream"></i> Recent Activity</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="activity-feed-timeline" id="activityFeedList">
+                            <div class="activity-empty">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading activity...</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div id="analytics" class="content-section">
+                <div class="analytics-grid">
+                    <!-- Registration Type -->
+                    <div class="content-card chart-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-bar"></i> Registrations by Type</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="registrationTypeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Distribution -->
+                    <div class="content-card chart-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-pie"></i> Status Distribution</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="statusChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Beneficiary Growth Trend -->
+                    <div class="content-card chart-card full-width-chart">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-line"></i> Beneficiary Growth Trend</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="beneficiaryGrowthChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Barangay Distribution -->
+                    <div class="content-card chart-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-map-marker-alt"></i> Top Barangays</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="barangayChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Demographic Profile -->
+                    <div class="content-card chart-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-users-cog"></i> Demographic Profile</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container radar-container">
+                                <canvas id="demographicRadarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Beneficiaries Section -->
+            <div id="beneficiaries" class="content-section">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-users"></i> Active Beneficiaries</h2>
+                        <div class="card-actions">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchBeneficiaries" placeholder="Search by name or RSBSA ID...">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>RSBSA ID</th>
+                                        <th>Name</th>
+                                        <th>Address</th>
+                                        <th>Mobile</th>
+                                        <th>Created</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="beneficiariesTableBody">
+                                    <!-- Beneficiaries will be loaded via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Registrations -->
+            <div id="registrations" class="content-section">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-list"></i> Recent Registrations</h2>
+                        <div class="card-actions">
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="searchRegistrations" placeholder="Search registrations...">
+                            </div>
+                            <select id="filterStatus" class="filter-select">
+                                <option value="">All Status</option>
+                                <option value="verified">Pending (From Verifier)</option>
+                                <option value="pending">Pending (From Encoder)</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                            </select>
+                            <select id="filterType" class="filter-select">
+                                <option value="">All Forms</option>
+                                <option value="rsbsa">RSBSA</option>
+                                <option value="fish">Fish Registration</option>
+                                <option value="boat">Boat Registration</option>
+                                <option value="ncfrs">NCFRS</option>
+                            </select>
+                            <button class="btn btn-sm btn-success" id="bulkApproveBtn" style="display:none;" onclick="bulkMAOAction('approved')">
+                                <i class="fas fa-check-double"></i> Approve Selected
+                            </button>
+                            <button class="btn btn-sm btn-secondary" onclick="exportReport()">
+                                <i class="fas fa-download"></i> Export
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>Beneficiary</th>
+                                        <th>Form Type</th>
+                                        <th>Barangay</th>
+                                        <th>Status</th>
+                                        <th>Submitted</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="registrationsTableBody">
+                                    <!-- Registrations will be loaded via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reports" class="content-section">
+                <div class="reports-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                    <div class="content-card report-card">
+                        <div class="card-body" style="padding: 2rem; text-align: center;">
+                            <div class="report-icon" style="font-size: 3rem; color: #10b981; margin-bottom: 1.5rem;">
+                                <i class="fas fa-file-csv"></i>
+                            </div>
+                            <h3 style="margin-bottom: 0.5rem;">Complete Registry Export</h3>
+                            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">Download the full list of all registrations and beneficiaries for external processing.</p>
+                            <button class="btn btn-success" style="width: 100%; justify-content: center;" onclick="exportReport()">
+                                <i class="fas fa-download"></i> Generate CSV Report
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="content-card report-card">
+                        <div class="card-body" style="padding: 2rem; text-align: center;">
+                            <div class="report-icon" style="font-size: 3rem; color: #3b82f6; margin-bottom: 1.5rem;">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <h3 style="margin-bottom: 0.5rem;">Monthly Analytics PDF</h3>
+                            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">Generate a visual summary of registration trends and status distribution.</p>
+                            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="showToast('Analytics PDF generation is being prepared for next release.', 'info')">
+                                <i class="fas fa-file-pdf"></i> View Summary
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- System Settings Section -->
+            <div id="settings" class="content-section" style="display: none;">
+                <div class="content-card">
+                    <div class="card-header">
+                        <h2><i class="fas fa-sliders-h"></i> System Settings</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="settings-grid">
+                            <!-- Profile Settings -->
+                            <div class="setting-card">
+                                <div class="setting-icon icon-profile">
+                                    <i class="fas fa-user-edit"></i>
+                                </div>
+                                <h3>Profile Settings</h3>
+                                <p>Update your personal information, profile picture, and display name.</p>
+                                <button class="btn btn-primary" onclick="openModal('profileModal')">
+                                    <i class="fas fa-user-edit"></i> Edit My Profile
+                                </button>
+                            </div>
+
+                            <!-- Change Password -->
+                            <div class="setting-card">
+                                <div class="setting-icon icon-password">
+                                    <i class="fas fa-lock"></i>
+                                </div>
+                                <h3>Change Password</h3>
+                                <p>Keep your account secure by updating your password regularly.</p>
+                                <div class="password-form">
+                                    <div class="form-group">
+                                        <label><i class="fas fa-key"></i> New Password</label>
+                                        <div class="form-input-wrapper">
+                                            <i class="fas fa-key input-icon"></i>
+                                            <input type="password" id="newPassword" placeholder="Enter new password" minlength="8">
+                                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this, 'newPassword')">
+                                                <i class="fas fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><i class="fas fa-check-double"></i> Confirm Password</label>
+                                        <div class="form-input-wrapper">
+                                            <i class="fas fa-lock input-icon"></i>
+                                            <input type="password" id="confirmPassword" placeholder="Confirm new password" minlength="8">
+                                            <button type="button" class="password-toggle" onclick="togglePasswordVisibility(this, 'confirmPassword')">
+                                                <i class="fas fa-eye-slash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <button class="btn-change-password" onclick="changePassword()">
+                                        <i class="fas fa-shield-alt"></i> Update Password
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Danger Zone -->
+                            <div class="setting-card danger-zone">
+                                <div class="setting-icon icon-danger">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                </div>
+                                <h3>Danger Zone</h3>
+                                <p>Permanently delete your account and all associated data. This action cannot be undone.</p>
+                                <button class="btn btn-danger" onclick="confirmDeleteAccount()">
+                                    <i class="fas fa-trash-alt"></i> Delete Account
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Profile Edit Modal -->
+<div id="profileModal" class="modal">
+    <div class="modal-overlay" onclick="closeModal('profileModal')"></div>
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3><i class="fas fa-user-circle" style="color: var(--primary); margin-right: 0.5rem;"></i> Edit Profile</h3>
+            <button class="modal-close" onclick="closeModal('profileModal')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="modal-body">
+            <div class="profile-avatar-section">
+                <div class="profile-avatar-large" id="profileAvatarPreview">
+                    <i class="fas fa-user-tie"></i>
+                </div>
+                <label class="profile-avatar-upload-btn">
+                    <i class="fas fa-camera"></i> Change Photo
+                    <input type="file" id="avatarUpload" accept="image/*" onchange="handleProfileFile(this.files[0])">
+                </label>
+            </div>
+            <div class="form-grid" style="margin-top: 1.25rem;">
+                <div class="form-group full-width">
+                    <label>Full Name</label>
+                    <div class="form-input-wrapper">
+                        <i class="fas fa-id-card input-icon"></i>
+                        <input type="text" id="profileFullName" value="{{ current_user.full_name }}" placeholder="Enter your full name">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('profileModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveProfile()"><i class="fas fa-save"></i> Save Changes</button>
+        </div>
+    </div>
+</div>
+
+<!-- Review Modal (Registration Details) -->
+<div id="reviewModal" class="modal">
+    <div class="modal-overlay" onclick="closeModal('reviewModal')"></div>
+    <div class="modal-content" style="max-width: 1000px; width: 95%; height: 90vh; padding: 0; overflow: hidden; border-radius: 16px; display: flex; flex-direction: column;">
+        <div class="modal-header" style="background: #1e293b; color: white; padding: 1rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;">
+            <div style="display: flex; align-items: center; gap: 1rem;">
+                <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;" id="reviewModalTitle">
+                    <i class="fas fa-file-invoice"></i> Registration Details
+                </h3>
+            </div>
+            <button type="button" class="close" onclick="closeModal('reviewModal')" style="color: white; opacity: 0.8; font-size: 1.5rem; background: none; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px;">&times;</button>
+        </div>
+
+        <!-- Professional Tab Navigation -->
+        <div class="modal-tabs" style="display: flex; background: #f8fafc; border-bottom: 1px solid #e2e8f0; padding: 0 1rem; flex-shrink: 0;">
+            <button class="modal-tab-btn active" onclick="switchReviewTab('details', this)">
+                <i class="fas fa-info-circle"></i> Details
+            </button>
+            <button class="modal-tab-btn" onclick="switchReviewTab('form', this)">
+                <i class="fas fa-file-pdf"></i> Form View
+            </button>
+            <button class="modal-tab-btn" onclick="switchReviewTab('map', this)">
+                <i class="fas fa-map-marked-alt"></i> Map View
+            </button>
+        </div>
+        
+        <div class="modal-body" style="padding: 0; flex-grow: 1; overflow-y: auto; background: #fff;">
+            <!-- Details Tab -->
+            <div id="reviewTab-details" class="review-tab-content active" style="padding: 1.5rem;">
+                <div id="reviewModalContent">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+
+            <!-- Form View Tab -->
+            <div id="reviewTab-form" class="review-tab-content" style="display: none; height: 100%; background: #525659;">
+                <iframe id="reviewPdfFrame" style="width: 100%; height: 100%; border: none;" title="Form Preview"></iframe>
+            </div>
+
+            <!-- Map View Tab -->
+            <div id="reviewTab-map" class="review-tab-content" style="display: none; height: 100%; position: relative;">
+                <div id="reviewMapContainer" style="width: 100%; height: 100%; z-index: 1;"></div>
+                <div class="map-overlay-info" style="position: absolute; top: 1rem; right: 1rem; z-index: 1000; background: rgba(255,255,255,0.9); padding: 0.75rem 1rem; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: 1px solid #e2e8f0; max-width: 250px;">
+                    <h4 style="margin: 0 0 0.5rem 0; font-size: 0.85rem; color: #1e293b;"><i class="fas fa-layer-group"></i> GIS Information</h4>
+                    <div id="mapInfoContent" style="font-size: 0.75rem; color: #64748b;">
+                        Load a registration to see parcel data.
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="modal-footer" style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 0.75rem; flex-shrink: 0;">
+            <button type="button" id="maoRejectBtn" class="btn btn-danger" onclick="promptMAOConfirmModal('rejected')" style="padding: 0.6rem 1.25rem; border-radius: 10px;">
+                <i class="fas fa-times"></i> Reject
+            </button>
+            <button type="button" id="maoApproveBtn" class="btn btn-primary" onclick="promptMAOConfirmModal('approved')" style="padding: 0.6rem 1.75rem; border-radius: 10px; background: #10b981; border-color: #10b981; font-weight: 700; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);">
+                <i class="fas fa-signature"></i> Final Approval & Sign
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Final Confirmation Modal -->
+<div id="confirmMAOReviewModal" class="modal">
+    <div class="modal-overlay" onclick="closeModal('confirmMAOReviewModal')"></div>
+    <div class="modal-content" style="max-width: 500px; padding: 0; border-radius: 16px; overflow: hidden;">
+        <div id="confirmMAOModalHeader" class="modal-header" style="background: #10b981; color: white; padding: 1.25rem;">
+            <h3 id="confirmMAOModalTitle" style="margin: 0; font-size: 1.1rem;">Confirmation</h3>
+        </div>
+        <div class="modal-body" style="padding: 1.5rem;">
+            <p id="confirmMAOModalMessage" style="color: #475569; line-height: 1.5; margin-bottom: 1.5rem;"></p>
+            
+            <div class="form-group">
+                <label id="reviewMAORemarksLabel" style="display: block; font-weight: 600; font-size: 0.85rem; margin-bottom: 0.5rem;"></label>
+                <textarea id="reviewMAORemarks" rows="3" placeholder="Enter remarks here..." style="width: 100%; padding: 0.75rem; border-radius: 8px; border: 1px solid #cbd5e1; font-family: inherit; font-size: 0.9rem; resize: vertical;"></textarea>
+                <small id="remarksMAOError" style="color: #ef4444; display: none; margin-top: 0.25rem;">Please provide a reason for rejection.</small>
+            </div>
+        </div>
+        <div class="modal-footer" style="padding: 1rem 1.5rem; background: #f8fafc; border-top: 1px solid #e2e8f0; display: flex; justify-content: flex-end; gap: 0.75rem;">
+            <button type="button" class="btn btn-secondary" onclick="closeModal('confirmMAOReviewModal')">Cancel</button>
+            <button type="button" id="confirmMAOActionBtn" class="btn btn-primary" onclick="proceedMAOSubmission()">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Confirmation -->
+<div id="deleteAccountOverlay" class="delete-confirm-overlay">
+    <div class="delete-confirm-card">
+        <div class="danger-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <h3>Delete Your Account?</h3>
+        <p>This action is permanent and cannot be undone. All your data, settings, and history will be permanently removed.</p>
+        <div class="form-group">
+            <label style="font-size: 0.825rem; font-weight: 600; color: var(--text-dark);">Enter your password to confirm</label>
+            <input type="password" id="deleteAccountPassword" placeholder="Your password" style="width: 100%; padding: 0.7rem 0.875rem; border-radius: 10px; border: 1px solid var(--border); font-family: inherit; font-size: 0.9rem; margin-top: 0.35rem;">
+        </div>
+        <div class="btn-row">
+            <button class="btn btn-secondary" onclick="cancelDeleteAccount()">Cancel</button>
+            <button class="btn btn-danger" onclick="executeDeleteAccount()"><i class="fas fa-trash-alt"></i> Delete Forever</button>
+        </div>
+    </div>
+</div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/roles/dashboard-common.js') }}"></script>
+<script src="{{ url_for('static', filename='js/roles/mao-panel.js') }}"></script>
+
+<!-- Trash Bin Modal -->
+<div class="trash-modal-overlay" id="trashModalOverlay" onclick="closeTrashBin(event)">
+    <div class="trash-modal" onclick="event.stopPropagation()">
+        <div class="trash-modal-header">
+            <h3><i class="fas fa-trash-alt"></i> Trash Bin</h3>
+            <button class="trash-modal-close" onclick="closeTrashBin()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="trash-modal-body" id="trashModalBody">
+            <div class="trash-empty-state">
+                <i class="fas fa-recycle"></i>
+                <h4>Trash is empty</h4>
+                <p>Deleted registrations will appear here</p>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>
+</body>
+</html>

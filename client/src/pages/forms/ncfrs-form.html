@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>NCFRS Enrollment Form — Farm Connect</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms/ncfrs-form.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/forms/form-dropdowns.css') }}">
+</head>
+<body>
+
+<div class="form-shell" id="formShell">
+
+<!-- ═══════════════════════════════════════════════════════
+     OFFICIAL HEADER
+══════════════════════════════════════════════════════════ -->
+<div class="form-header">
+    <div class="form-header-inner">
+        <div class="header-logo-block">
+            <!-- PCA/DA Seal SVG -->
+            <div class="da-seal">
+                <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-label="PCA seal">
+                    <circle cx="50" cy="50" r="46" fill="none" stroke="#1a5f1a" stroke-width="3"/>
+                    <circle cx="50" cy="50" r="38" fill="none" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <text x="50" y="22" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#1a5f1a">PHILIPPINE</text>
+                    <text x="50" y="29" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#1a5f1a">COCONUT</text>
+                    <text x="50" y="36" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#1a5f1a">AUTHORITY</text>
+                    <!-- palm tree icon -->
+                    <line x1="50" y1="65" x2="50" y2="45" stroke="#1a5f1a" stroke-width="2"/>
+                    <path d="M 42 48 Q 50 38, 58 48" fill="none" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <path d="M 38 50 Q 50 40, 62 50" fill="none" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <path d="M 40 53 Q 50 43, 60 53" fill="none" stroke="#1a5f1a" stroke-width="1.5"/>
+                    <text x="50" y="80" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#1a5f1a">PCA</text>
+                </svg>
+            </div>
+            <div class="header-title-block">
+                <h1 class="form-title-main">ANI AT KITA</h1>
+                <h2 class="form-title-sub">NATIONAL COCONUT FARMERS REGISTRATION SYSTEM (NCFRS)</h2>
+                <p class="form-subtitle">Philippine Coconut Authority · Republic of the Philippines</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meta Row -->
+    <div class="header-meta-row">
+        <div class="meta-left">
+            <div class="enrollment-type-row">
+                <span class="meta-label">ENROLLMENT TYPE:</span>
+                <label class="check-opt"><input type="checkbox" name="enrollmentType" value="New"> New</label>
+                <label class="check-opt"><input type="checkbox" name="enrollmentType" value="Update"> Update</label>
+            </div>
+            <div class="ref-number-row">
+                <div class="ref-group">
+                    <label class="meta-label">DATE ADMINISTERED</label>
+                    <input type="date" class="ref-box ref-wide" id="dateAdministered" style="width:140px;">
+                </div>
+                <div class="ref-group">
+                    <label class="meta-label">REFERENCE NO.</label>
+                    <input type="text" class="ref-box ref-wide" id="refNumber" maxlength="16" style="width:160px;">
+                </div>
+            </div>
+        </div>
+    </div>
+</div><!-- /form-header -->
+
+<form id="ncfrsForm" novalidate>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  PART I — PERSONAL INFORMATION      ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">PART I</span>
+        <span class="section-title">PERSONAL INFORMATION</span>
+    </div>
+    <div class="section-body">
+        <!-- Name Row -->
+        <div class="fg-row">
+            <div class="fg fg-quarter">
+                <label class="fg-label">SURNAME <span class="req">*</span></label>
+                <input type="text" id="lastName" class="fg-input fg-underline" required>
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">FIRST NAME <span class="req">*</span></label>
+                <input type="text" id="firstName" class="fg-input fg-underline" required>
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">MIDDLE NAME</label>
+                <input type="text" id="middleName" class="fg-input fg-underline">
+            </div>
+            <div class="fg fg-auto" style="min-width:80px;">
+                <label class="fg-label">SUFFIX</label>
+                <input type="text" id="suffix" class="fg-input fg-underline" placeholder="Jr./Sr./III">
+            </div>
+        </div>
+
+        <!-- Residency Status -->
+        <div class="fg-row residency-row">
+            <div class="fg fg-full">
+                <label class="fg-label">ARE YOU A PERMANENT RESIDENT OF MABITAC? <span class="req">*</span></label>
+                <div class="radio-row">
+                    <label class="check-opt"><input type="radio" name="isMabitacResident" value="Yes" required> Yes</label>
+                    <label class="check-opt"><input type="radio" name="isMabitacResident" value="No"> No</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Address -->
+        <div class="fg-row address-label-row">
+            <span class="address-prefix-label">PERMANENT ADDRESS</span>
+        </div>
+        <div class="fg-row">
+            <div class="fg fg-quarter">
+                <label class="fg-label">HOUSE NO. / LOT / BLK</label>
+                <input type="text" id="houseNo" class="fg-input">
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">STREET / PUROK</label>
+                <input type="text" id="street" class="fg-input">
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">BARANGAY <span class="req">*</span></label>
+                <input type="text" id="barangay" class="fg-input" required list="mabitacBarangays" autocomplete="off">
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">MUNICIPALITY / CITY <span class="req">*</span></label>
+                <input type="text" id="municipality" class="fg-input" required list="municipalityList" autocomplete="off">
+            </div>
+        </div>
+        <div class="fg-row">
+            <div class="fg fg-half">
+                <label class="fg-label">PROVINCE <span class="req">*</span></label>
+                <input type="text" id="province" class="fg-input" required list="provinceList" autocomplete="off">
+            </div>
+            <div class="fg fg-half">
+                <label class="fg-label">REGION</label>
+                <input type="text" id="region" class="fg-input" list="regionList" autocomplete="off">
+            </div>
+        </div>
+
+        <!-- Sex & Contact -->
+        <div class="fg-row">
+            <div class="fg fg-quarter">
+                <label class="fg-label">SEX <span class="req">*</span></label>
+                <div class="radio-row">
+                    <label class="check-opt"><input type="radio" name="sex" value="Male" required> Male</label>
+                    <label class="check-opt"><input type="radio" name="sex" value="Female"> Female</label>
+                </div>
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">MOBILE NUMBER</label>
+                <input type="tel" id="mobileNumber" class="fg-input" placeholder="+63">
+            </div>
+            <div class="fg fg-quarter">
+                <label class="fg-label">LANDLINE NUMBER</label>
+                <input type="tel" id="landlineNumber" class="fg-input">
+            </div>
+        </div>
+
+        <!-- Birth -->
+        <div class="fg-row">
+            <div class="fg fg-third">
+                <label class="fg-label">DATE OF BIRTH <span class="req">*</span></label>
+                <input type="date" id="dateOfBirth" class="fg-input" required>
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">PLACE OF BIRTH</label>
+                <input type="text" id="placeOfBirth" class="fg-input" placeholder="Municipality, Province">
+            </div>
+            <div class="fg fg-third">
+                <label class="fg-label">CIVIL STATUS <span class="req">*</span></label>
+                <div class="radio-row flex-wrap">
+                    <label class="check-opt"><input type="radio" name="civilStatus" value="Single" required> Single</label>
+                    <label class="check-opt"><input type="radio" name="civilStatus" value="Married"> Married</label>
+                    <label class="check-opt"><input type="radio" name="civilStatus" value="Widowed"> Widowed</label>
+                    <label class="check-opt"><input type="radio" name="civilStatus" value="Separated"> Separated</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Education -->
+        <div class="fg-row">
+            <div class="fg fg-full">
+                <label class="fg-label">HIGHEST EDUCATIONAL ATTAINMENT</label>
+                <div class="radio-row flex-wrap">
+                    <label class="check-opt"><input type="radio" name="education" value="Pre-school"> Pre-school</label>
+                    <label class="check-opt"><input type="radio" name="education" value="Elementary"> Elementary</label>
+                    <label class="check-opt"><input type="radio" name="education" value="HS"> High School</label>
+                    <label class="check-opt"><input type="radio" name="education" value="Vocational"> Vocational</label>
+                    <label class="check-opt"><input type="radio" name="education" value="College"> College</label>
+                    <label class="check-opt"><input type="radio" name="education" value="Post-Graduate"> Post-Graduate</label>
+                    <label class="check-opt"><input type="radio" name="education" value="None"> None</label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Government ID -->
+        <div class="fg-row">
+            <div class="fg fg-full">
+                <label class="fg-label">WITH VALID GOVERNMENT ID?</label>
+                <div class="radio-row">
+                    <label class="check-opt"><input type="radio" name="govId" value="Yes"> Yes</label>
+                    <label class="check-opt"><input type="radio" name="govId" value="No"> No</label>
+                </div>
+            </div>
+        </div>
+        <div class="fg-row" id="govIdFields" style="display:none;">
+            <div class="fg fg-half">
+                <label class="fg-label">TYPE OF ID</label>
+                <input type="text" id="idType" class="fg-input" placeholder="e.g. PhilSys, SSS, TIN, etc.">
+            </div>
+            <div class="fg fg-half">
+                <label class="fg-label">ID NUMBER</label>
+                <input type="text" id="idNumber" class="fg-input">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  PART II — FARM PROFILE             ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card">
+    <div class="section-header-bar">
+        <span class="section-num">PART II</span>
+        <span class="section-title">FARM PROFILE</span>
+    </div>
+    <div class="section-body">
+        <div id="farmParcelsContainer"></div>
+
+        <button type="button" class="btn-add-parcel" onclick="addFarmParcel()">
+            <span>＋</span> Add Farm Parcel
+        </button>
+    </div>
+</div>
+
+<!-- ╔═══════════════════════════════════════╗
+     ║  CERTIFICATION & SIGNATURE          ║
+     ╚═══════════════════════════════════════╝ -->
+<div class="section-card cert-card">
+    <div class="section-header-bar">
+        <span class="section-num">PART III</span>
+        <span class="section-title">CERTIFICATION</span>
+    </div>
+    <div class="section-body">
+        <p class="cert-text">
+            I hereby certify that the above information given are true and correct. I consent to the
+            collection, processing, and sharing of my personal data in relation to the National Coconut
+            Farmers Registration System (NCFRS) objectives.
+        </p>
+
+        <div class="sig-grid">
+            <div class="sig-block">
+                <div class="sig-line-area">
+                    <input type="date" id="certDate" class="sig-date-input">
+                </div>
+                <div class="sig-label">DATE</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line-area">
+                    <input type="text" id="printedName" class="sig-text-input" placeholder="">
+                </div>
+                <div class="sig-label">PRINTED NAME OF FARMER</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line-area sig-pad-wrap">
+                    <canvas id="applicantSignature" class="signature-pad"></canvas>
+                    <button type="button" class="btn-clear-sig" onclick="clearSignature()">Clear</button>
+                </div>
+                <div class="sig-label">SIGNATURE</div>
+            </div>
+            <div class="sig-block">
+                <div class="sig-line-area thumbmark-zone" onclick="document.getElementById('thumbmarkUpload').click()" title="Upload thumbmark">
+                    <img id="thumbmarkPreview" style="display:none; max-width:80px; max-height:80px;">
+                    <span id="thumbmarkHint">Click to upload</span>
+                    <input type="file" id="thumbmarkUpload" accept="image/*" style="display:none;">
+                </div>
+                <div class="sig-label">THUMBMARK</div>
+            </div>
+        </div>
+
+        <!-- Verifier Block -->
+        <div class="verifier-block">
+            <div class="verifier-header">VERIFIED BY:</div>
+            <div class="verifier-sig-grid">
+                <div class="vsig-block">
+                    <div class="vsig-line"></div>
+                    <div class="vsig-label">COCONUT DEVELOPMENT OFFICER<br><small>Name / Signature / Date</small></div>
+                </div>
+                <div class="vsig-block">
+                    <div class="vsig-line"></div>
+                    <div class="vsig-label">PROVINCIAL MANAGER<br><small>Name / Signature / Date</small></div>
+                </div>
+                <div class="vsig-block">
+                    <div class="vsig-line"></div>
+                    <div class="vsig-label">REGIONAL MANAGER<br><small>Name / Signature / Date</small></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form Actions -->
+<div class="form-action-bar">
+    <span></span>
+    <div class="action-right">
+        <button type="button" class="btn-download" id="downloadPdfBtn" onclick="downloadPDF()">
+            ⬇ Download Pre-filled PDF
+        </button>
+        <button type="submit" class="btn-submit" id="submitBtn">
+            ✓ Submit Enrollment Form
+        </button>
+    </div>
+</div>
+
+<div id="successMessage" class="success-toast" style="display:none;">
+    ✓ NCFRS Enrollment submitted successfully!
+</div>
+
+    <!-- Datalists for Location Dropdowns -->
+    <datalist id="regionList">
+        <option value="Region IV-A">Region IV-A (CALABARZON)</option>
+    </datalist>
+    <datalist id="provinceList">
+        <option value="Laguna">Laguna</option>
+    </datalist>
+    <datalist id="municipalityList">
+        <option value="Mabitac">Mabitac</option>
+    </datalist>
+    <datalist id="mabitacBarangays">
+        <option value="Amuyong">Amuyong</option>
+        <option value="Bayanihan">Bayanihan (Pob.)</option>
+        <option value="Burgos">Burgos</option>
+        <option value="De La Paz">De La Paz (Pob.)</option>
+        <option value="Libis ng Nayon">Libis ng Nayon (Pob.)</option>
+        <option value="Lucong">Lucong (Pob.)</option>
+        <option value="Matalatala">Matalatala</option>
+        <option value="Nanguma">Nanguma</option>
+        <option value="Numero">Numero</option>
+        <option value="Pag-asa">Pag-asa (Pob.)</option>
+        <option value="Paagahan">Paagahan</option>
+        <option value="San Antonio">San Antonio</option>
+        <option value="San Miguel">San Miguel</option>
+        <option value="Sinagtala">Sinagtala (Pob.)</option>
+        <option value="Ynang Maria">Ynang Maria (Pob.)</option>
+    </datalist>
+
+</form>
+</div><!-- /form-shell -->
+
+<script src="{{ url_for('static', filename='js/forms/form-dropdowns.js') }}"></script>
+<script src="{{ url_for('static', filename='js/forms/ncfrs-form.js') }}"></script>
+</body>
+</html>

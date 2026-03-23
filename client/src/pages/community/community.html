@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Connect Community</title>
+    <meta name="description" content="Farm Connect Community — share, discuss, and grow together with fellow agricultural stakeholders.">
+    <link rel="icon" href="{{ url_for('public.static', filename='favicon/favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/community/farm-community.css', v='1.1') }}">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+</head>
+<body data-auth="{{ 'true' if current_user.is_authenticated else 'false' }}"
+      data-user-id="{{ current_user.id if current_user.is_authenticated else 'null' }}"
+      data-user-role="{{ current_user.role if current_user.is_authenticated else '' }}">
+
+<!-- ═══════════════════════════════════════════════════════
+     TOP NAVIGATION BAR
+     ═══════════════════════════════════════════════════════ -->
+<nav class="fc-topbar">
+    <div class="topbar-inner">
+        <a href="{{ url_for('main.index') }}" class="topbar-brand">
+            <div class="brand-logo">
+                <img src="{{ url_for('public.static', filename='FARM CONNECT LOGO/sample_logo.png') }}" alt="Logo">
+            </div>
+            <span class="brand-name">Farm Connect</span>
+        </a>
+
+        <div class="topbar-search">
+            <i class="fas fa-search"></i>
+            <input type="text" id="searchInput" placeholder="Search posts…" autocomplete="off">
+        </div>
+
+        <div class="topbar-actions">
+            <a href="{{ url_for('main.index') }}" class="topbar-btn" title="Home">
+                <i class="fas fa-home"></i>
+            </a>
+            {% if current_user.is_authenticated %}
+            <a href="#" class="topbar-btn" title="Messages">
+                <i class="fas fa-comment-dots"></i>
+            </a>
+            <button class="topbar-btn" id="notifBtn" title="Notifications">
+                <i class="fas fa-bell"></i>
+            </button>
+            <div class="topbar-avatar" id="profileToggle">
+                {% if current_user.avatar_url %}
+                <img src="{{ current_user.avatar_url }}" alt="You">
+                {% else %}
+                <div class="avatar-initials">{{ (current_user.full_name or current_user.username)[:1] | upper }}</div>
+                {% endif %}
+                <!-- Profile Dropdown -->
+                <div class="profile-dropdown" id="profileDropdown">
+                    <div class="dropdown-header">
+                        <div class="dropdown-avatar">
+                            {% if current_user.avatar_url %}
+                            <img src="{{ current_user.avatar_url }}" alt="You">
+                            {% else %}
+                            <div class="avatar-initials lg">{{ (current_user.full_name or current_user.username)[:1] | upper }}</div>
+                            {% endif %}
+                        </div>
+                        <div>
+                            <strong>{{ current_user.full_name or current_user.username }}</strong>
+                            <span class="dropdown-role">{{ current_user.role | capitalize }}</span>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item" id="viewProfileBtn">
+                        <i class="fas fa-user-circle"></i> View Profile
+                    </a>
+                    <a href="{{ url_for('main.index') }}" class="dropdown-item">
+                        <i class="fas fa-home"></i> Back to Home
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="{{ url_for('community_auth.logout') }}" class="dropdown-item text-danger">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            </div>
+            {% else %}
+            <a href="{{ url_for('auth.login') }}" class="btn-signin">
+                <i class="fas fa-sign-in-alt"></i> Sign In
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</nav>
+<div id="flash-messages" class="flash-messages">
+    {% include 'partials/flash-messages.html' %}
+</div>
+
+<!-- ═══════════════════════════════════════════════════════
+     MAIN LAYOUT: LEFT SIDEBAR · FEED · RIGHT SIDEBAR
+     ═══════════════════════════════════════════════════════ -->
+<div class="fc-layout">
+
+    <!-- ── LEFT SIDEBAR ── -->
+    <aside class="fc-sidebar left-sidebar">
+        <!-- Profile Card -->
+        {% if current_user.is_authenticated %}
+        <div class="sidebar-card profile-card">
+            <div class="profile-cover"></div>
+            <div class="profile-info">
+                <div class="profile-pic">
+                    {% if current_user.avatar_url %}
+                    <img src="{{ current_user.avatar_url }}" alt="You">
+                    {% else %}
+                    <div class="avatar-initials xl">{{ (current_user.full_name or current_user.username)[:1] | upper }}</div>
+                    {% endif %}
+                </div>
+                <h3 class="profile-name">{{ current_user.full_name or current_user.username }}</h3>
+                <span class="profile-role-badge role-{{ current_user.role }}">{{ current_user.role | capitalize }}</span>
+                <p class="profile-bio">🌾 Farm Connect Community Member</p>
+            </div>
+            <div class="profile-stats">
+                <div class="stat">
+                    <span class="stat-num" id="myPostsCount">0</span>
+                    <span class="stat-label">Posts</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-num" id="myReactionsCount">0</span>
+                    <span class="stat-label">Reactions</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-num" id="myCommentsCount">0</span>
+                    <span class="stat-label">Comments</span>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="sidebar-card guest-card">
+            <div class="guest-icon"><i class="fas fa-users"></i></div>
+            <h3>Join the Community</h3>
+            <p>Sign in to create posts, react, and comment!</p>
+            <a href="{{ url_for('auth.login') }}" class="btn-join">
+                <i class="fas fa-sign-in-alt"></i> Sign In
+            </a>
+        </div>
+        {% endif %}
+
+        <!-- Quick Navigation -->
+        <div class="sidebar-card">
+            <h4 class="sidebar-title"><i class="fas fa-compass"></i> Explore</h4>
+            <nav class="sidebar-nav">
+                <a href="#" class="nav-item active" data-filter="all">
+                    <i class="fas fa-stream"></i> All Posts
+                </a>
+                <a href="#" class="nav-item" data-filter="popular">
+                    <i class="fas fa-fire"></i> Popular
+                </a>
+                <a href="#" class="nav-item" data-filter="recent">
+                    <i class="fas fa-clock"></i> Recent
+                </a>
+                {% if current_user.is_authenticated %}
+                <a href="#" class="nav-item" data-filter="my-posts">
+                    <i class="fas fa-user-edit"></i> My Posts
+                </a>
+                {% endif %}
+            </nav>
+        </div>
+
+        <!-- Topics -->
+        <div class="sidebar-card">
+            <h4 class="sidebar-title"><i class="fas fa-hashtag"></i> Topics</h4>
+            <div class="topics-list">
+                <button class="topic-tag active" data-topic="">All</button>
+                <button class="topic-tag" data-topic="crops">🌾 Crops</button>
+                <button class="topic-tag" data-topic="livestock">🐄 Livestock</button>
+                <button class="topic-tag" data-topic="fishery">🐟 Fishery</button>
+                <button class="topic-tag" data-topic="market">📈 Market</button>
+                <button class="topic-tag" data-topic="tips">💡 Tips</button>
+                <button class="topic-tag" data-topic="events">📅 Events</button>
+                <button class="topic-tag" data-topic="general">💬 General</button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- ── MAIN FEED ── -->
+    <main class="fc-feed">
+
+        <!-- Post Composer -->
+        {% if current_user.is_authenticated %}
+        <div class="post-composer" id="postComposer">
+            <div class="composer-top">
+                <div class="composer-avatar">
+                    {% if current_user.avatar_url %}
+                    <img src="{{ current_user.avatar_url }}" alt="You">
+                    {% else %}
+                    <div class="avatar-initials">{{ (current_user.full_name or current_user.username)[:1] | upper }}</div>
+                    {% endif %}
+                </div>
+                <textarea id="postContent" placeholder="What's happening in your farm, {{ (current_user.full_name or current_user.username).split(' ')[0] }}?" maxlength="5000"></textarea>
+            </div>
+            <div class="composer-bottom">
+                <div class="composer-tools">
+                    <button type="button" class="tool-btn" id="addImageBtn" title="Add Photo">
+                        <i class="fas fa-image"></i> <span>Photo</span>
+                    </button>
+                    <button type="button" class="tool-btn" id="addEmojiBtn" title="Emoji">
+                        <i class="fas fa-smile"></i>
+                    </button>
+                    <div class="topic-selector">
+                        <button type="button" class="tool-btn" id="topicSelectorBtn">
+                            <i class="fas fa-hashtag"></i> <span>Topic</span>
+                        </button>
+                        <div class="topic-dropdown" id="topicDropdown">
+                            <button data-select-topic="general">💬 General</button>
+                            <button data-select-topic="crops">🌾 Crops</button>
+                            <button data-select-topic="livestock">🐄 Livestock</button>
+                            <button data-select-topic="fishery">🐟 Fishery</button>
+                            <button data-select-topic="market">📈 Market</button>
+                            <button data-select-topic="tips">💡 Tips</button>
+                            <button data-select-topic="events">📅 Events</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="composer-right">
+                    <span class="char-counter" id="charCounter">0 / 5,000</span>
+                    <button type="button" class="btn-post" id="submitPostBtn" disabled>
+                        Post <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="selected-topic-display" id="selectedTopicDisplay" style="display:none">
+                <span id="selectedTopicBadge"></span>
+                <button id="clearTopicBtn"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Feed Container -->
+        <div id="feedContainer">
+            <div class="feed-loader" id="feedLoader">
+                <div class="pulse-loader">
+                    <div class="pulse-dot"></div>
+                    <div class="pulse-dot"></div>
+                    <div class="pulse-dot"></div>
+                </div>
+                <span>Loading community posts…</span>
+            </div>
+        </div>
+
+        <!-- Load More -->
+        <div class="load-more-wrapper" id="loadMoreWrapper" style="display:none">
+            <button class="btn-load-more" id="loadMoreBtn">
+                <i class="fas fa-sync-alt"></i> Load More Posts
+            </button>
+        </div>
+
+        <!-- Empty State -->
+        <div class="empty-feed" id="emptyFeed" style="display:none">
+            <div class="empty-illustration">
+                <i class="fas fa-seedling"></i>
+            </div>
+            <h3>No posts yet</h3>
+            <p>Be the first to plant a post in the Farm Connect community!</p>
+            {% if not current_user.is_authenticated %}
+            <a href="{{ url_for('auth.login') }}" class="btn-join">
+                <i class="fas fa-sign-in-alt"></i> Sign In to Post
+            </a>
+            {% endif %}
+        </div>
+    </main>
+
+    <!-- ── RIGHT SIDEBAR ── -->
+    <aside class="fc-sidebar right-sidebar">
+        <!-- Community Info -->
+        <div class="sidebar-card">
+            <div class="community-banner">
+                <i class="fas fa-tractor"></i>
+            </div>
+            <h4 class="sidebar-title" style="margin-top:0.75rem">
+                <i class="fas fa-info-circle"></i> About Community
+            </h4>
+            <p class="sidebar-text">
+                A space for farmers, fisherfolk, MAO staff, and agricultural stakeholders across Laguna to share updates, ask questions, and grow together.
+            </p>
+            <div class="community-stats-row">
+                <div class="cs-item">
+                    <i class="fas fa-file-alt"></i>
+                    <span id="totalPostsStat">0</span>
+                    <small>Posts</small>
+                </div>
+                <div class="cs-item">
+                    <i class="fas fa-users"></i>
+                    <span id="totalMembersStat">0</span>
+                    <small>Members</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Community Guidelines -->
+        <div class="sidebar-card">
+            <h4 class="sidebar-title"><i class="fas fa-shield-alt"></i> Community Rules</h4>
+            <ol class="rules-list">
+                <li>Be respectful and professional</li>
+                <li>No spam or self-promotion</li>
+                <li>Share accurate farming info</li>
+                <li>Protect personal data</li>
+                <li>Stay on-topic</li>
+            </ol>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="sidebar-card">
+            <h4 class="sidebar-title"><i class="fas fa-link"></i> Quick Links</h4>
+            <nav class="sidebar-nav">
+                <a href="{{ url_for('main.index') }}#features" class="nav-item">
+                    <i class="fas fa-star"></i> Features
+                </a>
+                <a href="{{ url_for('main.index') }}#faqs" class="nav-item">
+                    <i class="fas fa-question-circle"></i> FAQs
+                </a>
+                <a href="{{ url_for('main.index') }}#contact" class="nav-item">
+                    <i class="fas fa-envelope"></i> Contact Us
+                </a>
+            </nav>
+        </div>
+
+        <!-- Footer -->
+        <div class="sidebar-footer">
+            <p>© 2026 Farm Connect · LSPU Siniloan</p>
+            <div class="footer-links">
+                <a href="{{ url_for('main.privacy_policy') }}">Privacy</a>
+                <a href="{{ url_for('main.terms_of_service') }}">Terms</a>
+                <a href="{{ url_for('main.cookie_policy') }}">Cookies</a>
+            </div>
+        </div>
+    </aside>
+
+</div>
+
+<!-- ═══ POST TEMPLATE ═══ -->
+<template id="postTemplate">
+    <article class="post-card" data-post-id="">
+        <div class="post-header">
+            <div class="post-avatar">
+                <div class="avatar-initials" data-avatar></div>
+            </div>
+            <div class="post-meta">
+                <span class="post-author" data-author></span>
+                <div class="post-info">
+                    <span class="post-role-badge" data-role></span>
+                    <span class="post-topic-badge" data-topic-badge style="display:none"></span>
+                    <span class="post-time" data-time></span>
+                </div>
+            </div>
+            <button class="post-menu-btn" data-menu-btn title="Options">
+                <i class="fas fa-ellipsis-h"></i>
+            </button>
+            <div class="post-menu-dropdown" data-menu-dropdown>
+                <button class="menu-item delete-item" data-delete-btn>
+                    <i class="fas fa-trash-alt"></i> Delete Post
+                </button>
+            </div>
+        </div>
+
+        <div class="post-body">
+            <p class="post-content" data-content></p>
+            <div class="post-image-wrap" data-image-wrap style="display:none">
+                <img data-image alt="Post image" loading="lazy">
+            </div>
+        </div>
+
+        <div class="post-stats" data-stats>
+            <span class="reaction-summary" data-reaction-summary></span>
+            <span class="comment-count" data-comment-count></span>
+        </div>
+
+        <div class="post-actions">
+            <div class="reaction-btn-wrapper">
+                <button class="action-btn react-btn" data-react-btn>
+                    <i class="far fa-thumbs-up"></i> <span>Like</span>
+                </button>
+                <div class="reaction-picker" data-reaction-picker>
+                    <button class="reaction-emoji" data-reaction="like" title="Like">👍</button>
+                    <button class="reaction-emoji" data-reaction="love" title="Love">❤️</button>
+                    <button class="reaction-emoji" data-reaction="haha" title="Haha">😂</button>
+                    <button class="reaction-emoji" data-reaction="wow" title="Wow">😮</button>
+                    <button class="reaction-emoji" data-reaction="sad" title="Sad">😢</button>
+                    <button class="reaction-emoji" data-reaction="angry" title="Angry">😡</button>
+                </div>
+            </div>
+            <button class="action-btn comment-btn" data-comment-toggle>
+                <i class="far fa-comment"></i> <span>Comment</span>
+            </button>
+            <button class="action-btn share-btn" data-share-btn>
+                <i class="far fa-share-square"></i> <span>Share</span>
+            </button>
+        </div>
+
+        <div class="comments-section" data-comments-section style="display:none">
+            <div class="comments-list" data-comments-list></div>
+            {% if current_user.is_authenticated %}
+            <div class="comment-composer">
+                <div class="comment-composer-avatar">
+                    {% if current_user.avatar_url %}
+                    <img src="{{ current_user.avatar_url }}" alt="You">
+                    {% else %}
+                    <div class="avatar-initials sm">{{ (current_user.full_name or current_user.username)[:1] | upper }}</div>
+                    {% endif %}
+                </div>
+                <input type="text" class="comment-input" data-comment-input placeholder="Write a comment…" maxlength="2000">
+                <button class="comment-send-btn" data-comment-send>
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+    </article>
+</template>
+
+<!-- ═══ PROFILE MODAL ═══ -->
+<div class="modal-overlay" id="profileModal">
+    <div class="modal-content profile-modal">
+        <button class="modal-close" id="closeProfileModal"><i class="fas fa-times"></i></button>
+        <div class="profile-modal-cover"></div>
+        <div class="profile-modal-body">
+            <div class="profile-modal-avatar">
+                {% if current_user.is_authenticated %}
+                    {% if current_user.avatar_url %}
+                    <img src="{{ current_user.avatar_url }}" alt="You">
+                    {% else %}
+                    <div class="avatar-initials xxl">{{ (current_user.full_name or current_user.username)[:1] | upper }}</div>
+                    {% endif %}
+                {% endif %}
+            </div>
+            <h2 class="profile-modal-name">
+                {{ current_user.full_name or current_user.username if current_user.is_authenticated else 'Guest' }}
+            </h2>
+            <span class="profile-modal-role role-{{ current_user.role if current_user.is_authenticated else '' }}">
+                {{ current_user.role | capitalize if current_user.is_authenticated else '' }}
+            </span>
+            <p class="profile-modal-email">
+                <i class="fas fa-envelope"></i>
+                {{ current_user.email if current_user.is_authenticated else '' }}
+            </p>
+            <div class="profile-modal-stats">
+                <div class="pm-stat">
+                    <span class="pm-stat-num" id="pmPosts">0</span>
+                    <span class="pm-stat-label">Posts</span>
+                </div>
+                <div class="pm-stat">
+                    <span class="pm-stat-num" id="pmReactions">0</span>
+                    <span class="pm-stat-label">Reactions Given</span>
+                </div>
+                <div class="pm-stat">
+                    <span class="pm-stat-num" id="pmComments">0</span>
+                    <span class="pm-stat-label">Comments</span>
+                </div>
+            </div>
+            <div class="profile-modal-joined">
+                <i class="fas fa-calendar-alt"></i> Member since {{ current_user.created_at.strftime('%B %Y') if current_user.is_authenticated and current_user.created_at else '2026' }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- State moved to body data attributes to avoid IDE errors -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{{ url_for('static', filename='js/community/farm-community.js') }}"></script>
+</body>
+</html>

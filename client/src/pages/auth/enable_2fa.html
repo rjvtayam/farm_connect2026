@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Enable Two-Factor Authentication - Farm Connect{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth/auth.css') }}" />
+{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="auth-card">
+        <div class="auth-header">
+            <h2>Enable Two-Factor Authentication</h2>
+            <p>Enhance your account security with 2FA</p>
+        </div>
+
+
+        <!-- Flash messages handled globally -->
+
+        <div class="setup-instructions">
+            <h3>Setup Instructions:</h3>
+            <ol>
+                <li>Install an authenticator app like Google Authenticator or
+                    Authy on your mobile device</li>
+                <li>Scan the QR code below with your authenticator app</li>
+                <li>Enter the 6-digit code shown in your app to verify
+                    setup</li>
+            </ol>
+        </div>
+
+        <div class="qr-container text-center">
+            <img src="data:image/png;base64,{{ qr_code }}" alt="QR Code">
+            <p class="secret-key">Manual entry code: <code>{{ secret_key
+                    }}</code></p>
+        </div>
+
+        <form class="auth-form" method="POST"
+            action="{{ url_for('auth.enable_2fa') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <div class="input-icon">
+                    <i class="fas fa-key"></i>
+                    <input type="text" name="verification_code"
+                        placeholder="Enter 6-digit code" required
+                        pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" inputmode="numeric">
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block">Enable
+                2FA</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/auth/auth.js') }}"></script>
+{% endblock %}
