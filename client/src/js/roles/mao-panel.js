@@ -6,6 +6,12 @@
 let allRegistrations = [];
 let allBeneficiaries = [];
 
+// Track custom dropdown state
+let _brgyState = {
+    brgyDropdownRegistrations: '',
+    brgyDropdownBeneficiaries: ''
+};
+
 // Load data on page load
 document.addEventListener('DOMContentLoaded', function () {
     loadStats();
@@ -16,11 +22,22 @@ document.addEventListener('DOMContentLoaded', function () {
     loadTrashCount();
     initMAOSockets();
 
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.brgy-dropdown')) {
+            document.querySelectorAll('.brgy-dropdown.open').forEach(el => el.classList.remove('open'));
+        }
+    });
+
+    // Pre-seed barangay dropdowns with Mabitac official barangays immediately
+    populateBarangayDropdown('brgyDropdownRegistrations');
+    populateBarangayDropdown('brgyDropdownBeneficiaries');
+
     // ── Real-time polling: refresh data every 15 seconds ──
     setInterval(() => {
-        loadStats();
-        loadRegistrations();
-        loadBeneficiaries();
+        loadStats(true);
+        loadRegistrations(true);
+        loadBeneficiaries(true);
     }, 15000);
 });
 
@@ -32,68 +49,222 @@ function initMAOSockets() {
     if (!socket) return;
 
     socket.on('new_submission', (data) => {
-        // MAO should see notifications for all new submissions in their muni
-        loadStats();
-        loadRegistrations();
+        loadStats(true);
+        loadRegistrations(true);
     });
 
     socket.on('status_updated', (data) => {
-        loadStats();
-        loadRegistrations();
-        loadBeneficiaries();
+        loadStats(true);
+        loadRegistrations(true);
+        loadBeneficiaries(true);
     });
 }
 
-// ── Search & Filter ──
+/**
+ * Helper to convert strings to Title Case
+ */
+function toTitleCase(str) {
+    if (!str) return '';
+    return str.toLowerCase().split(' ').map(word =>
+        word.charAt(0).toUpperCase() + word.slice(1)
+    ).join(' ');
+}
+
+const MABITAC_BARANGAYS = [
+    'Amuyong', 'Antonio', 'Bayanihan', 'Cagalitan', 'Calumpang',
+    'Laguan', 'Laguio', 'Libis ng Nayon', 'Lucong', 'Mabitac',
+    'Masikap', 'Matalatala', 'Nanguma', 'Paagahan', 'Pag-asa',
+    'Pagalanggang', 'San Roque', 'Sinagtala', 'Maligaya', 'Other'
+];
+
+/**
+ * Populate a custom barangay dropdown list.
+ */
+function populateBarangayDropdown(dropdownId) {
+    const listEl = document.querySelector(`#${dropdownId} .brgy-list`);
+    if (!listEl) return;
+
+    const currentValue = _brgyState[dropdownId] || '';
+
+    let html = `
+        <div class="brgy-list-item ${!currentValue ? 'selected' : ''}" 
+             onclick="selectBrgy('${dropdownId}', '', 'All Barangays')">
+             All Barangays
+        </div>
+    `;
+
+    MABITAC_BARANGAYS.forEach(b => {
+        const val = b.toLowerCase();
+        html += `
+            <div class="brgy-list-item ${currentValue === val ? 'selected' : ''}" 
+                 onclick="selectBrgy('${dropdownId}', '${val}', '${b}')">
+                 ${b}
+            </div>
+        `;
+    });
+
+    listEl.innerHTML = html;
+}
+
+// ── Custom Dropdown Actions ──
+
+window.toggleBrgyDropdown = function(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isOpen = el.classList.contains('open');
+    
+    document.querySelectorAll('.brgy-dropdown.open').forEach(d => {
+        if (d.id !== id) d.classList.remove('open');
+    });
+    
+    el.classList.toggle('open');
+    
+    if (!isOpen) {
+        setTimeout(() => {
+            el.querySelector('.brgy-search-wrap input')?.focus();
+        }, 50);
+    }
+};
+
+window.filterBrgyList = function(dropdownId, term) {
+    const listEl = document.querySelector(`#${dropdownId} .brgy-list`);
+    const items = listEl?.querySelectorAll('.brgy-list-item');
+    if (!items) return;
+    const cleanTerm = term.toLowerCase().trim();
+    let count = 0;
+
+    items.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        if (text.includes(cleanTerm)) {
+            item.style.display = 'flex';
+            count++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    let noRes = listEl.querySelector('.brgy-no-results');
+    if (count === 0) {
+        if (!noRes) {
+            noRes = document.createElement('div');
+            noRes.className = 'brgy-no-results';
+            noRes.textContent = 'No matching barangays';
+            listEl.appendChild(noRes);
+        }
+    } else if (noRes) {
+        noRes.remove();
+    }
+};
+
+window.selectBrgy = function(dropdownId, value, label) {
+    _brgyState[dropdownId] = value;
+    
+    const labelId = dropdownId.replace('Dropdown', 'Label');
+    const labelEl = document.getElementById(labelId);
+    if (labelEl) labelEl.textContent = label;
+    
+    populateBarangayDropdown(dropdownId);
+    document.getElementById(dropdownId)?.classList.remove('open');
+    
+    if (dropdownId === 'brgyDropdownRegistrations') {
+        const specify = document.getElementById('specifyOtherRegistrations');
+        if (specify) {
+            specify.style.display = value === 'other' ? 'inline-block' : 'none';
+            if (value !== 'other') specify.value = '';
+        }
+        applyFilters();
+    } else {
+        const specifyBen = document.getElementById('specifyOtherBeneficiaries');
+        if (specifyBen) {
+            specifyBen.style.display = value === 'other' ? 'inline-block' : 'none';
+            if (value !== 'other') specifyBen.value = '';
+        }
+        applyBeneficiaryFilters();
+    }
+};
+
 function setupSearchAndFilters() {
     const searchInput = document.getElementById('searchRegistrations');
     const statusFilter = document.getElementById('filterStatus');
     const typeFilter = document.getElementById('filterType');
+    const specifyOtherReg = document.getElementById('specifyOtherRegistrations');
+    
     const searchBen = document.getElementById('searchBeneficiaries');
-    if (searchInput) {
-        searchInput.addEventListener('input', applyFilters);
-    }
-    if (statusFilter) {
-        statusFilter.addEventListener('change', applyFilters);
-    }
-    if (typeFilter) {
-        typeFilter.addEventListener('change', applyFilters);
-    }
-    if (searchBen) {
-        searchBen.addEventListener('input', function () {
-            filterBeneficiaries(this.value.toLowerCase());
-        });
-    }
+    const specifyOtherBen = document.getElementById('specifyOtherBeneficiaries');
+
+    if (searchInput) searchInput.addEventListener('input', applyFilters);
+    if (statusFilter) statusFilter.addEventListener('change', applyFilters);
+    if (typeFilter) typeFilter.addEventListener('change', applyFilters);
+    if (specifyOtherReg) specifyOtherReg.addEventListener('input', applyFilters);
+
+    if (searchBen) searchBen.addEventListener('input', applyBeneficiaryFilters);
+    if (specifyOtherBen) specifyOtherBen.addEventListener('input', applyBeneficiaryFilters);
 }
 
 function applyFilters() {
     const term = (document.getElementById('searchRegistrations')?.value || '').toLowerCase();
     const status = (document.getElementById('filterStatus')?.value || '').toLowerCase();
     const type = (document.getElementById('filterType')?.value || '').toLowerCase();
+    const barangay = (_brgyState.brgyDropdownRegistrations || '').toLowerCase();
+    const specify = (document.getElementById('specifyOtherRegistrations')?.value || '').toLowerCase().trim();
+
+    const officialBrgysLower = MABITAC_BARANGAYS.filter(b => b !== 'Other').map(b => b.toLowerCase());
 
     const filtered = allRegistrations.filter(r => {
         const matchesTerm = (r.beneficiary_name || '').toLowerCase().includes(term) ||
             (r.barangay || '').toLowerCase().includes(term) ||
             (r.rsbsa_id || '').toLowerCase().includes(term);
-        
-        // Robust status matching
+
         let rStatus = (r.status || '').toLowerCase();
         if (rStatus === 'pending_verification') rStatus = 'pending';
-        
+
         const matchesStatus = status === '' || rStatus === status;
         const matchesType = type === '' || (r.form_type || '').toLowerCase() === type;
-        return matchesTerm && matchesStatus && matchesType;
+
+        let matchesBarangay = true;
+        if (barangay !== '') {
+            const rBrgy = (r.barangay || '').toLowerCase();
+            if (barangay === 'other') {
+                const isOutside = !officialBrgysLower.includes(rBrgy);
+                matchesBarangay = specify ? isOutside && rBrgy.includes(specify) : isOutside;
+            } else {
+                matchesBarangay = rBrgy === barangay;
+            }
+        }
+
+        return matchesTerm && matchesStatus && matchesType && matchesBarangay;
     });
     renderRegistrations(filtered);
 }
 
-function filterBeneficiaries(term) {
+function applyBeneficiaryFilters() {
+    const term = (document.getElementById('searchBeneficiaries')?.value || '').toLowerCase();
+    const barangay = (_brgyState.brgyDropdownBeneficiaries || '').toLowerCase();
+    const specify = (document.getElementById('specifyOtherBeneficiaries')?.value || '').toLowerCase().trim();
+    const officialBrgysLower = MABITAC_BARANGAYS.filter(b => b !== 'Other').map(b => b.toLowerCase());
+
     const filtered = allBeneficiaries.filter(b => {
-        return b.full_name.toLowerCase().includes(term) ||
-            (b.rsbsa_id && b.rsbsa_id.toLowerCase().includes(term));
+        const addr = b.address || {};
+        const bBarangay = (addr.barangay || b.barangay || '').toLowerCase();
+        const matchesTerm = (b.full_name || '').toLowerCase().includes(term) ||
+            (b.rsbsa_id || '').toLowerCase().includes(term);
+
+        let matchesBarangay = true;
+        if (barangay !== '') {
+            if (barangay === 'other') {
+                const isOutside = !officialBrgysLower.includes(bBarangay);
+                matchesBarangay = specify ? isOutside && bBarangay.includes(specify) : isOutside;
+            } else {
+                matchesBarangay = bBarangay === barangay;
+            }
+        }
+
+        return matchesTerm && matchesBarangay;
     });
     renderBeneficiaries(filtered);
 }
+
+
 
 // ── Stats ──
 function loadStats() {
@@ -153,7 +324,7 @@ function renderCharts(analytics) {
         const values = Object.values(typesData);
 
         const gradient = typeCtx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, '#3b82f6'); 
+        gradient.addColorStop(0, '#3b82f6');
         gradient.addColorStop(1, '#60a5fa');
 
         window.maoCharts.type = new Chart(typeCtx, {
@@ -287,7 +458,7 @@ function renderCharts(analytics) {
     if (radarCtx) {
         const sexData = analytics.demographics?.sex || {};
         const eduData = analytics.demographics?.education || {};
-        
+
         // We'll normalize these into a single radar view for "Intensity"
         // Or just show Sex distribution in a radar if applicable
         const labels = ['Male', 'Female', 'PWD', '4Ps', 'IP'];
@@ -330,16 +501,17 @@ function renderCharts(analytics) {
 }
 
 // ── Beneficiary Management ──
-function loadBeneficiaries() {
+function loadBeneficiaries(isBackground = false) {
     const tbody = document.getElementById('beneficiariesTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+    if (tbody && !isBackground) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
 
     fetch('/mao/api/beneficiaries', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 allBeneficiaries = data.beneficiaries;
-                renderBeneficiaries(allBeneficiaries);
+                populateBarangayDropdown('brgyDropdownBeneficiaries');
+                applyBeneficiaryFilters(); 
             }
         })
         .catch(error => {
@@ -368,7 +540,7 @@ function renderBeneficiaries(list) {
     tbody.innerHTML = list.map(b => {
         const addr = b.address || {};
         const formattedAddr = [addr.barangay, addr.municipality].filter(Boolean).join(', ') || '—';
-        
+
         return `
             <tr>
                 <td><span style="font-family:'JetBrains Mono',monospace;font-size:0.825rem;color:var(--primary);font-weight:600">${b.rsbsa_id || '—'}</span></td>
@@ -388,6 +560,67 @@ function renderBeneficiaries(list) {
     }).join('');
 }
 
+/**
+ * Export currently filtered/visible beneficiaries as CSV.
+ * Uses the currently rendered rows in the table (respects active filters).
+ */
+window.exportBeneficiariesCSV = function () {
+    const term = (document.getElementById('searchBeneficiaries')?.value || '').toLowerCase();
+    const barangay = (_brgyState.brgyDropdownBeneficiaries || '').toLowerCase();
+    const specify = (document.getElementById('specifyOtherBeneficiaries')?.value || '').toLowerCase().trim();
+    const officialBrgysLower = MABITAC_BARANGAYS.filter(b => b !== 'Other').map(b => b.toLowerCase());
+
+    const list = allBeneficiaries.filter(b => {
+        const addr = b.address || {};
+        const bBarangay = (addr.barangay || b.barangay || '').toLowerCase();
+        const matchesTerm = (b.full_name || '').toLowerCase().includes(term) ||
+            (b.rsbsa_id || '').toLowerCase().includes(term);
+
+        let matchesBarangay = true;
+        if (barangay !== '') {
+            if (barangay === 'other') {
+                const isOutside = !officialBrgysLower.includes(bBarangay);
+                matchesBarangay = specify ? isOutside && bBarangay.includes(specify) : isOutside;
+            } else {
+                matchesBarangay = bBarangay === barangay;
+            }
+        }
+
+        return matchesTerm && matchesBarangay;
+    });
+
+    if (!list.length) {
+        showToast('No beneficiaries to export.', 'warning');
+        return;
+    }
+
+    const headers = ['RSBSA ID', 'Full Name', 'Barangay', 'Municipality', 'Mobile', 'Date Created'];
+    const rows = list.map(b => {
+        const addr = b.address || {};
+        return [
+            b.rsbsa_id || '',
+            b.full_name || '',
+            addr.barangay || b.barangay || '',
+            addr.municipality || b.municipality || '',
+            b.mobile_number || '',
+            b.created_at ? new Date(b.created_at).toLocaleDateString() : ''
+        ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+
+    const csv = [headers.join(','), ...rows].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    const date = new Date().toISOString().split('T')[0];
+    link.href = url;
+    link.download = `beneficiaries_export_${date}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    showToast(`Exported ${list.length} beneficiaries to CSV.`, 'success');
+};
+
 window.viewBeneficiary = function (id) {
     const b = allBeneficiaries.find(x => x.id === id);
     if (!b) return;
@@ -395,7 +628,7 @@ window.viewBeneficiary = function (id) {
     // We need to find at least ONE approved registration for this beneficiary
     // to show them the PDF view. We can fetch it or use a simplified mock for now.
     // Optimal way: Backend should provide the main Registration ID for the beneficiary.
-    
+
     fetch(`/mao/api/registrations?search=${encodeURIComponent(b.full_name)}`)
         .then(r => r.json())
         .then(data => {
@@ -414,16 +647,17 @@ window.viewBeneficiary = function (id) {
 };
 
 // ── Registrations Table ──
-function loadRegistrations() {
+function loadRegistrations(isBackground = false) {
     const tbody = document.getElementById('registrationsTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+    if (tbody && !isBackground) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
 
     fetch('/mao/api/registrations', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 allRegistrations = data.registrations;
-                renderRegistrations(allRegistrations);
+                populateBarangayDropdown('brgyDropdownRegistrations');
+                applyFilters(); // Re-apply current filters seamlessly
             }
         })
         .catch(error => {
@@ -481,7 +715,7 @@ function renderRegistrations(list) {
 let reviewMap = null;
 let reviewDrawnItems = null;
 
-window.switchReviewTab = function(tabName, btn) {
+window.switchReviewTab = function (tabName, btn) {
     // Hide all contents
     document.querySelectorAll('.review-tab-content').forEach(el => el.style.display = 'none');
     // Deactivate all buttons
@@ -492,7 +726,7 @@ window.switchReviewTab = function(tabName, btn) {
     if (selectedTab) {
         if (tabName === 'details') selectedTab.style.display = 'block';
         else selectedTab.style.display = 'block'; // form and map are height: 100%
-        
+
         if (tabName === 'map') {
             setTimeout(() => {
                 if (reviewMap) reviewMap.invalidateSize();
@@ -544,7 +778,7 @@ window.promptMAOConfirmModal = function (action) {
     openModal('confirmMAOReviewModal');
 };
 
-window.proceedMAOSubmission = function() {
+window.proceedMAOSubmission = function () {
     if (!pendingMAOAction || !currentRegId) return;
 
     const action = pendingMAOAction;
@@ -564,7 +798,7 @@ window.proceedMAOSubmission = function() {
     const actionBtn = document.getElementById('confirmMAOActionBtn');
     const approveBtn = document.getElementById('maoApproveBtn');
     const rejectBtn = document.getElementById('maoRejectBtn');
-    
+
     if (actionBtn) { actionBtn.disabled = true; actionBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...'; }
     if (approveBtn) approveBtn.disabled = true;
     if (rejectBtn) rejectBtn.disabled = true;
@@ -574,34 +808,34 @@ window.proceedMAOSubmission = function() {
     fetch(`/mao/api/registrations/${currentRegId}/review`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 
+        headers: {
             'Content-Type': 'application/json',
             'X-CSRFToken': csrfToken
         },
         body: JSON.stringify({ action: action, remarks: remarks })
     })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            closeModal('confirmMAOReviewModal');
-            closeModal('reviewModal');
-            showToast(`Registration successfully ${action}`, 'success');
-            loadStats();
-            loadRegistrations();
-        } else {
-            showToast(data.message || 'Review failed', 'error');
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                closeModal('confirmMAOReviewModal');
+                closeModal('reviewModal');
+                showToast(`Registration successfully ${action}`, 'success');
+                loadStats();
+                loadRegistrations();
+            } else {
+                showToast(data.message || 'Review failed', 'error');
+                if (actionBtn) { actionBtn.disabled = false; actionBtn.innerText = 'Confirm'; }
+                if (approveBtn) approveBtn.disabled = false;
+                if (rejectBtn) rejectBtn.disabled = false;
+            }
+        })
+        .catch(error => {
+            console.error('Error submitting review:', error);
+            showToast('An error occurred during submission.', 'error');
             if (actionBtn) { actionBtn.disabled = false; actionBtn.innerText = 'Confirm'; }
             if (approveBtn) approveBtn.disabled = false;
             if (rejectBtn) rejectBtn.disabled = false;
-        }
-    })
-    .catch(error => {
-        console.error('Error submitting review:', error);
-        showToast('An error occurred during submission.', 'error');
-        if (actionBtn) { actionBtn.disabled = false; actionBtn.innerText = 'Confirm'; }
-        if (approveBtn) approveBtn.disabled = false;
-        if (rejectBtn) rejectBtn.disabled = false;
-    });
+        });
 };
 
 window.viewRegistration = function (id) {
@@ -631,7 +865,7 @@ window.viewRegistration = function (id) {
 
             const reg = data.registration;
             const b = reg.beneficiary || {};
-            
+
             // Show action buttons ONLY if it's verified (ready for MAO)
             if (reg.status === 'verified') {
                 if (approveBtn) approveBtn.style.display = 'inline-flex';
@@ -646,7 +880,7 @@ window.viewRegistration = function (id) {
             const sf = parsedData.spouseFamily || {};
             const addr = p.address || {};
             const photoSrc = p.photo || b.avatar_url || null;
-            
+
             let html = `
                 <div class="mao-review-header" style="grid-template-columns: 120px 1fr 1fr; align-items: center;">
                     <div class="photo-section">
@@ -708,7 +942,7 @@ window.viewRegistration = function (id) {
                             <tbody>
                                 ${parsedData.parcels?.map((par, i) => `
                                     <tr>
-                                        <td style="font-weight: 700; color: #64748b;">${i+1}</td>
+                                        <td style="font-weight: 700; color: #64748b;">${i + 1}</td>
                                         <td>
                                             <div style="font-weight: 700; color: #1e293b;">${par.barangay || 'N/A'}</div>
                                             <div style="font-size: 0.7rem; color: #94a3b8;">Parcel ID: ${par.parcelId || 'N/A'}</div>
@@ -800,10 +1034,10 @@ function loadFormPdf(reg) {
     }
 
     iframe.src = 'about:blank';
-    
+
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
     const type = reg.form_type || 'rsbsa';
-    
+
     let parsedData = reg.data_json;
     if (typeof parsedData === 'string') {
         try {
@@ -816,34 +1050,34 @@ function loadFormPdf(reg) {
 
     // Determine PDF endpoint
     const endpoint = type === 'fish' ? '/forms/download/fish-registration'
-                   : type === 'boat' ? '/forms/download/boat-registration'
-                   : type === 'ncfrs' ? '/forms/download/ncfrs'
-                   : '/forms/download/rsba-enrollment';
+        : type === 'boat' ? '/forms/download/boat-registration'
+            : type === 'ncfrs' ? '/forms/download/ncfrs'
+                : '/forms/download/rsba-enrollment';
 
     fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
         body: JSON.stringify(parsedData)
     })
-    .then(res => {
-        if (!res.ok) throw new Error('PDF production failed');
-        return res.blob();
-    })
-    .then(blob => {
-        currentPdfUrl = URL.createObjectURL(blob);
-        iframe.src = `${currentPdfUrl}#toolbar=0&navpanes=0&scrollbar=1`;
-    })
-    .catch(err => {
-        console.error('PDF error:', err);
-        if (iframe.contentDocument) {
-            iframe.contentDocument.body.innerHTML = `
+        .then(res => {
+            if (!res.ok) throw new Error('PDF production failed');
+            return res.blob();
+        })
+        .then(blob => {
+            currentPdfUrl = URL.createObjectURL(blob);
+            iframe.src = `${currentPdfUrl}#toolbar=0&navpanes=0&scrollbar=1`;
+        })
+        .catch(err => {
+            console.error('PDF error:', err);
+            if (iframe.contentDocument) {
+                iframe.contentDocument.body.innerHTML = `
                 <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:100%; color:white; font-family:sans-serif; background: #525659; text-align: center; padding: 2rem;">
                     <i class="fas fa-exclamation-triangle" style="font-size:3rem; margin-bottom:1rem; color: #fbbf24;"></i>
                     <h3 style="margin: 0 0 0.5rem 0;">Preview Unavailable</h3>
                     <p style="opacity: 0.8; max-width: 300px;">We couldn't generate the PDF preview for this registration.</p>
                 </div>`;
-        }
-    });
+            }
+        });
 }
 
 function initReviewMap(geoData, gisInfo) {
@@ -861,7 +1095,7 @@ function initReviewMap(geoData, gisInfo) {
         dragging: true,
         scrollWheelZoom: true
     }).setView([14.4335, 121.4333], 15);
-    
+
     // Add professional light tiles
     L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
@@ -887,7 +1121,7 @@ function initReviewMap(geoData, gisInfo) {
         if (geoData) {
             try {
                 const geo = typeof geoData === 'string' ? JSON.parse(geoData) : geoData;
-                
+
                 // MULTI-PARCEL HANDLER
                 if (geo && typeof geo === 'object' && !geo.type) {
                     // Iterate through the index-to-geojson map
@@ -915,11 +1149,11 @@ function initReviewMap(geoData, gisInfo) {
                         }
                     }).addTo(reviewDrawnItems);
                 }
-                
+
                 if (reviewDrawnItems.getLayers().length > 0) {
                     reviewMap.fitBounds(reviewDrawnItems.getBounds(), { padding: [50, 50] });
                 }
-                
+
                 gisHtml += `
                     <div style="margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; color: #10b981; font-weight: 700; font-size: 0.8rem; display: flex; align-items: center; gap: 0.5rem;">
                         <i class="fas fa-check-circle"></i> ${Object.keys(geo || {}).length} Parcel Boundaries Loaded
@@ -931,14 +1165,14 @@ function initReviewMap(geoData, gisInfo) {
         } else {
             gisHtml += `<div style="color: #94a3b8; font-style: italic; margin-top: 1rem; border-top: 1px solid #e2e8f0; padding-top: 0.5rem; text-align: center;">No parcel boundary coordinates.</div>`;
         }
-        
+
         infoContent.innerHTML = gisHtml;
     }
 }
 
 // ── Global Cleanup for Modals ──
 const originalCloseModal = window.closeModal;
-window.closeModal = function(id) {
+window.closeModal = function (id) {
     if (id === 'reviewModal') {
         if (currentPdfUrl) {
             URL.revokeObjectURL(currentPdfUrl);
@@ -946,7 +1180,7 @@ window.closeModal = function(id) {
         }
         const iframe = document.getElementById('reviewPdfFrame');
         if (iframe) iframe.src = 'about:blank';
-        
+
         if (reviewMap) {
             reviewMap.remove();
             reviewMap = null;
@@ -958,9 +1192,9 @@ window.closeModal = function(id) {
 function formatStatus(status) {
     if (!status) return 'Unknown';
     const s = status.toLowerCase();
-    switch(s) {
+    switch (s) {
         case 'pending':
-        case 'pending_verification': 
+        case 'pending_verification':
             return 'Pending (Review Required)';
         case 'verified': return 'Verified (Awaiting MAO)';
         case 'approved': return 'Approved ✓';
@@ -1000,14 +1234,14 @@ window.printRegistration = function (id) {
         })
         .then(blob => {
             const url = URL.createObjectURL(blob);
-            
+
             // 3. Create a hidden iframe for printing
             const iframe = document.createElement('iframe');
             iframe.style.display = 'none';
             iframe.src = url;
             document.body.appendChild(iframe);
 
-            iframe.onload = function() {
+            iframe.onload = function () {
                 setTimeout(() => {
                     iframe.contentWindow.focus();
                     iframe.contentWindow.print();
@@ -1072,37 +1306,39 @@ window.exportReport = async function () {
     const search = document.getElementById('searchRegistrations')?.value || '';
     const status = document.getElementById('filterStatus')?.value || '';
     const formType = document.getElementById('filterType')?.value || '';
+    const barangay = _brgyState.brgyDropdownRegistrations || '';
 
     try {
         btn.disabled = true;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
-        
+
         const params = new URLSearchParams();
         if (search) params.append('search', search);
         if (status) params.append('status', status);
         if (formType) params.append('form_type', formType);
-        
+        if (barangay) params.append('barangay', barangay);
+
         const response = await fetch(`/mao/api/registrations/export?${params.toString()}`);
         if (!response.ok) throw new Error('Export failed');
-        
+
         // Use the same download handler as verifier (helper below)
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
-        
+
         const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = `mao_export_${new Date().toISOString().slice(0,10)}.csv`;
+        let filename = `mao_export_${new Date().toISOString().slice(0, 10)}.csv`;
         if (contentDisposition && contentDisposition.indexOf('filename=') !== -1) {
             filename = contentDisposition.split('filename=')[1].replace(/"/g, '');
         }
-        
+
         a.href = url;
         a.download = filename;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
-        
+
         showToast('Report exported successfully!', 'success');
     } catch (e) {
         console.error(e);
@@ -1133,7 +1369,7 @@ function showToast(msg, type) {
 
 const TRASH_API_BASE_M = '/mao';
 
-window.softDeleteRegistration = async function(id) {
+window.softDeleteRegistration = async function (id) {
     const result = await Swal.fire({
         title: 'Move to Trash?',
         text: 'You can restore it later from the Trash Bin.',
@@ -1165,7 +1401,7 @@ window.softDeleteRegistration = async function(id) {
     }
 };
 
-window.openTrashBin = async function() {
+window.openTrashBin = async function () {
     document.getElementById('trashModalOverlay').classList.add('active');
     document.getElementById('trashModalBody').innerHTML = '<div style="text-align:center;padding:2rem;"><i class="fas fa-spinner fa-spin" style="font-size:1.5rem;color:var(--primary);"></i></div>';
     try {
@@ -1177,7 +1413,7 @@ window.openTrashBin = async function() {
     }
 };
 
-window.closeTrashBin = function(e) {
+window.closeTrashBin = function (e) {
     if (e && e.target && !e.target.classList.contains('trash-modal-overlay')) return;
     document.getElementById('trashModalOverlay').classList.remove('active');
 };
@@ -1214,7 +1450,7 @@ function renderTrashItemsM(items) {
     }).join('');
 }
 
-window.restoreFromTrash = async function(id) {
+window.restoreFromTrash = async function (id) {
     try {
         const res = await fetch(`${TRASH_API_BASE_M}/api/trash/${id}/restore`, {
             method: 'POST', headers: { 'X-CSRFToken': getCSRFToken() }, credentials: 'include'
@@ -1227,7 +1463,7 @@ window.restoreFromTrash = async function(id) {
     } catch (e) { showFlashMessage('Network error', 'error'); }
 };
 
-window.permanentDeleteFromTrash = async function(id) {
+window.permanentDeleteFromTrash = async function (id) {
     const result = await Swal.fire({
         title: 'Permanently Delete?',
         text: 'This action cannot be undone! Are you absolutely sure?',

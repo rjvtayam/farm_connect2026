@@ -282,10 +282,28 @@
                     <div class="card-header">
                         <h2><i class="fas fa-users"></i> Active Beneficiaries</h2>
                         <div class="card-actions">
+                            <button class="btn btn-sm btn-secondary" onclick="exportBeneficiariesCSV()">
+                                <i class="fas fa-download"></i> Export CSV
+                            </button>
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
                                 <input type="text" id="searchBeneficiaries" placeholder="Search by name or RSBSA ID...">
                             </div>
+                            <!-- Barangay Custom Dropdown -->
+                            <div class="brgy-dropdown" id="brgyDropdownBeneficiaries">
+                                <div class="brgy-dropdown-trigger" onclick="toggleBrgyDropdown('brgyDropdownBeneficiaries')">
+                                    <i class="fas fa-map-marker-alt" style="color:#94a3b8; font-size: 0.8rem;"></i>
+                                    <span class="brgy-trigger-label" id="brgyLabelBeneficiaries">All Barangays</span>
+                                    <i class="fas fa-chevron-down brgy-chevron"></i>
+                                </div>
+                                <div class="brgy-dropdown-panel" onclick="event.stopPropagation()">
+                                    <div class="brgy-search-wrap">
+                                        <input type="text" placeholder="Search..." oninput="filterBrgyList('brgyDropdownBeneficiaries', this.value)">
+                                    </div>
+                                    <div class="brgy-list" id="brgyListBeneficiaries"></div>
+                                </div>
+                            </div>
+                            <input type="text" id="specifyOtherBeneficiaries" class="filter-input" placeholder="Specify town..." style="display:none; max-width: 150px; padding: 0.45rem 0.85rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.825rem;">
                         </div>
                     </div>
                     <div class="card-body">
@@ -323,6 +341,21 @@
                                 <i class="fas fa-search"></i>
                                 <input type="text" id="searchRegistrations" placeholder="Search registrations...">
                             </div>
+                            <!-- Barangay Custom Dropdown -->
+                            <div class="brgy-dropdown" id="brgyDropdownRegistrations">
+                                <div class="brgy-dropdown-trigger" onclick="toggleBrgyDropdown('brgyDropdownRegistrations')">
+                                    <i class="fas fa-map-marker-alt" style="color:#94a3b8; font-size: 0.8rem;"></i>
+                                    <span class="brgy-trigger-label" id="brgyLabelRegistrations">All Barangays</span>
+                                    <i class="fas fa-chevron-down brgy-chevron"></i>
+                                </div>
+                                <div class="brgy-dropdown-panel" onclick="event.stopPropagation()">
+                                    <div class="brgy-search-wrap">
+                                        <input type="text" placeholder="Search..." oninput="filterBrgyList('brgyDropdownRegistrations', this.value)">
+                                    </div>
+                                    <div class="brgy-list" id="brgyListRegistrations"></div>
+                                </div>
+                            </div>
+                            <input type="text" id="specifyOtherRegistrations" class="filter-input" placeholder="Specify town..." style="display:none; max-width: 150px; padding: 0.45rem 0.85rem; border: 1.5px solid #e2e8f0; border-radius: 8px; font-size: 0.825rem;">
                             <select id="filterStatus" class="filter-select">
                                 <option value="">All Status</option>
                                 <option value="verified">Pending (From Verifier)</option>
@@ -634,7 +667,5 @@
         </div>
     </div>
 </div>
-</body>
-</html>
 </body>
 </html>

@@ -160,6 +160,13 @@ def get_analytics():
 def get_beneficiaries():
     """Get all beneficiaries with at least one approved registration (Municipality Filtered)"""
     muni = current_user.municipality
+
+    # ── Production Cache (2min) ──
+    cache_key = f'mao_beneficiaries_{muni}'
+    cached = cache.get(cache_key)
+    if cached:
+        return jsonify(cached)
+
     muni_filter = db.or_(
         Beneficiary.municipality.ilike(f"%{muni}%"),
         User.municipality.ilike(f"%{muni}%"),
@@ -172,10 +179,12 @@ def get_beneficiaries():
         Registration.status == 'approved'
     ).order_by(Beneficiary.created_at.desc()).distinct().all()
     
-    return jsonify({
+    result = {
         'success': True,
         'beneficiaries': [b.to_dict() for b in beneficiaries]
-    })
+    }
+    cache.set(cache_key, result, timeout=120)
+    return jsonify(result)
 
 @mao_bp.route('/api/registrations', methods=['GET'])
 @mao_required
@@ -298,6 +307,7 @@ def review_registration(rid):
         cache.delete(f'mao_stats_{current_user.municipality}')
         cache.delete(f'mao_activity_{current_user.municipality}')
         cache.delete(f'mao_analytics_{current_user.municipality}')
+        cache.delete(f'mao_beneficiaries_{current_user.municipality}')
         cache.delete(f'verifier_stats_{current_user.municipality}')
         cache.delete(f'verifier_activity_{current_user.municipality}')
         if registration.encoded_by:
@@ -406,6 +416,7 @@ def bulk_review_registrations():
         cache.delete(f'mao_stats_{current_user.municipality}')
         cache.delete(f'mao_activity_{current_user.municipality}')
         cache.delete(f'mao_analytics_{current_user.municipality}')
+        cache.delete(f'mao_beneficiaries_{current_user.municipality}')
         cache.delete(f'verifier_stats_{current_user.municipality}')
         cache.delete(f'verifier_activity_{current_user.municipality}')
         # Invalidate encoder caches for all affected encoders
@@ -651,6 +662,7 @@ def restore_from_trash(rid):
         cache.delete(f'mao_stats_{current_user.municipality}')
         cache.delete(f'mao_activity_{current_user.municipality}')
         cache.delete(f'mao_analytics_{current_user.municipality}')
+        cache.delete(f'mao_beneficiaries_{current_user.municipality}')
         return jsonify({'success': True, 'message': 'Registration restored'})
     except Exception as e:
         db.session.rollback()
@@ -674,6 +686,7 @@ def permanent_delete(rid):
         cache.delete(f'mao_stats_{current_user.municipality}')
         cache.delete(f'mao_activity_{current_user.municipality}')
         cache.delete(f'mao_analytics_{current_user.municipality}')
+        cache.delete(f'mao_beneficiaries_{current_user.municipality}')
         return jsonify({'success': True, 'message': 'Permanently deleted'})
     except Exception as e:
         db.session.rollback()
