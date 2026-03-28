@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initMAOSockets();
 
     // Close dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
+    document.addEventListener('click', function (e) {
         if (!e.target.closest('.brgy-dropdown')) {
             document.querySelectorAll('.brgy-dropdown.open').forEach(el => el.classList.remove('open'));
         }
@@ -108,17 +108,17 @@ function populateBarangayDropdown(dropdownId) {
 
 // ── Custom Dropdown Actions ──
 
-window.toggleBrgyDropdown = function(id) {
+window.toggleBrgyDropdown = function (id) {
     const el = document.getElementById(id);
     if (!el) return;
     const isOpen = el.classList.contains('open');
-    
+
     document.querySelectorAll('.brgy-dropdown.open').forEach(d => {
         if (d.id !== id) d.classList.remove('open');
     });
-    
+
     el.classList.toggle('open');
-    
+
     if (!isOpen) {
         setTimeout(() => {
             el.querySelector('.brgy-search-wrap input')?.focus();
@@ -126,7 +126,7 @@ window.toggleBrgyDropdown = function(id) {
     }
 };
 
-window.filterBrgyList = function(dropdownId, term) {
+window.filterBrgyList = function (dropdownId, term) {
     const listEl = document.querySelector(`#${dropdownId} .brgy-list`);
     const items = listEl?.querySelectorAll('.brgy-list-item');
     if (!items) return;
@@ -156,16 +156,16 @@ window.filterBrgyList = function(dropdownId, term) {
     }
 };
 
-window.selectBrgy = function(dropdownId, value, label) {
+window.selectBrgy = function (dropdownId, value, label) {
     _brgyState[dropdownId] = value;
-    
+
     const labelId = dropdownId.replace('Dropdown', 'Label');
     const labelEl = document.getElementById(labelId);
     if (labelEl) labelEl.textContent = label;
-    
+
     populateBarangayDropdown(dropdownId);
     document.getElementById(dropdownId)?.classList.remove('open');
-    
+
     if (dropdownId === 'brgyDropdownRegistrations') {
         const specify = document.getElementById('specifyOtherRegistrations');
         if (specify) {
@@ -188,7 +188,7 @@ function setupSearchAndFilters() {
     const statusFilter = document.getElementById('filterStatus');
     const typeFilter = document.getElementById('filterType');
     const specifyOtherReg = document.getElementById('specifyOtherRegistrations');
-    
+
     const searchBen = document.getElementById('searchBeneficiaries');
     const specifyOtherBen = document.getElementById('specifyOtherBeneficiaries');
 
@@ -295,210 +295,556 @@ function loadStats() {
 
 
 // ── Analytics Charts ──
+
+// Fixed semantic colors: status key → color (never positional)
+const STATUS_COLOR_MAP = {
+    'approved': { bg: '#10b981', light: 'rgba(16,185,129,0.12)', label: 'Approved' },
+    'rejected': { bg: '#ef4444', light: 'rgba(239,68,68,0.12)', label: 'Rejected' },
+    'pending': { bg: '#f59e0b', light: 'rgba(245,158,11,0.12)', label: 'Pending' },
+    'verified': { bg: '#3b82f6', light: 'rgba(59,130,246,0.12)', label: 'Pending' }, /* Verified by verifier, pending MAO */
+    'returned': { bg: '#8b5cf6', light: 'rgba(139,92,246,0.12)', label: 'Returned' },
+    'pending_verification': { bg: '#f59e0b', light: 'rgba(245,158,11,0.12)', label: 'Pending' },
+};
+
+// Curated multi-color palette for form types
+const TYPE_COLOR_MAP = {
+    'rsbsa': '#3b82f6',
+    'fish': '#06b6d4',
+    'boat': '#8b5cf6',
+    'ncfrs': '#f59e0b',
+};
+
+// 14-color palette for barangay bars (Mabitac-themed, vibrant but harmonious)
+const BRGY_PALETTE = [
+    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6',
+    '#a855f7', '#eab308', '#22d3ee', '#fb923c'
+];
+
 function loadAnalytics() {
     fetch('/mao/api/analytics', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 renderCharts(data.analytics);
+                populateAnalyticsKPIs(data.analytics);
             }
         })
         .catch(error => console.error('Error loading analytics:', error));
 }
 
+/**
+ * Populate the KPI chips in the analytics controls bar from status data.
+ */
+function populateAnalyticsKPIs(analytics) {
+    const statusData = analytics.status || {};
+
+    const approved = statusData['approved'] || 0;
+    const rejected = statusData['rejected'] || 0;
+    const pending = (statusData['pending'] || 0) + (statusData['pending_verification'] || 0);
+    const verified = statusData['verified'] || 0;
+
+    const kpiApproved = document.getElementById('kpiApproved');
+    const kpiPending = document.getElementById('kpiPending');
+    const kpiRejected = document.getElementById('kpiRejected');
+    const kpiVerified = document.getElementById('kpiVerified');
+
+    if (kpiApproved) kpiApproved.textContent = approved.toLocaleString();
+    if (kpiPending) kpiPending.textContent = pending.toLocaleString();
+    if (kpiRejected) kpiRejected.textContent = rejected.toLocaleString();
+    if (kpiVerified) kpiVerified.textContent = verified.toLocaleString();
+
+    // Update year badge
+    const growth = analytics.growth || {};
+    const yearLabel = document.getElementById('analyticsYearLabel');
+    if (yearLabel && growth.current_year) {
+        yearLabel.textContent = `${growth.last_year} vs ${growth.current_year}`;
+    }
+}
+
+/**
+ * Shared custom tooltip style factory for Chart.js
+ */
+function makeTooltip(extraCallbacks) {
+    return {
+        enabled: false,
+        external: function (context) {
+            let tooltipEl = document.getElementById('mao-chart-tooltip');
+            if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'mao-chart-tooltip';
+                tooltipEl.style.cssText = [
+                    'position:absolute', 'background:rgba(15,23,42,0.93)', 'color:#f1f5f9',
+                    'border-radius:10px', 'padding:10px 14px', 'font-size:0.8rem', 'pointer-events:none',
+                    'box-shadow:0 8px 24px rgba(0,0,0,0.25)', 'z-index:9999', 'white-space:nowrap',
+                    'font-family:Inter,sans-serif', 'transition:opacity 0.15s', 'line-height:1.6'
+                ].join(';');
+                document.body.appendChild(tooltipEl);
+            }
+
+            const model = context.tooltip;
+            if (model.opacity === 0) {
+                tooltipEl.style.opacity = '0';
+                return;
+            }
+
+            // Build HTML
+            let html = '';
+            if (model.title?.length) {
+                html += `<div style="font-weight:700;margin-bottom:4px;color:#e2e8f0">${model.title[0]}</div>`;
+            }
+            model.body?.forEach((b, i) => {
+                const color = model.labelColors?.[i]?.backgroundColor || '#94a3b8';
+                const colorStr = typeof color === 'string' ? color : '#94a3b8';
+                html += `<div style="display:flex;align-items:center;gap:6px">
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${colorStr};flex-shrink:0"></span>
+                    <span>${b.lines?.join('') || ''}</span>
+                </div>`;
+            });
+
+            if (extraCallbacks?.afterBody) {
+                html += extraCallbacks.afterBody(model);
+            }
+
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.opacity = '1';
+
+            const pos = context.chart.canvas.getBoundingClientRect();
+            tooltipEl.style.left = (pos.left + window.scrollX + model.caretX + 12) + 'px';
+            tooltipEl.style.top = (pos.top + window.scrollY + model.caretY - 10) + 'px';
+        }
+    };
+}
+
 function renderCharts(analytics) {
     Chart.defaults.font.family = "'Inter', sans-serif";
     Chart.defaults.color = '#64748b';
+    Chart.defaults.animation = { duration: 800, easing: 'easeInOutQuart' };
 
-    // Helper for destroying existing charts if needed
+    // Destroy all old chart instances before re-creating
     if (window.maoCharts) {
-        Object.values(window.maoCharts).forEach(chart => chart.destroy());
+        Object.values(window.maoCharts).forEach(c => { try { c.destroy(); } catch (e) { } });
     }
     window.maoCharts = {};
 
-    // ── 1. Registration Types (Bar) ──
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+    const tickColor = isDark ? '#94a3b8' : '#64748b';
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. MONTHLY YEAR-OVER-YEAR COMPARISON (Line — Full Width)
+    // ─────────────────────────────────────────────────────────────
+    const monthlyCtx = document.getElementById('monthlyComparisonChart')?.getContext('2d');
+    if (monthlyCtx) {
+        const growth = analytics.growth || {};
+        const monthLabels = growth.month_labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentData = growth.current_data || new Array(12).fill(0);
+        const lastData = growth.last_data || new Array(12).fill(0);
+        const currentYear = growth.current_year || String(new Date().getFullYear());
+        const lastYear = growth.last_year || String(new Date().getFullYear() - 1);
+
+        // Gradient fill for current year
+        const gradCurrent = monthlyCtx.createLinearGradient(0, 0, 0, 400);
+        gradCurrent.addColorStop(0, 'rgba(59,130,246,0.25)');
+        gradCurrent.addColorStop(1, 'rgba(59,130,246,0)');
+
+        const gradLast = monthlyCtx.createLinearGradient(0, 0, 0, 400);
+        gradLast.addColorStop(0, 'rgba(148,163,184,0.18)');
+        gradLast.addColorStop(1, 'rgba(148,163,184,0)');
+
+        window.maoCharts.monthly = new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: currentYear,
+                        data: currentData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradCurrent,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointHoverBackgroundColor: '#3b82f6',
+                    },
+                    {
+                        label: lastYear,
+                        data: lastData,
+                        borderColor: '#94a3b8',
+                        backgroundColor: gradLast,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        borderDash: [6, 4],
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#94a3b8',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#94a3b8',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} registrations`,
+                            afterBody: items => {
+                                const a = items[0]?.parsed.y || 0;
+                                const b = items[1]?.parsed.y || 0;
+                                if (b === 0) return a > 0 ? [`\n  ↑ New this year`] : [];
+                                const diff = a - b;
+                                const pct = Math.round((diff / b) * 100);
+                                const arrow = diff >= 0 ? '↑' : '↓';
+                                const color = diff >= 0 ? '#10b981' : '#ef4444';
+                                return [`\n  ${arrow} ${Math.abs(pct)}% vs last year`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { color: tickColor, stepSize: 1, precision: 0 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: tickColor }
+                    }
+                }
+            }
+        });
+
+        // Render the inline legend in the card header
+        const legendEl = document.getElementById('monthlyLegend');
+        if (legendEl) {
+            legendEl.innerHTML = `
+                <span class="inline-legend-item">
+                    <span class="inline-legend-dot" style="background:#3b82f6"></span>
+                    ${currentYear}
+                </span>
+                <span class="inline-legend-item">
+                    <span class="inline-legend-dot" style="background:#94a3b8;border-style:dashed"></span>
+                    ${lastYear}
+                </span>`;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. REGISTRATION BY FORM TYPE (Bar — distinct colors per type)
+    // ─────────────────────────────────────────────────────────────
     const typeCtx = document.getElementById('registrationTypeChart')?.getContext('2d');
     if (typeCtx) {
         const typesData = analytics.types || {};
-        const labels = Object.keys(typesData).map(k => k.toUpperCase());
-        const values = Object.values(typesData);
-
-        const gradient = typeCtx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, '#3b82f6');
-        gradient.addColorStop(1, '#60a5fa');
+        const typeLabels = Object.keys(typesData).map(k => k.toUpperCase());
+        const typeValues = Object.values(typesData);
+        const typeBgColors = Object.keys(typesData).map(k => TYPE_COLOR_MAP[k.toLowerCase()] || '#6366f1');
 
         window.maoCharts.type = new Chart(typeCtx, {
             type: 'bar',
             data: {
-                labels: labels,
+                labels: typeLabels,
                 datasets: [{
                     label: 'Registrations',
-                    data: values,
-                    backgroundColor: gradient,
+                    data: typeValues,
+                    backgroundColor: typeBgColors,
                     borderRadius: 8,
-                    barThickness: 30,
+                    barThickness: 40,
+                    borderSkipped: false,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.y.toLocaleString()} registrations`
+                        }
+                    },
+                    datalabels: false
+                },
                 scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)', drawBorder: false } },
-                    x: { grid: { display: false } }
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { color: tickColor, precision: 0 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: tickColor }
+                    }
                 }
             }
         });
     }
 
-    // ── 2. Status Distribution (Doughnut) ──
+    // ─────────────────────────────────────────────────────────────
+    // 3. STATUS DISTRIBUTION (Doughnut — fixed semantic colors)
+    // ─────────────────────────────────────────────────────────────
     const statusCtx = document.getElementById('statusChart')?.getContext('2d');
     if (statusCtx) {
-        const data = analytics.status || {};
+        const rawStatus = analytics.status || {};
+        const total = Object.values(rawStatus).reduce((s, v) => s + v, 0);
+
+        // Map each status key to its semantic color — never rely on order
+        const statusKeys = Object.keys(rawStatus);
+        const statusValues = statusKeys.map(k => rawStatus[k]);
+        const statusColors = statusKeys.map(k => (STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending']).bg);
+        const statusLabels = statusKeys.map(k => (STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending']).label);
+
         window.maoCharts.status = new Chart(statusCtx, {
             type: 'doughnut',
             data: {
-                labels: Object.keys(data).map(k => k.charAt(0).toUpperCase() + k.slice(1)),
+                labels: statusLabels,
                 datasets: [{
-                    data: Object.values(data),
-                    backgroundColor: ['#f59e0b', '#10b981', '#ef4444', '#3b82f6'],
-                    borderWidth: 0,
-                    hoverOffset: 10
+                    data: statusValues,
+                    backgroundColor: statusColors,
+                    borderWidth: 3,
+                    borderColor: isDark ? '#1e293b' : '#ffffff',
+                    hoverOffset: 10,
+                    hoverBorderWidth: 0,
                 }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                cutout: '70%',
+                cutout: '72%',
                 plugins: {
-                    legend: { position: 'bottom', labels: { padding: 20, usePointStyle: true } }
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => {
+                                const val = ctx.parsed;
+                                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                                return ` ${val.toLocaleString()} records (${pct}%)`;
+                            }
+                        }
+                    }
                 }
             }
         });
+
+        // Render the custom status legend list with counts and percentages
+        const legendListEl = document.getElementById('statusLegendList');
+        if (legendListEl) {
+            legendListEl.innerHTML = statusKeys.map((k, i) => {
+                const cfg = STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending'];
+                const count = rawStatus[k];
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return `
+                    <div class="status-legend-item">
+                        <span class="status-legend-dot" style="background:${cfg.bg}"></span>
+                        <span class="status-legend-name">${cfg.label}</span>
+                        <span class="status-legend-count">${count.toLocaleString()}</span>
+                        <span class="status-legend-pct">${pct}%</span>
+                    </div>`;
+            }).join('') + `
+                <div class="status-legend-total">
+                    <span>Total</span>
+                    <span>${total.toLocaleString()}</span>
+                </div>`;
+        }
     }
 
-    // ── 3. Beneficiary Growth (Line) ──
-    const growthCtx = document.getElementById('beneficiaryGrowthChart')?.getContext('2d');
-    if (growthCtx) {
-        const growthData = analytics.growth || {};
-        const labels = Object.keys(growthData).sort();
-        const values = labels.map(l => growthData[l]);
-
-        const gradient = growthCtx.createLinearGradient(0, 0, 0, 400);
-        gradient.addColorStop(0, 'rgba(59, 130, 246, 0.2)');
-        gradient.addColorStop(1, 'rgba(59, 130, 246, 0)');
-
-        window.maoCharts.growth = new Chart(growthCtx, {
-            type: 'line',
-            data: {
-                labels: labels.map(l => {
-                    const [y, m] = l.split('-');
-                    return new Date(y, m - 1).toLocaleString('default', { month: 'short', year: '2-digit' });
-                }),
-                datasets: [{
-                    label: 'Monthly Registrations',
-                    data: values,
-                    borderColor: '#3b82f6',
-                    backgroundColor: gradient,
-                    fill: true,
-                    tension: 0.4,
-                    pointBackgroundColor: '#fff',
-                    pointBorderColor: '#3b82f6',
-                    pointBorderWidth: 2,
-                    pointRadius: 4,
-                    pointHoverRadius: 6
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
-                scales: {
-                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-                    x: { grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    // ── 4. Barangay Distribution (Horizontal Bar) ──
+    // ─────────────────────────────────────────────────────────────
+    // 4. BARANGAY DISTRIBUTION (Horizontal Bar — unique color per bar)
+    // ─────────────────────────────────────────────────────────────
     const brgyCtx = document.getElementById('barangayChart')?.getContext('2d');
     if (brgyCtx) {
-        const data = analytics.barangays || {};
-        const labels = Object.keys(data);
-        const values = Object.values(data);
+        const brgyData = analytics.barangays || {};
+        const brgyLabels = Object.keys(brgyData).map(b => b ? b.charAt(0).toUpperCase() + b.slice(1) : '—');
+        const brgyValues = Object.values(brgyData);
+        const brgyColors = brgyLabels.map((_, i) => BRGY_PALETTE[i % BRGY_PALETTE.length]);
 
         window.maoCharts.brgy = new Chart(brgyCtx, {
             type: 'bar',
             data: {
-                labels: labels,
+                labels: brgyLabels,
                 datasets: [{
-                    label: 'Beneficiaries',
-                    data: values,
-                    backgroundColor: '#10b981',
-                    borderRadius: 4,
-                    indexAxis: 'y',
+                    label: 'Registrations',
+                    data: brgyValues,
+                    backgroundColor: brgyColors,
+                    borderRadius: { topRight: 6, bottomRight: 6 },
+                    borderSkipped: 'left',
                 }]
             },
             options: {
                 indexAxis: 'y',
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: false } },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.x.toLocaleString()} registrations`
+                        }
+                    }
+                },
                 scales: {
-                    x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
-                    y: { grid: { display: false } }
-                }
-            }
-        });
-    }
-
-    // ── 5. Demographic Profile (Radar) ──
-    const radarCtx = document.getElementById('demographicRadarChart')?.getContext('2d');
-    if (radarCtx) {
-        const sexData = analytics.demographics?.sex || {};
-        const eduData = analytics.demographics?.education || {};
-
-        // We'll normalize these into a single radar view for "Intensity"
-        // Or just show Sex distribution in a radar if applicable
-        const labels = ['Male', 'Female', 'PWD', '4Ps', 'IP'];
-        // Dummy logic to fill radar with something interesting from data
-        const values = [
-            sexData['Male'] || 0,
-            sexData['Female'] || sexData['female'] || 0,
-            analytics.status?.approved || 0, // Placeholder for variety
-            analytics.types?.rsba || 0,      // Placeholder 
-            analytics.types?.fish || 0       // Placeholder
-        ];
-
-        window.maoCharts.radar = new Chart(radarCtx, {
-            type: 'radar',
-            data: {
-                labels: labels,
-                datasets: [{
-                    label: 'Profile Focus',
-                    data: values,
-                    backgroundColor: 'rgba(139, 92, 246, 0.2)',
-                    borderColor: '#8b5cf6',
-                    pointBackgroundColor: '#8b5cf6',
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    r: {
+                    x: {
                         beginAtZero: true,
-                        grid: { color: 'rgba(0,0,0,0.05)' },
-                        angleLines: { color: 'rgba(0,0,0,0.05)' },
-                        ticks: { display: false }
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { color: tickColor, precision: 0 }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: tickColor, font: { weight: '600' } }
                     }
                 }
             }
         });
     }
+
+    // ─────────────────────────────────────────────────────────────
+    // 5. DEMOGRAPHIC PROFILE (Radar — real data)
+    // ─────────────────────────────────────────────────────────────
+    const radarCtx = document.getElementById('demographicRadarChart')?.getContext('2d');
+    if (radarCtx) {
+        const demo = analytics.demographics || {};
+        const sexData = demo.sex || {};
+
+        // Normalize sex keys (API may return 'Male', 'male', 'M', etc.)
+        const maleCount = sexData['Male'] || sexData['male'] || sexData['M'] || 0;
+        const femaleCount = sexData['Female'] || sexData['female'] || sexData['F'] || 0;
+        const pwdCount = demo.pwd || 0;
+        const fourPsCount = demo.four_ps || 0;
+        const ipCount = demo.ip || 0;
+
+        const radarLabels = ['Male', 'Female', 'PWD', '4Ps Member', 'IP'];
+        const radarValues = [maleCount, femaleCount, pwdCount, fourPsCount, ipCount];
+
+        window.maoCharts.radar = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: radarLabels,
+                datasets: [{
+                    label: 'Beneficiaries',
+                    data: radarValues,
+                    backgroundColor: 'rgba(139,92,246,0.18)',
+                    borderColor: '#8b5cf6',
+                    pointBackgroundColor: '#8b5cf6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 2.5,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.r.toLocaleString()} beneficiaries`
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        grid: { color: gridColor },
+                        angleLines: { color: gridColor },
+                        pointLabels: {
+                            color: tickColor,
+                            font: { size: 12, weight: '600' }
+                        },
+                        ticks: { display: false, stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // Render the demographic breakdown sidebar
+        const breakdownEl = document.getElementById('demographicBreakdown');
+        if (breakdownEl) {
+            const total = maleCount + femaleCount;
+            const malePct = total > 0 ? Math.round((maleCount / total) * 100) : 0;
+            const femalePct = total > 0 ? 100 - malePct : 0;
+
+            breakdownEl.innerHTML = `
+                <div class="demo-section-title">Sex Distribution</div>
+                <div class="demo-bar-row">
+                    <span class="demo-bar-label"><i class="fas fa-mars" style="color:#3b82f6"></i> Male</span>
+                    <div class="demo-progress-bar">
+                        <div class="demo-progress-fill" style="width:${malePct}%;background:#3b82f6"></div>
+                    </div>
+                    <span class="demo-bar-count">${maleCount.toLocaleString()} <span class="demo-bar-pct">${malePct}%</span></span>
+                </div>
+                <div class="demo-bar-row">
+                    <span class="demo-bar-label"><i class="fas fa-venus" style="color:#ec4899"></i> Female</span>
+                    <div class="demo-progress-bar">
+                        <div class="demo-progress-fill" style="width:${femalePct}%;background:#ec4899"></div>
+                    </div>
+                    <span class="demo-bar-count">${femaleCount.toLocaleString()} <span class="demo-bar-pct">${femalePct}%</span></span>
+                </div>
+                <div class="demo-section-title" style="margin-top:1.25rem">Special Categories</div>
+                <div class="demo-chip-grid">
+                    <div class="demo-chip" style="border-color:#8b5cf6;background:rgba(139,92,246,0.08)">
+                        <span class="demo-chip-icon" style="color:#8b5cf6"><i class="fas fa-wheelchair"></i></span>
+                        <span class="demo-chip-value">${pwdCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">PWD</span>
+                    </div>
+                    <div class="demo-chip" style="border-color:#f59e0b;background:rgba(245,158,11,0.08)">
+                        <span class="demo-chip-icon" style="color:#f59e0b"><i class="fas fa-hand-holding-heart"></i></span>
+                        <span class="demo-chip-value">${fourPsCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">4Ps</span>
+                    </div>
+                    <div class="demo-chip" style="border-color:#10b981;background:rgba(16,185,129,0.08)">
+                        <span class="demo-chip-icon" style="color:#10b981"><i class="fas fa-leaf"></i></span>
+                        <span class="demo-chip-value">${ipCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">IP</span>
+                    </div>
+                </div>`;
+        }
+    }
 }
+
+
 
 // ── Beneficiary Management ──
 function loadBeneficiaries(isBackground = false) {
@@ -511,7 +857,7 @@ function loadBeneficiaries(isBackground = false) {
             if (data.success) {
                 allBeneficiaries = data.beneficiaries;
                 populateBarangayDropdown('brgyDropdownBeneficiaries');
-                applyBeneficiaryFilters(); 
+                applyBeneficiaryFilters();
             }
         })
         .catch(error => {

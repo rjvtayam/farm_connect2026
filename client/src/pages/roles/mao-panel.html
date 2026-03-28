@@ -213,11 +213,63 @@
 
             <!-- Analytics Section -->
             <div id="analytics" class="content-section">
+
+                <!-- Analytics Controls Bar -->
+                <div class="analytics-controls">
+                    <div class="analytics-controls-left">
+                        <h2 class="analytics-title"><i class="fas fa-chart-line"></i> Analytics & Insights</h2>
+                        <span class="analytics-subtitle">Mabitac, Laguna — Registration Metrics</span>
+                    </div>
+                    <div class="analytics-controls-right">
+                        <div class="analytics-year-badge" id="analyticsYearBadge">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="analyticsYearLabel">Loading...</span>
+                        </div>
+                        <button class="analytics-refresh-btn" onclick="loadAnalytics()" title="Refresh Analytics">
+                            <i class="fas fa-sync-alt"></i> Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Quick KPI Chips -->
+                <div class="analytics-kpi-row" id="analyticsKPIRow">
+                    <div class="kpi-chip kpi-chip--green">
+                        <i class="fas fa-check-circle"></i>
+                        <div><span class="kpi-chip-value" id="kpiApproved">—</span><span class="kpi-chip-label">Approved</span></div>
+                    </div>
+                    <div class="kpi-chip kpi-chip--amber">
+                        <i class="fas fa-clock"></i>
+                        <div><span class="kpi-chip-value" id="kpiPending">—</span><span class="kpi-chip-label">Pending</span></div>
+                    </div>
+                    <div class="kpi-chip kpi-chip--red">
+                        <i class="fas fa-times-circle"></i>
+                        <div><span class="kpi-chip-value" id="kpiRejected">—</span><span class="kpi-chip-label">Rejected</span></div>
+                    </div>
+                    <div class="kpi-chip kpi-chip--blue">
+                        <i class="fas fa-hourglass-half"></i>
+                        <div><span class="kpi-chip-value" id="kpiVerified">—</span><span class="kpi-chip-label">For Review</span></div>
+                    </div>
+                </div>
+
                 <div class="analytics-grid">
-                    <!-- Registration Type -->
+
+                    <!-- Monthly Comparison (Full Width — Primary Chart) -->
+                    <div class="content-card chart-card full-width-chart">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-area"></i> Monthly Registrations — Year over Year</h2>
+                            <div class="chart-legend-inline" id="monthlyLegend"></div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container chart-container--tall">
+                                <canvas id="monthlyComparisonChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Registration Type (Bar) -->
                     <div class="content-card chart-card">
                         <div class="card-header">
-                            <h2><i class="fas fa-chart-bar"></i> Registrations by Type</h2>
+                            <h2><i class="fas fa-chart-bar"></i> Registrations by Form Type</h2>
                         </div>
                         <div class="card-body">
                             <div class="chart-container">
@@ -226,53 +278,50 @@
                         </div>
                     </div>
 
-                    <!-- Status Distribution -->
+                    <!-- Status Distribution (Doughnut) -->
                     <div class="content-card chart-card">
                         <div class="card-header">
                             <h2><i class="fas fa-chart-pie"></i> Status Distribution</h2>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="statusChart"></canvas>
+                            <div class="status-doughnut-wrapper">
+                                <div class="chart-container chart-container--doughnut">
+                                    <canvas id="statusChart"></canvas>
+                                </div>
+                                <div class="status-legend-list" id="statusLegendList"></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Beneficiary Growth Trend -->
+                    <!-- Barangay Distribution (Horizontal Bar) -->
                     <div class="content-card chart-card full-width-chart">
                         <div class="card-header">
-                            <h2><i class="fas fa-chart-line"></i> Beneficiary Growth Trend</h2>
+                            <h2><i class="fas fa-map-marker-alt"></i> Registrations by Barangay</h2>
+                            <span class="chart-subtitle">Top 10 barangays by total registrations</span>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container">
-                                <canvas id="beneficiaryGrowthChart"></canvas>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Barangay Distribution -->
-                    <div class="content-card chart-card">
-                        <div class="card-header">
-                            <h2><i class="fas fa-map-marker-alt"></i> Top Barangays</h2>
-                        </div>
-                        <div class="card-body">
-                            <div class="chart-container">
+                            <div class="chart-container chart-container--tall">
                                 <canvas id="barangayChart"></canvas>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Demographic Profile -->
-                    <div class="content-card chart-card">
+                    <!-- Demographic Profile (Radar) -->
+                    <div class="content-card chart-card full-width-chart">
                         <div class="card-header">
-                            <h2><i class="fas fa-users-cog"></i> Demographic Profile</h2>
+                            <h2><i class="fas fa-users-cog"></i> Beneficiary Demographic Profile</h2>
+                            <span class="chart-subtitle">Based on approved registrations only</span>
                         </div>
                         <div class="card-body">
-                            <div class="chart-container radar-container">
-                                <canvas id="demographicRadarChart"></canvas>
+                            <div class="demographic-wrapper">
+                                <div class="chart-container radar-container">
+                                    <canvas id="demographicRadarChart"></canvas>
+                                </div>
+                                <div class="demographic-breakdown" id="demographicBreakdown"></div>
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
 
@@ -642,13 +691,6 @@
     </div>
 </div>
 
-<!-- Scripts -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="{{ url_for('static', filename='js/roles/dashboard-common.js') }}"></script>
-<script src="{{ url_for('static', filename='js/roles/mao-panel.js') }}"></script>
-
 <!-- Trash Bin Modal -->
 <div class="trash-modal-overlay" id="trashModalOverlay" onclick="closeTrashBin(event)">
     <div class="trash-modal" onclick="event.stopPropagation()">
@@ -667,5 +709,13 @@
         </div>
     </div>
 </div>
+
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{{ url_for('static', filename='js/roles/dashboard-common.js') }}"></script>
+<script src="{{ url_for('static', filename='js/roles/mao-panel.js') }}"></script>
+
 </body>
 </html>

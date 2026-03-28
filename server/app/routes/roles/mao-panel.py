@@ -89,66 +89,105 @@ def get_stats():
 @mao_bp.route('/api/analytics', methods=['GET'])
 @mao_required
 def get_analytics():
-    """Get chart data (Municipality Filtered)"""
+    """Get chart data (Municipality Filtered) — includes year-over-year monthly comparison."""
     muni = current_user.municipality
-    
-    # ── Production Cache (10min — heaviest endpoint) ──
+
+    # ── Production Cache (10 min — heaviest endpoint) ──
     cache_key = f'mao_analytics_{muni}'
     cached = cache.get(cache_key)
     if cached:
         return jsonify(cached)
-    
+
     muni_filter = db.or_(
         Beneficiary.municipality.ilike(f"%{muni}%"),
         User.municipality.ilike(f"%{muni}%"),
         Beneficiary.municipality.ilike("%Laguna%") if muni.lower() == "mabitac" else False
     )
 
-    # Registration by Type
+    # ── Registration by Type ──
     type_counts = db.session.query(
         Registration.form_type, func.count(Registration.id)
-    ).join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.is_deleted == False).group_by(Registration.form_type).all()
-    
-    # Status Distribution
+    ).join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter, Registration.is_deleted == False
+    ).group_by(Registration.form_type).all()
+
+    # ── Status Distribution ──
     status_counts = db.session.query(
         Registration.status, func.count(Registration.id)
-    ).join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.is_deleted == False).group_by(Registration.status).all()
+    ).join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter, Registration.is_deleted == False
+    ).group_by(Registration.status).all()
 
-    # Barangay Distribution
+    # ── Barangay Distribution (Top 10) ──
     barangay_counts = db.session.query(
         Beneficiary.barangay, func.count(Beneficiary.id)
-    ).join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter).group_by(Beneficiary.barangay).order_by(func.count(Beneficiary.id).desc()).limit(10).all()
+    ).join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter
+    ).group_by(Beneficiary.barangay).order_by(func.count(Beneficiary.id).desc()).limit(10).all()
 
-    # Monthly Growth (Last 6 Months)
-    six_months_ago = datetime.utcnow() - timedelta(days=180)
-    growth_data = db.session.query(
-        func.to_char(Registration.created_at, 'YYYY-MM'), func.count(Registration.id)
+    # ── Monthly Growth — Current Year vs Prior Year ──
+    import calendar as _cal
+    now = datetime.utcnow()
+    current_year   = now.year
+    last_year_val  = current_year - 1
+    current_year_start = datetime(current_year, 1, 1)
+    last_year_start    = datetime(last_year_val, 1, 1)
+    last_year_end      = datetime(last_year_val, 12, 31, 23, 59, 59)
+
+    growth_current_raw = db.session.query(
+        func.to_char(Registration.created_at, 'YYYY-MM'),
+        func.count(Registration.id)
     ).join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
-        muni_filter, 
-        Registration.created_at >= six_months_ago
+        muni_filter,
+        Registration.created_at >= current_year_start,
+        Registration.is_deleted == False
     ).group_by(func.to_char(Registration.created_at, 'YYYY-MM')).all()
 
-    # Demographics (Radar)
+    growth_last_raw = db.session.query(
+        func.to_char(Registration.created_at, 'YYYY-MM'),
+        func.count(Registration.id)
+    ).join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter,
+        Registration.created_at >= last_year_start,
+        Registration.created_at <= last_year_end,
+        Registration.is_deleted == False
+    ).group_by(func.to_char(Registration.created_at, 'YYYY-MM')).all()
+
+    current_lookup    = {row[0]: row[1] for row in growth_current_raw}
+    last_lookup       = {row[0]: row[1] for row in growth_last_raw}
+    month_labels      = [_cal.month_abbr[m] for m in range(1, 13)]
+    current_data_arr  = [current_lookup.get(f"{current_year}-{str(m).zfill(2)}", 0) for m in range(1, 13)]
+    last_data_arr     = [last_lookup.get(f"{last_year_val}-{str(m).zfill(2)}", 0) for m in range(1, 13)]
+
+    # ── Demographics (real data) ──
     sex_counts = db.session.query(
         Beneficiary.sex, func.count(Beneficiary.id)
-    ).join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved').group_by(Beneficiary.sex).all()
-    
-    pwd_count = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_pwd == True).count()
-    four_ps_count = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_4ps == True).count()
-    ip_count = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_ip == True).count()
+    ).join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter, Registration.status == 'approved'
+    ).group_by(Beneficiary.sex).all()
+
+    pwd_count     = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_pwd   == True).count()
+    four_ps_count = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_4ps  == True).count()
+    ip_count      = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_ip   == True).count()
 
     result = {
         'success': True,
         'analytics': {
-            'types': dict(type_counts),
-            'status': dict(status_counts),
+            'types':     dict(type_counts),
+            'status':    dict(status_counts),
             'barangays': dict(barangay_counts),
-            'growth': dict(growth_data),
+            'growth': {
+                'month_labels': month_labels,
+                'current_year': str(current_year),
+                'last_year':    str(last_year_val),
+                'current_data': current_data_arr,
+                'last_data':    last_data_arr,
+            },
             'demographics': {
-                'sex': dict(sex_counts),
-                'pwd': pwd_count,
+                'sex':     dict(sex_counts),
+                'pwd':     pwd_count,
                 'four_ps': four_ps_count,
-                'ip': ip_count
+                'ip':      ip_count,
             }
         }
     }
