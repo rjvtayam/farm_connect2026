@@ -199,7 +199,7 @@
             <div id="pending" class="content-section">
                 <div class="content-card">
                     <div class="card-header">
-                        <h2><i class="fas fa-hourglass-half"></i> Pending Submissions</h2>
+                        <h2><i class="fas fa-hourglass-half"></i> Pending Submissions <span id="pendingResultCount" class="result-count-badge"></span></h2>
                         <div class="card-actions">
                             <button class="btn btn-sm btn-secondary" onclick="exportPendingSubmissions()">
                                 <i class="fas fa-download"></i> Export CSV
@@ -214,9 +214,10 @@
                                 <option value="boat">Boat Registration</option>
                                 <option value="ncfrs">NCFRS</option>
                             </select>
-                            <button class="btn btn-sm btn-success" id="bulkVerifyBtn" style="display:none;" onclick="bulkAction('verified')">
-                                <i class="fas fa-check-double"></i> Verify Selected
-                            </button>
+                            <select id="filterBrgyPending" class="filter-select">
+                                <option value="">All Barangays</option>
+                            </select>
+
                         </div>
                     </div>
                     <div class="card-body">
@@ -224,11 +225,12 @@
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Beneficiary Name</th>
-                                        <th>Form Type</th>
+
+                                        <th class="sortable" data-sort="name" data-table="pending">Beneficiary Name <i class="fas fa-sort sort-icon"></i></th>
+                                        <th class="sortable" data-sort="type" data-table="pending">Form Type <i class="fas fa-sort sort-icon"></i></th>
                                         <th>Encoder</th>
                                         <th>Barangay</th>
-                                        <th>Submitted</th>
+                                        <th class="sortable" data-sort="date" data-table="pending">Submitted <i class="fas fa-sort sort-icon"></i></th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>
@@ -245,7 +247,7 @@
             <div id="reviewed" class="content-section">
                 <div class="content-card">
                     <div class="card-header">
-                        <h2><i class="fas fa-history"></i> Recently Reviewed</h2>
+                        <h2><i class="fas fa-history"></i> Recently Reviewed <span id="reviewedResultCount" class="result-count-badge"></span></h2>
                         <div class="card-actions">
                             <button class="btn btn-sm btn-secondary" onclick="exportReviewedSubmissions()">
                                 <i class="fas fa-download"></i> Export CSV
@@ -273,12 +275,13 @@
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Beneficiary Name</th>
-                                        <th>Form Type</th>
+                                        <th class="sortable" data-sort="name" data-table="reviewed">Beneficiary Name <i class="fas fa-sort sort-icon"></i></th>
+                                        <th class="sortable" data-sort="type" data-table="reviewed">Form Type <i class="fas fa-sort sort-icon"></i></th>
                                         <th>Encoder</th>
                                         <th>Barangay</th>
-                                        <th>Status</th>
-                                        <th>Date</th>
+                                        <th class="sortable" data-sort="status" data-table="reviewed">Status <i class="fas fa-sort sort-icon"></i></th>
+                                        <th class="sortable" data-sort="date" data-table="reviewed">Date <i class="fas fa-sort sort-icon"></i></th>
+                                        <th>Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody id="reviewedTableBody">

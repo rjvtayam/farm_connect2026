@@ -300,7 +300,7 @@
             <div id="my-submissions" class="content-section">
                 <div class="content-card">
                     <div class="card-header">
-                        <h2><i class="fas fa-file-invoice"></i> Track Submissions</h2>
+                        <h2><i class="fas fa-file-invoice"></i> Track Submissions <span id="submissionResultCount" class="result-count-badge"></span></h2>
                         <div class="card-actions">
                             <button class="btn btn-sm btn-secondary" onclick="exportSubmissions()">
                                 <i class="fas fa-download"></i> Export CSV
@@ -312,8 +312,13 @@
                             <select id="filterStatus" class="filter-select">
                                 <option value="">All Status</option>
                                 <option value="pending">Pending</option>
+                                <option value="verified">Verified</option>
                                 <option value="approved">Approved</option>
                                 <option value="rejected">Rejected</option>
+                            </select>
+                            <select id="filterBarangay" class="filter-select">
+                                <option value="">All Barangays</option>
+                                <!-- Dynamic options -->
                             </select>
                             <select id="filterType" class="filter-select">
                                 <option value="">All Forms</option>
@@ -329,10 +334,11 @@
                             <table class="data-table">
                                 <thead>
                                     <tr>
-                                        <th>Beneficiary Name</th>
-                                        <th>Form Type</th>
-                                        <th>Status</th>
-                                        <th>Submitted</th>
+                                        <th class="sortable" data-sort="name">Beneficiary Name <i class="fas fa-sort sort-icon"></i></th>
+                                        <th class="sortable" data-sort="type">Form Type <i class="fas fa-sort sort-icon"></i></th>
+                                        <th>Barangay</th>
+                                        <th class="sortable" data-sort="status">Status <i class="fas fa-sort sort-icon"></i></th>
+                                        <th class="sortable" data-sort="date">Submitted <i class="fas fa-sort sort-icon"></i></th>
                                         <th>Actions</th>
                                     </tr>
                                 </thead>

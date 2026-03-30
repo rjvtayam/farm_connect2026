@@ -4,8 +4,17 @@
  */
 
 let currentSubmissions = [];
-let editingSubmissionId = null; // Track if we are editing an existing submission
-let pendingPopulateData = null; // Data waiting for the iframe to be ready
+let editingSubmissionId = null;
+let pendingPopulateData = null;
+
+// ── Pagination State ──
+let subPage = 1;
+let subPageSize = 25;
+let currentFilteredSubs = [];
+
+// ── Sort State ──
+let subSortCol = null;
+let subSortDir = 'asc';
 
 // Load data on page load
 document.addEventListener('DOMContentLoaded', function () {
@@ -13,7 +22,12 @@ document.addEventListener('DOMContentLoaded', function () {
     loadSubmissions();
     setupSearchAndFilters();
     loadTrashCount();
+    loadActivityFeed();
     initEncoderSockets();
+    initEncoderSortHeaders();
+
+    // Populate barangay filter
+    populateEncoderBrgyFilter();
 
     // Listen for messages from form iframes
     window.addEventListener('message', (event) => {
@@ -64,6 +78,7 @@ function setupSearchAndFilters() {
     const searchInput = document.getElementById('searchSubmissions');
     const statusFilter = document.getElementById('filterStatus');
     const typeFilter = document.getElementById('filterType');
+    const brgyFilter = document.getElementById('filterBarangay');
 
     if (searchInput) {
         searchInput.addEventListener('input', applyFilters);
@@ -73,6 +88,9 @@ function setupSearchAndFilters() {
     }
     if (typeFilter) {
         typeFilter.addEventListener('change', applyFilters);
+    }
+    if (brgyFilter) {
+        brgyFilter.addEventListener('change', applyFilters);
     }
 
     // Professional touch: Click search icon to focus
@@ -91,6 +109,8 @@ async function exportSubmissions() {
     const originalHtml = btn.innerHTML;
     const search = document.getElementById('searchSubmissions')?.value || '';
     const status = document.getElementById('filterStatus')?.value || '';
+    const type = document.getElementById('filterType')?.value || '';
+    const barangay = document.getElementById('filterBarangay')?.value || '';
 
     try {
         // Professional UI feedback
@@ -101,6 +121,8 @@ async function exportSubmissions() {
         const params = new URLSearchParams();
         if (search) params.append('search', search);
         if (status) params.append('status', status);
+        if (type) params.append('form_type', type);
+        if (barangay) params.append('barangay', barangay);
 
         const url = `/encoder/api/submissions/export?${params.toString()}`;
 
@@ -137,33 +159,40 @@ async function exportSubmissions() {
         }, 500);
     }
 }
-async function applyFilters() {
+function applyFilters() {
     const term = (document.getElementById('searchSubmissions')?.value || '').toLowerCase().trim();
     const status = (document.getElementById('filterStatus')?.value || '').toLowerCase();
     const type = (document.getElementById('filterType')?.value || '').toLowerCase();
+    const barangay = (document.getElementById('filterBarangay')?.value || '').toLowerCase();
 
-    const filtered = currentSubmissions.filter(s => {
+    let filtered = currentSubmissions.filter(s => {
         const b = s.beneficiary || {};
         const firstName = b.first_name || '';
         const lastName = b.last_name || '';
         const fullName = `${firstName} ${lastName}`.toLowerCase();
+        const brgy = (b.barangay || (b.address && b.address.barangay) || '').toLowerCase();
 
         const matchesTerm = fullName.includes(term) ||
             (s.form_type || '').toLowerCase().includes(term) ||
+            brgy.includes(term) ||
             (b.rsbsa_id || '').toLowerCase().includes(term);
 
         let currentStatus = (s.status || 'pending').toLowerCase();
-
-        // Map pending_verification to pending for filtering consistency
         if (currentStatus === 'pending_verification') currentStatus = 'pending';
 
         const matchesStatus = status === '' || currentStatus === status;
         const matchesType = type === '' || (s.form_type || '').toLowerCase() === type;
+        const matchesBrgy = barangay === '' || brgy === barangay;
 
-        return matchesTerm && matchesStatus && matchesType;
+        return matchesTerm && matchesStatus && matchesType && matchesBrgy;
     });
 
-    renderSubmissions(filtered);
+    // Apply sort
+    filtered = applyEncoderSort(filtered);
+
+    currentFilteredSubs = filtered;
+    subPage = 1;
+    renderSubmissionsPage();
 }
 
 // ── Stats ──
@@ -197,41 +226,171 @@ function loadStats() {
 // ── Submissions Table ──
 function loadSubmissions() {
     const tbody = document.getElementById('submissionsTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="5"><div class="loading-spinner"></div></td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
 
     fetch('/encoder/api/submissions', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 currentSubmissions = data.submissions;
-                renderSubmissions(currentSubmissions);
+                currentFilteredSubs = currentSubmissions;
+                subPage = 1;
+                renderSubmissionsPage();
             }
         })
         .catch(error => {
             console.error('Error loading submissions:', error);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load submissions</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load submissions</td></tr>';
         });
 }
 
-function renderSubmissions(list) {
+function renderSubmissionsPage() {
+    const total = currentFilteredSubs.length;
+    const all = currentSubmissions.length;
+    const start = (subPage - 1) * subPageSize;
+    const slice = currentFilteredSubs.slice(start, start + subPageSize);
+
+    renderSubmissions(slice, total, all);
+
+    // Render pagination bar
+    const container = document.getElementById('submissionsPaginationBar');
+    if (container) {
+        container.innerHTML = buildEncoderPaginationHTML(subPage, subPageSize, total, 'subPage', 'subPageSize', 'renderSubmissionsPage');
+    }
+}
+
+window.goToSubPage = function(p) { subPage = p; renderSubmissionsPage(); };
+window.changeSubPageSize = function(s) { subPageSize = parseInt(s); subPage = 1; renderSubmissionsPage(); };
+
+function buildEncoderPaginationHTML(page, pageSize, total, pageVar, sizeVar, renderFn) {
+    if (total === 0) return '';
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, total);
+
+    let pages = '';
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && Math.abs(i - page) > 2 && i !== 1 && i !== totalPages) continue;
+        pages += `<button class="pagination-btn${i === page ? ' active' : ''}" onclick="goToSubPage(${i})">${i}</button>`;
+    }
+
+    return `
+    <div class="pagination-bar">
+        <span class="pagination-info">Showing ${start}–${end} of ${total}</span>
+        <div class="pagination-controls">
+            <button class="pagination-btn" onclick="goToSubPage(${page - 1})" ${page === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            ${pages}
+            <button class="pagination-btn" onclick="goToSubPage(${page + 1})" ${page === totalPages ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        <select class="pagination-size-select" onchange="changeSubPageSize(this.value)">
+            ${[25, 50, 100].map(n => `<option value="${n}" ${n === pageSize ? 'selected' : ''}>${n} / page</option>`).join('')}
+        </select>
+    </div>`;
+}
+
+function applyEncoderSort(list) {
+    if (!subSortCol) return list;
+    return [...list].sort((a, b) => {
+        let av = '', bv = '';
+        const ba = a.beneficiary || {};
+        const bb = b.beneficiary || {};
+        if (subSortCol === 'name') {
+            av = `${ba.last_name || ''} ${ba.first_name || ''}`.toLowerCase();
+            bv = `${bb.last_name || ''} ${bb.first_name || ''}`.toLowerCase();
+        } else if (subSortCol === 'type') {
+            av = (a.form_type || '').toLowerCase();
+            bv = (b.form_type || '').toLowerCase();
+        } else if (subSortCol === 'status') {
+            av = (a.status || '').toLowerCase();
+            bv = (b.status || '').toLowerCase();
+        } else if (subSortCol === 'date') {
+            av = a.submission_date || a.created_at || '';
+            bv = b.submission_date || b.created_at || '';
+        }
+        if (av < bv) return subSortDir === 'asc' ? -1 : 1;
+        if (av > bv) return subSortDir === 'asc' ? 1 : -1;
+        return 0;
+    });
+}
+
+function initEncoderSortHeaders() {
+    document.querySelectorAll('#submissionsTableBody').forEach(() => {});
+    document.querySelectorAll('th.sortable[data-sort]').forEach(th => {
+        if (th.closest('#my-submissions')) {
+            th.style.cursor = 'pointer';
+            th.addEventListener('click', () => {
+                const col = th.dataset.sort;
+                if (subSortCol === col) {
+                    subSortDir = subSortDir === 'asc' ? 'desc' : 'asc';
+                } else {
+                    subSortCol = col;
+                    subSortDir = 'asc';
+                }
+                document.querySelectorAll('#my-submissions th.sortable .sort-icon').forEach(i => {
+                    i.className = 'fas fa-sort sort-icon';
+                });
+                const icon = th.querySelector('.sort-icon');
+                if (icon) icon.className = `fas fa-sort-${subSortDir === 'asc' ? 'up' : 'down'} sort-icon active`;
+                applyFilters();
+            });
+        }
+    });
+}
+
+function populateEncoderBrgyFilter() {
+    // Populate the Barangay filter dropdown dynamically from available submissions
+    const filterSelect = document.getElementById('filterBarangay');
+    if (!filterSelect) return;
+
+    const barangays = [...new Set(currentSubmissions.map(s => {
+        const b = s.beneficiary || {};
+        return b.barangay || (b.address && b.address.barangay);
+    }).filter(Boolean))].sort();
+
+    const currentVal = filterSelect.value;
+    let html = '<option value="">All Barangays</option>';
+    barangays.forEach(b => {
+        html += `<option value="${b.toLowerCase()}" ${currentVal === b.toLowerCase() ? 'selected' : ''}>${b}</option>`;
+    });
+    filterSelect.innerHTML = html;
+}
+
+function renderSubmissions(list, filteredCount, totalCount) {
     const tbody = document.getElementById('submissionsTableBody');
     if (!tbody) return;
 
+    // Update result count badge
+    const badge = document.getElementById('submissionResultCount');
+    if (badge) {
+        const total = totalCount !== undefined ? totalCount : currentSubmissions.length;
+        const shown = filteredCount !== undefined ? filteredCount : list.length;
+        badge.textContent = shown < total ? `${shown} of ${total}` : `${total}`;
+        badge.style.display = shown > 0 ? '' : 'none';
+    }
+
     if (!list.length) {
         tbody.innerHTML = `
-            <tr><td colspan="5">
+            <tr><td colspan="6">
                 <div class="empty-state">
                     <i class="fas fa-file-alt"></i>
                     <p>No submissions yet. Start by creating a new registration.</p>
                 </div>
             </td></tr>`;
+        // Render empty pagination
+        const pb = document.getElementById('submissionsPaginationBar');
+        if (pb) pb.innerHTML = '';
         return;
     }
 
     tbody.innerHTML = list.map(s => {
         const b = s.beneficiary || {};
-        const name = b.full_name || 'Unknown';
-        const type = s.form_type || 'rsba';
+        const name = b.full_name || `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Unknown';
+        const type = s.form_type || 'rsbsa';
+        const barangay = b.barangay || (b.address && b.address.barangay) || '—';
 
         let status = s.status || 'pending';
         let statusClass = status.toLowerCase();
@@ -242,29 +401,36 @@ function renderSubmissions(list) {
             statusLabel = 'Pending';
         } else if (statusClass === 'approved') {
             statusLabel = 'Approved';
+        } else if (statusClass === 'verified') {
+            statusLabel = 'Verified';
         } else if (statusClass === 'rejected') {
             statusLabel = 'Rejected';
         }
 
         const date = s.submission_date || s.created_at;
+        const isEditable = (statusClass === 'pending' || statusClass === 'rejected');
+        const isApproved = statusClass === 'approved';
+
+        // Rejection remarks tooltip
+        const remarksAttr = (statusClass === 'rejected' && s.remarks)
+            ? ` title="Verifier Remarks: ${s.remarks.replace(/"/g, '&quot;')}"` : '';
+        const remarksIcon = (statusClass === 'rejected' && s.remarks)
+            ? ` <i class="fas fa-exclamation-circle" style="color:#ef4444;font-size:0.75rem;cursor:help;" title="${s.remarks.replace(/"/g, '&quot;')}"></i>` : '';
 
         return `
-        <tr>
+        <tr${remarksAttr}>
             <td><span style="font-weight:600;color:var(--text-dark)">${name}</span></td>
             <td><span class="badge badge-type">${type.toUpperCase()}</span></td>
-            <td><span class="status-badge ${statusClass}">${statusLabel}</span></td>
+            <td style="color:var(--text-light);font-size:0.85rem">${barangay}</td>
+            <td><span class="status-badge ${statusClass}">${statusLabel}</span>${remarksIcon}</td>
             <td style="color:var(--text-light);font-size:0.85rem">${formatDate(date)}</td>
             <td>
                 <div style="display:flex; gap:0.5rem; align-items:center;">
                     <button class="btn btn-primary btn-sm" onclick="viewSubmission(${s.id})" title="View Details">
                         <i class="fas fa-eye"></i>
                     </button>
-                    <button class="btn btn-warning btn-sm" onclick="editSubmission(${s.id})" title="Edit Submission">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn btn-success btn-sm" onclick="downloadSubmissionPdf(${s.id}, '${type}')" title="Download PDF">
-                        <i class="fas fa-download"></i>
-                    </button>
+                    ${isEditable ? `<button class="btn btn-warning btn-sm" onclick="editSubmission(${s.id})" title="Edit Submission"><i class="fas fa-edit"></i></button>` : ''}
+                    ${isApproved ? `<button class="btn btn-success btn-sm" onclick="downloadSubmissionPdf(${s.id}, '${type}')" title="Download PDF"><i class="fas fa-download"></i></button>` : ''}
                     <button class="btn btn-danger btn-sm" onclick="softDeleteSubmission(${s.id})" title="Move to Trash">
                         <i class="fas fa-trash-alt"></i>
                     </button>
@@ -272,15 +438,22 @@ function renderSubmissions(list) {
             </td>
         </tr>`;
     }).join('');
+
+    // Always render pagination bar after table
+    let pb = document.getElementById('submissionsPaginationBar');
+    if (!pb) {
+        const tableContainer = document.getElementById('submissionsTableBody').closest('.table-container');
+        if (tableContainer) {
+            pb = document.createElement('div');
+            pb.id = 'submissionsPaginationBar';
+            tableContainer.insertAdjacentElement('afterend', pb);
+        }
+    }
 }
 
 window.viewSubmission = function (id) {
     const csrfToken = getCSRFToken();
 
-    // Show a loading indicator since PDF generation might take a second
-    showFlashMessage('Preparing PDF document for viewing...', 'info');
-
-    // 1. Fetch the submission data first to know its type and get the raw JSON
     fetch(`/encoder/api/submissions/${id}`, { headers: { 'X-CSRFToken': csrfToken } })
         .then(r => r.json())
         .then(data => {
@@ -289,14 +462,61 @@ window.viewSubmission = function (id) {
             const sub = data.submission;
             const type = sub.form_type || 'rsbsa';
 
+            // For non-RSBSA forms, show a structured detail card modal
             if (type !== 'rsbsa') {
-                showFlashMessage('PDF view is currently only supported for RSBSA forms.', 'warn');
+                const b = sub.beneficiary || {};
+                const name = b.full_name || `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Unknown';
+                const statusClass = sub.status || 'pending';
+                const remarksHtml = sub.remarks
+                    ? `<div style="margin-top:1rem;padding:0.75rem 1rem;background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;color:#e11d48;font-size:0.875rem;">
+                        <i class="fas fa-exclamation-circle"></i> <strong>Verifier Remarks:</strong> ${sub.remarks}
+                       </div>` : '';
+
+                const modalHtml = `
+                <div id="detailCardOverlay_${id}" class="modal" style="display:flex;z-index:10000;">
+                    <div class="modal-overlay" onclick="this.closest('.modal').remove()" style="position:fixed;top:0;left:0;width:100%;height:100%;"></div>
+                    <div class="modal-content" style="max-width:520px;width:95%;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.4);position:relative;margin:auto;overflow:hidden;">
+                        <div class="modal-header" style="padding:1rem 1.5rem;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;">
+                            <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:#334155;display:flex;align-items:center;gap:0.5rem;">
+                                <i class="fas fa-file-alt" style="color:var(--primary);"></i> Submission Details
+                            </h3>
+                            <button onclick="this.closest('.modal').remove()" style="background:#e2e8f0;color:#475569;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;">&times;</button>
+                        </div>
+                        <div class="modal-body" style="padding:1.5rem;">
+                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
+                                <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
+                                    <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Beneficiary</span>
+                                    <p style="margin:4px 0 0 0;font-weight:700;color:#1e293b;font-size:0.95rem;">${name}</p>
+                                </div>
+                                <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
+                                    <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Form Type</span>
+                                    <p style="margin:4px 0 0 0;"><span class="badge badge-type">${type.toUpperCase()}</span></p>
+                                </div>
+                                <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
+                                    <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Status</span>
+                                    <p style="margin:4px 0 0 0;"><span class="status-badge ${statusClass}">${statusClass}</span></p>
+                                </div>
+                                <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
+                                    <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Barangay</span>
+                                    <p style="margin:4px 0 0 0;font-size:0.875rem;color:#1e293b;">${b.barangay || '—'}</p>
+                                </div>
+                            </div>
+                            <div style="background:#f0fdf4;padding:0.75rem 1rem;border-radius:10px;border:1px solid #bbf7d0;font-size:0.8rem;color:#166534;">
+                                <i class="fas fa-info-circle"></i> Full PDF document viewer for <strong>${type.toUpperCase()}</strong> forms is coming soon.
+                            </div>
+                            ${remarksHtml}
+                        </div>
+                    </div>
+                </div>`;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
                 return;
             }
 
+            // RSBSA: Show PDF viewer
+            showFlashMessage('Preparing PDF document for viewing...', 'info');
+
             const parsed = typeof sub.data_json === 'string' ? JSON.parse(sub.data_json) : (sub.data_json || {});
 
-            // 2. Request the generated PDF from the backend
             return fetch('/forms/download/rsba-enrollment', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
@@ -304,51 +524,41 @@ window.viewSubmission = function (id) {
             }).then(res => {
                 if (!res.ok) throw new Error('PDF generation failed on server');
                 return { blob: res.blob(), sub: sub };
+            }).then(result => result.blob.then(blobData => ({ blob: blobData, sub: result.sub })))
+            .then(result => {
+                const url = URL.createObjectURL(result.blob);
+                const modalHtml = `
+                <div id="viewPdfOverlay_${result.sub.id}" class="modal premium-overlay" style="display:flex; z-index:10000;">
+                    <div class="modal-overlay" onclick="closePdfViewer('viewPdfOverlay_${result.sub.id}', '${url}')" style="position:fixed; top:0; left:0; width:100%; height:100%;"></div>
+                    <div class="modal-content premium-modal-content" style="max-width:1000px; width:95%; height:90vh; background:white; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); position:relative; margin:auto; overflow:hidden; display:flex; flex-direction:column;">
+                        <div class="modal-header" style="padding:1rem 1.5rem; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
+                            <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#334155; display:flex; align-items:center; gap:0.5rem;">
+                                <i class="fas fa-file-pdf" style="color:#ef4444;"></i> Document Viewer: RSBSA Form
+                            </h3>
+                            ${result.sub.remarks ? `
+                            <div style="margin-left: 2rem; padding: 0.4rem 1rem; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 20px; color: #e11d48; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-exclamation-circle"></i> Feedback: ${result.sub.remarks}
+                            </div>` : ''}
+                            <div style="display:flex; gap:0.5rem;">
+                                <button onclick="printPdfIframe('pdfViewerFrame_${result.sub.id}')" style="background:#3b82f6; color:white; border:none; padding:0.5rem 1rem; border-radius:8px; font-weight:600; cursor:pointer; font-size:0.85rem;">
+                                    <i class="fas fa-print"></i> Print
+                                </button>
+                                <button onclick="closePdfViewer('viewPdfOverlay_${result.sub.id}', '${url}')" style="background:#e2e8f0; color:#475569; border:none; width:34px; height:34px; border-radius:8px; cursor:pointer;">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="modal-body" style="padding:0; flex-grow:1; background:#525659; position:relative;">
+                            <iframe id="pdfViewerFrame_${result.sub.id}" src="${url}#toolbar=0&navpanes=0&scrollbar=1" style="width:100%; height:100%; border:none;" title="PDF Viewer"></iframe>
+                        </div>
+                    </div>
+                </div>`;
+                document.body.insertAdjacentHTML('beforeend', modalHtml);
             });
         })
-        .then(result => {
-            if (!result) return;
-            return result.blob.then(blobData => ({ blob: blobData, sub: result.sub }));
-        })
-        .then(result => {
-            if (!result) return;
-
-            const url = URL.createObjectURL(result.blob);
-
-            // 3. Create a clean, large modal to display the PDF inline
-            const modalHtml = `
-            <div id="viewPdfOverlay_${result.sub.id}" class="modal premium-overlay" style="display:flex; z-index:10000;">
-                <div class="modal-overlay" onclick="closePdfViewer('viewPdfOverlay_${result.sub.id}', '${url}')" style="position:fixed; top:0; left:0; width:100%; height:100%;"></div>
-                <div class="modal-content premium-modal-content" style="max-width:1000px; width:95%; height:90vh; background:white; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); position:relative; margin:auto; overflow:hidden; display:flex; flex-direction:column;">
-                    <div class="modal-header" style="padding:1rem 1.5rem; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
-                        <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#334155; display:flex; align-items:center; gap:0.5rem;">
-                            <i class="fas fa-file-pdf" style="color:#ef4444;"></i> Document Viewer: RSBSA Form
-                        </h3>
-                        ${result.sub.remarks ? `
-                        <div style="margin-left: 2rem; padding: 0.4rem 1rem; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 20px; color: #e11d48; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; animation: pulse 2s infinite;">
-                            <i class="fas fa-exclamation-circle"></i> Feedback: ${result.sub.remarks}
-                        </div>
-                        ` : ''}
-                        <div style="display:flex; gap:0.5rem;">
-                            <button onclick="printPdfIframe('pdfViewerFrame_${result.sub.id}')" style="background:#3b82f6; color:white; border:none; padding:0.5rem 1rem; border-radius:8px; font-weight:600; cursor:pointer; font-size:0.85rem; display:flex; align-items:center; gap:0.3rem; transition: background 0.2s;" onmouseover="this.style.background='#2563eb'" onmouseout="this.style.background='#3b82f6'">
-                                <i class="fas fa-print"></i> Print
-                            </button>
-                            <button onclick="closePdfViewer('viewPdfOverlay_${result.sub.id}', '${url}')" style="background:#e2e8f0; color:#475569; border:none; width:34px; height:34px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:1rem; transition: background 0.2s;">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="modal-body" style="padding:0; flex-grow:1; background:#525659; position:relative;">
-                        <iframe id="pdfViewerFrame_${result.sub.id}" src="${url}#toolbar=0&navpanes=0&scrollbar=1" style="width:100%; height:100%; border:none;" title="PDF Viewer"></iframe>
-                    </div>
-                </div>
-            </div>`;
-
-            document.body.insertAdjacentHTML('beforeend', modalHtml);
-        })
         .catch(err => {
-            console.error('Error viewing submission PDF:', err);
-            showFlashMessage(err.message || 'Failed to load PDF viewer', 'error');
+            console.error('Error viewing submission:', err);
+            showFlashMessage(err.message || 'Failed to load viewer', 'error');
         });
 };
 
@@ -433,6 +643,40 @@ window.editSubmission = function (id) {
             showFlashMessage('Failed to load submission for editing', 'error');
         });
 };
+
+// ── Encoder Activity Feed ─────────────────────────────────────────────────────
+
+async function loadActivityFeed() {
+    const container = document.getElementById('activityFeedList');
+    if (!container) return;
+    try {
+        const res = await fetch('/encoder/api/activity-feed', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success && data.activities.length > 0) {
+            container.innerHTML = data.activities.map(a => {
+                const timeAgo = a.timestamp ? formatDate(a.timestamp) : '';
+                const iconMap = { success: 'fa-check-circle', warning: 'fa-hourglass-half', danger: 'fa-times-circle' };
+                const colorMap = { success: '#10b981', warning: '#f59e0b', danger: '#ef4444' };
+                const icon = iconMap[a.type] || 'fa-circle';
+                const color = colorMap[a.type] || '#6b7280';
+                return `
+                <div class="activity-item" style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+                    <div style="width:32px;height:32px;border-radius:50%;background:${color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas ${icon}" style="color:${color};font-size:0.85rem;"></i>
+                    </div>
+                    <div>
+                        <p style="margin:0;font-size:0.85rem;color:var(--text-dark);font-weight:500;">${a.message}</p>
+                        <span style="font-size:0.75rem;color:var(--text-light);">${timeAgo}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            container.innerHTML = '<div class="activity-empty"><i class="fas fa-inbox"></i><p>No recent activity</p></div>';
+        }
+    } catch (e) {
+        container.innerHTML = '<div class="activity-empty"><i class="fas fa-exclamation-circle"></i><p>Could not load activity</p></div>';
+    }
+}
 
 // ── Form Viewer (inline iframe) ─────────────────────────────────────────────
 

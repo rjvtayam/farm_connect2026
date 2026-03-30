@@ -16,6 +16,23 @@ let activeParcelIndex = -1;
 let allPendingSubmissions = [];
 let allReviewedSubmissions = [];
 
+// ── Verifier Pagination State ──
+let pendingPage = 1;
+let pendingPageSize = 25;
+let currentFilteredPending = [];
+let reviewedPage = 1;
+let reviewedPageSize = 25;
+let currentFilteredReviewed = [];
+
+// ── Verifier Sort State ──
+let pendingSortCol = null;
+let pendingSortDir = 'asc';
+let reviewedSortCol = null;
+let reviewedSortDir = 'asc';
+
+// ── Read-only modal mode flag ──
+let isReadOnlyReview = false;
+
 function updateMapAddressLabel(bgy, muni) {
     const header = document.querySelector('.pane-right h4.info-section-title');
     if (header) {
@@ -29,16 +46,19 @@ document.addEventListener('DOMContentLoaded', function () {
     loadStats();
     loadPendingSubmissions();
     loadReviewedSubmissions();
+    loadActivityFeed();
     setupSearchAndFilters();
     initCanvas();
     loadTrashCount();
+    initVerifierSortHeaders();
 
-    // ── Real-time polling: refresh data every 5 seconds ──
+    // ── Real-time polling: refresh data every 15 seconds ──
     setInterval(() => {
         loadStats();
         loadPendingSubmissions();
         loadReviewedSubmissions();
-    }, 5000);
+        loadActivityFeed();
+    }, 15000);
 
     initGlobalMap();
     initVerifierSockets();
@@ -156,12 +176,14 @@ function renderGlobalParcels(parcels) {
 function setupSearchAndFilters() {
     const searchPending = document.getElementById('searchPending');
     const filterFormType = document.getElementById('filterFormType');
+    const filterBrgyPending = document.getElementById('filterBrgyPending');
     const searchReviewed = document.getElementById('searchReviewed');
     const filterStatus = document.getElementById('filterStatus');
     const filterType = document.getElementById('filterType');
 
     if (searchPending) searchPending.addEventListener('input', applyPendingFilters);
     if (filterFormType) filterFormType.addEventListener('change', applyPendingFilters);
+    if (filterBrgyPending) filterBrgyPending.addEventListener('change', applyPendingFilters);
     if (searchReviewed) searchReviewed.addEventListener('input', applyReviewedFilters);
     if (filterStatus) filterStatus.addEventListener('change', applyReviewedFilters);
     if (filterType) filterType.addEventListener('change', applyReviewedFilters);
@@ -170,29 +192,41 @@ function setupSearchAndFilters() {
 function applyPendingFilters() {
     const term = (document.getElementById('searchPending')?.value || '').toLowerCase();
     const type = (document.getElementById('filterFormType')?.value || '').toLowerCase();
+    const brgy = (document.getElementById('filterBrgyPending')?.value || '').toLowerCase();
 
-    const filtered = allPendingSubmissions.filter(s => {
+    let filtered = allPendingSubmissions.filter(s => {
         const matchesTerm = (s.beneficiary_name || '').toLowerCase().includes(term) ||
             (s.barangay || '').toLowerCase().includes(term) ||
             (s.encoder_name || '').toLowerCase().includes(term);
         const matchesType = type === '' || (s.form_type || '').toLowerCase() === type;
-        return matchesTerm && matchesType;
+        const matchesBrgy = brgy === '' || (s.barangay || '').toLowerCase() === brgy;
+        return matchesTerm && matchesType && matchesBrgy;
     });
-    renderPendingTable(filtered);
+
+    filtered = applyVerifierSort(filtered, pendingSortCol, pendingSortDir);
+    currentFilteredPending = filtered;
+    pendingPage = 1;
+    renderPendingPage();
 }
 
 function applyReviewedFilters() {
     const term = (document.getElementById('searchReviewed')?.value || '').toLowerCase();
     const status = (document.getElementById('filterStatus')?.value || '').toLowerCase();
+    const type = (document.getElementById('filterType')?.value || '').toLowerCase();
 
-    const filtered = allReviewedSubmissions.filter(s => {
+    let filtered = allReviewedSubmissions.filter(s => {
         const matchesTerm = (s.beneficiary_name || '').toLowerCase().includes(term) ||
             (s.barangay || '').toLowerCase().includes(term) ||
             (s.encoder_name || '').toLowerCase().includes(term);
         const matchesStatus = status === '' || (s.status || '').toLowerCase() === status;
-        return matchesTerm && matchesStatus;
+        const matchesType = type === '' || (s.form_type || '').toLowerCase() === type;
+        return matchesTerm && matchesStatus && matchesType;
     });
-    renderReviewedTable(filtered);
+
+    filtered = applyVerifierSort(filtered, reviewedSortCol, reviewedSortDir);
+    currentFilteredReviewed = filtered;
+    reviewedPage = 1;
+    renderReviewedPage();
 }
 
 // ── Canvas Drawing for Document Review ──
@@ -280,6 +314,7 @@ function loadPendingSubmissions() {
         .then(data => {
             if (data.success) {
                 allPendingSubmissions = data.submissions;
+                populateVerifierBrgyFilter();
                 applyPendingFilters(); // Use filtered render
             }
         })
@@ -289,9 +324,18 @@ function loadPendingSubmissions() {
         });
 }
 
-function renderPendingTable(list) {
+function renderPendingTable(list, filteredCount, totalCount) {
     const tbody = document.getElementById('pendingTableBody');
     if (!tbody) return;
+
+    // Update result count badge
+    const badge = document.getElementById('pendingResultCount');
+    if (badge) {
+        const total = totalCount !== undefined ? totalCount : allPendingSubmissions.length;
+        const shown = filteredCount !== undefined ? filteredCount : list.length;
+        badge.textContent = shown < total ? `${shown} of ${total}` : `${total}`;
+        badge.style.display = shown > 0 ? '' : 'none';
+    }
 
     if (!list.length) {
         tbody.innerHTML = `
@@ -301,6 +345,8 @@ function renderPendingTable(list) {
                     <p>All submissions have been reviewed — great job!</p>
                 </div>
             </td></tr>`;
+        const pb = document.getElementById('pendingPaginationBar');
+        if (pb) pb.innerHTML = '';
         return;
     }
 
@@ -335,7 +381,205 @@ function renderPendingTable(list) {
     }).join('');
 }
 
-// Bulk Actions removed by user request (Review individually)
+// Bulk Actions removed — verifiers must review submissions individually
+
+// ── Verifier Activity Feed ─────────────────────────────────────────────────────
+async function loadActivityFeed() {
+    const container = document.getElementById('activityFeedList');
+    if (!container) return;
+    try {
+        const res = await fetch('/verifier/api/activity-feed', { credentials: 'include' });
+        const data = await res.json();
+        if (data.success && data.activities.length > 0) {
+            container.innerHTML = data.activities.map(a => {
+                const timeAgo = a.timestamp ? formatDate(a.timestamp) : '';
+                const iconMap = { success: 'fa-check-circle', warning: 'fa-hourglass-half', danger: 'fa-times-circle' };
+                const colorMap = { success: '#10b981', warning: '#f59e0b', danger: '#ef4444' };
+                const icon = iconMap[a.type] || 'fa-circle';
+                const color = colorMap[a.type] || '#6b7280';
+                return `
+                <div class="activity-item" style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
+                    <div style="width:32px;height:32px;border-radius:50%;background:${color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <i class="fas ${icon}" style="color:${color};font-size:0.85rem;"></i>
+                    </div>
+                    <div>
+                        <p style="margin:0;font-size:0.85rem;color:var(--text-dark);font-weight:500;">${a.message}</p>
+                        <span style="font-size:0.75rem;color:var(--text-light);">${timeAgo}</span>
+                    </div>
+                </div>`;
+            }).join('');
+        } else {
+            container.innerHTML = '<div class="activity-empty"><i class="fas fa-inbox"></i><p>No recent activity</p></div>';
+        }
+    } catch (e) {
+        container.innerHTML = '<div class="activity-empty"><i class="fas fa-exclamation-circle"></i><p>Could not load activity</p></div>';
+    }
+}
+
+// ── Barangay Filter Population ─────────────────────────────────────────────────
+function populateVerifierBrgyFilter() {
+    const sel = document.getElementById('filterBrgyPending');
+    if (!sel) return;
+    const barangays = [...new Set(allPendingSubmissions.map(s => s.barangay).filter(Boolean))].sort();
+    const current = sel.value;
+    sel.innerHTML = '<option value="">All Barangays</option>' +
+        barangays.map(b => `<option value="${b}" ${b === current ? 'selected' : ''}>${b}</option>`).join('');
+}
+
+// ── Verifier Sort ──────────────────────────────────────────────────────────────
+function applyVerifierSort(list, col, dir) {
+    if (!col) return list;
+    return [...list].sort((a, b) => {
+        let av = '', bv = '';
+        if (col === 'name')   { av = (a.beneficiary_name || '').toLowerCase(); bv = (b.beneficiary_name || '').toLowerCase(); }
+        else if (col === 'type')   { av = (a.form_type || '').toLowerCase(); bv = (b.form_type || '').toLowerCase(); }
+        else if (col === 'status') { av = (a.status || '').toLowerCase(); bv = (b.status || '').toLowerCase(); }
+        else if (col === 'date')   { av = a.created_at || ''; bv = b.created_at || ''; }
+        if (av < bv) return dir === 'asc' ? -1 : 1;
+        if (av > bv) return dir === 'asc' ? 1 : -1;
+        return 0;
+    });
+}
+
+function initVerifierSortHeaders() {
+    document.querySelectorAll('th.sortable[data-table]').forEach(th => {
+        th.style.cursor = 'pointer';
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            const table = th.dataset.table;
+            if (table === 'pending') {
+                if (pendingSortCol === col) pendingSortDir = pendingSortDir === 'asc' ? 'desc' : 'asc';
+                else { pendingSortCol = col; pendingSortDir = 'asc'; }
+                document.querySelectorAll('th.sortable[data-table="pending"] .sort-icon').forEach(i => i.className = 'fas fa-sort sort-icon');
+                const icon = th.querySelector('.sort-icon');
+                if (icon) icon.className = `fas fa-sort-${pendingSortDir === 'asc' ? 'up' : 'down'} sort-icon active`;
+                applyPendingFilters();
+            } else if (table === 'reviewed') {
+                if (reviewedSortCol === col) reviewedSortDir = reviewedSortDir === 'asc' ? 'desc' : 'asc';
+                else { reviewedSortCol = col; reviewedSortDir = 'asc'; }
+                document.querySelectorAll('th.sortable[data-table="reviewed"] .sort-icon').forEach(i => i.className = 'fas fa-sort sort-icon');
+                const icon = th.querySelector('.sort-icon');
+                if (icon) icon.className = `fas fa-sort-${reviewedSortDir === 'asc' ? 'up' : 'down'} sort-icon active`;
+                applyReviewedFilters();
+            }
+        });
+    });
+}
+
+// ── Pagination ─────────────────────────────────────────────────────────────────
+function buildVerifierPaginationHTML(page, pageSize, total, goFn, changeFn) {
+    if (total === 0) return '';
+    const totalPages = Math.ceil(total / pageSize);
+    const start = (page - 1) * pageSize + 1;
+    const end = Math.min(page * pageSize, total);
+    let pages = '';
+    for (let i = 1; i <= totalPages; i++) {
+        if (totalPages > 7 && Math.abs(i - page) > 2 && i !== 1 && i !== totalPages) continue;
+        pages += `<button class="pagination-btn${i === page ? ' active' : ''}" onclick="${goFn}(${i})">${i}</button>`;
+    }
+    return `
+    <div class="pagination-bar">
+        <span class="pagination-info">Showing ${start}–${end} of ${total}</span>
+        <div class="pagination-controls">
+            <button class="pagination-btn" onclick="${goFn}(${page - 1})" ${page === 1 ? 'disabled' : ''}>
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            ${pages}
+            <button class="pagination-btn" onclick="${goFn}(${page + 1})" ${page === totalPages ? 'disabled' : ''}>
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+        <select class="pagination-size-select" onchange="${changeFn}(this.value)">
+            ${[25, 50, 100].map(n => `<option value="${n}" ${n === pageSize ? 'selected' : ''}>${n} / page</option>`).join('')}
+        </select>
+    </div>`;
+}
+
+function renderPendingPage() {
+    const total = currentFilteredPending.length;
+    const all = allPendingSubmissions.length;
+    const start = (pendingPage - 1) * pendingPageSize;
+    const slice = currentFilteredPending.slice(start, start + pendingPageSize);
+    renderPendingTable(slice, total, all);
+
+    let pb = document.getElementById('pendingPaginationBar');
+    if (!pb) {
+        const tc = document.getElementById('pendingTableBody')?.closest('.table-container');
+        if (tc) { pb = document.createElement('div'); pb.id = 'pendingPaginationBar'; tc.insertAdjacentElement('afterend', pb); }
+    }
+    if (pb) pb.innerHTML = buildVerifierPaginationHTML(pendingPage, pendingPageSize, total, 'goToPendingPage', 'changePendingPageSize');
+}
+
+function renderReviewedPage() {
+    const total = currentFilteredReviewed.length;
+    const all = allReviewedSubmissions.length;
+    const start = (reviewedPage - 1) * reviewedPageSize;
+    const slice = currentFilteredReviewed.slice(start, start + reviewedPageSize);
+    renderReviewedTable(slice, total, all);
+
+    let pb = document.getElementById('reviewedPaginationBar');
+    if (!pb) {
+        const tc = document.getElementById('reviewedTableBody')?.closest('.table-container');
+        if (tc) { pb = document.createElement('div'); pb.id = 'reviewedPaginationBar'; tc.insertAdjacentElement('afterend', pb); }
+    }
+    if (pb) pb.innerHTML = buildVerifierPaginationHTML(reviewedPage, reviewedPageSize, total, 'goToReviewedPage', 'changeReviewedPageSize');
+}
+
+window.goToPendingPage = function(p) { pendingPage = p; renderPendingPage(); };
+window.changePendingPageSize = function(s) { pendingPageSize = parseInt(s); pendingPage = 1; renderPendingPage(); };
+window.goToReviewedPage = function(p) { reviewedPage = p; renderReviewedPage(); };
+window.changeReviewedPageSize = function(s) { reviewedPageSize = parseInt(s); reviewedPage = 1; renderReviewedPage(); };
+
+// ── Read-Only Reviewed Submission View ─────────────────────────────────────────
+window.viewReviewedSubmission = function(id) {
+    isReadOnlyReview = true;
+
+    fetch(`/verifier/api/submissions/${id}`, { credentials: 'include' })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) {
+                showFlashMessage('Failed to load submission details', 'error');
+                isReadOnlyReview = false;
+                return;
+            }
+            const sub = data.submission;
+
+            // Label the modal as read-only
+            const idEl = document.getElementById('reviewSubmissionId');
+            if (idEl) idEl.textContent = `#${id}`;
+
+            populateReviewModal(sub);
+            clearCanvas();
+            switchReviewTab('rsbsa');
+
+            // Hide action footer
+            const footer = document.querySelector('.modal-footer-premium');
+            if (footer) footer.style.display = 'none';
+
+            // Inject a status banner in place of the footer
+            const existingBanner = document.getElementById('readOnlyBanner');
+            if (existingBanner) existingBanner.remove();
+            const banner = document.createElement('div');
+            banner.id = 'readOnlyBanner';
+            banner.style.cssText = 'padding:0.85rem 1.5rem;background:#f0fdf4;border-top:2px solid #bbf7d0;color:#166534;font-size:0.85rem;font-weight:600;display:flex;align-items:center;gap:0.75rem;flex-shrink:0;';
+            banner.innerHTML = `<i class="fas fa-lock-open" style="font-size:1rem;"></i> View Only &mdash; <span class="status-badge ${sub.status}" style="font-size:0.75rem;">${sub.status}</span><span style="margin-left:auto;font-weight:400;color:#64748b;font-size:0.8rem;">Close when done reviewing history</span>`;
+
+            const modalContent = document.querySelector('#reviewModal .premium-modal');
+            if (modalContent) modalContent.appendChild(banner);
+
+            openModal('reviewModal');
+
+            setTimeout(() => {
+                initReviewMap(sub.geo_data);
+            }, 300);
+        })
+        .catch(err => {
+            console.error('Error viewing reviewed submission:', err);
+            showFlashMessage('Failed to load submission', 'error');
+            isReadOnlyReview = false;
+        });
+};
+
 
 window.exportPendingSubmissions = async function () {
     const btn = document.querySelector('button[onclick="exportPendingSubmissions()"]');
@@ -444,18 +688,29 @@ function loadReviewedSubmissions() {
         });
 }
 
-function renderReviewedTable(list) {
+function renderReviewedTable(list, filteredCount, totalCount) {
     const tbody = document.getElementById('reviewedTableBody');
     if (!tbody) return;
 
+    // Update result count badge
+    const badge = document.getElementById('reviewedResultCount');
+    if (badge) {
+        const total = totalCount !== undefined ? totalCount : allReviewedSubmissions.length;
+        const shown = filteredCount !== undefined ? filteredCount : list.length;
+        badge.textContent = shown < total ? `${shown} of ${total}` : `${total}`;
+        badge.style.display = shown > 0 ? '' : 'none';
+    }
+
     if (!list.length) {
         tbody.innerHTML = `
-            <tr><td colspan="6">
+            <tr><td colspan="7">
                 <div class="empty-state">
                     <i class="fas fa-history"></i>
                     <p>No reviewed submissions yet</p>
                 </div>
             </td></tr>`;
+        const pb = document.getElementById('reviewedPaginationBar');
+        if (pb) pb.innerHTML = '';
         return;
     }
 
@@ -467,6 +722,11 @@ function renderReviewedTable(list) {
             <td>${s.barangay || '—'}</td>
             <td><span class="status-badge ${s.status}">${s.status}</span></td>
             <td style="color:var(--text-light);font-size:0.85rem">${formatDate(s.created_at)}</td>
+            <td>
+                <button class="btn btn-secondary btn-sm" onclick="viewReviewedSubmission(${s.id})" title="View Details">
+                    <i class="fas fa-eye"></i>
+                </button>
+            </td>
         </tr>
     `).join('');
 }
@@ -527,12 +787,21 @@ window.unlockSubmission = function (id) {
     });
 };
 
-// Override closeModal to handle unlocking
+// Override closeModal to handle unlocking and read-only cleanup
 const originalCloseModal = window.closeModal;
 window.closeModal = function (modalId) {
-    if (modalId === 'reviewModal' && currentSubmissionId) {
-        unlockSubmission(currentSubmissionId);
-        currentSubmissionId = null;
+    if (modalId === 'reviewModal') {
+        if (isReadOnlyReview) {
+            // Restore footer and remove read-only banner
+            isReadOnlyReview = false;
+            const footer = document.querySelector('.modal-footer-premium');
+            if (footer) footer.style.display = '';
+            const banner = document.getElementById('readOnlyBanner');
+            if (banner) banner.remove();
+        } else if (currentSubmissionId) {
+            unlockSubmission(currentSubmissionId);
+            currentSubmissionId = null;
+        }
     }
     originalCloseModal(modalId);
 };

@@ -86,6 +86,10 @@ class Beneficiary(db.Model):
                 'province': self.province,
                 'region': self.region
             },
+            'barangay': self.barangay,
+            'municipality': self.municipality,
+            'province': self.province,
+            'region': self.region,
             'mobile_number': self.mobile_number,
             'photo_path': self.photo_path,
             'educational_attainment': self.educational_attainment,

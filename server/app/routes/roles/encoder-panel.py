@@ -332,6 +332,8 @@ def export_submissions_csv():
     # ── Get Filter Parameters ──────────
     status = request.args.get('status')
     search = request.args.get('search', '').strip().lower()
+    form_type = request.args.get('form_type')
+    barangay = request.args.get('barangay')
     
     # ── Query Submissions (exclude soft-deleted) ──────────
     query = Registration.query.filter(Registration.encoded_by == current_user.id, Registration.is_deleted == False)
@@ -343,16 +345,23 @@ def export_submissions_csv():
         else:
             query = query.filter_by(status=status)
             
+    if form_type and form_type != 'All Forms':
+        query = query.filter(Registration.form_type == form_type)
+            
     submissions = query.all()
     
-    # ── Filter by Search (done in memory if searching by name) ──────────
-    if search:
+    # ── Filter by Search & Locality (done in memory for consistency) ──────────
+    if search or barangay:
         filtered = []
         for s in submissions:
             ben = Beneficiary.query.get(s.beneficiary_id)
             name = f"{ben.first_name} {ben.last_name}".lower() if ben else ""
-            form_type = s.form_type.lower()
-            if search in name or search in form_type or search in s.status.lower():
+            b_brgy = (ben.barangay or "").lower() if ben else ""
+            
+            matches_search = not search or (search in name or search in s.form_type.lower() or search in s.status.lower() or search in b_brgy)
+            matches_brgy = not barangay or (b_brgy == barangay.lower())
+            
+            if matches_search and matches_brgy:
                 filtered.append(s)
         submissions = filtered
     
