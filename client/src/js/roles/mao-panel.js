@@ -6,6 +6,18 @@
 let allRegistrations = [];
 let allBeneficiaries = [];
 
+// ── Pagination State ──
+let regPage = 1;
+let regPageSize = 25;
+let benPage = 1;
+let benPageSize = 25;
+let currentFilteredRegs = [];
+let currentFilteredBens = [];
+
+// ── Sort State ──
+let regSortCol = null;  // 'name' | 'type' | 'status' | 'date'
+let regSortDir = 'asc'; // 'asc' | 'desc'
+
 // Track custom dropdown state
 let _brgyState = {
     brgyDropdownRegistrations: '',
@@ -21,6 +33,8 @@ document.addEventListener('DOMContentLoaded', function () {
     setupSearchAndFilters();
     loadTrashCount();
     initMAOSockets();
+    initSortHeaders();
+    initSelectAll();
 
     // Close dropdowns when clicking outside
     document.addEventListener('click', function (e) {
@@ -234,7 +248,11 @@ function applyFilters() {
 
         return matchesTerm && matchesStatus && matchesType && matchesBarangay;
     });
-    renderRegistrations(filtered);
+
+    // Apply current sort
+    currentFilteredRegs = applySortToRegs(filtered);
+    regPage = 1; // Reset to first page on any filter change
+    renderRegistrationPage();
 }
 
 function applyBeneficiaryFilters() {
@@ -261,7 +279,10 @@ function applyBeneficiaryFilters() {
 
         return matchesTerm && matchesBarangay;
     });
-    renderBeneficiaries(filtered);
+
+    currentFilteredBens = filtered;
+    benPage = 1; // Reset to page 1 on filter change
+    renderBeneficiaryPage();
 }
 
 
@@ -328,6 +349,15 @@ function loadAnalytics() {
             if (data.success) {
                 renderCharts(data.analytics);
                 populateAnalyticsKPIs(data.analytics);
+
+                // Update "Last Updated" timestamp
+                const lastUpdatedEl = document.getElementById('analyticsLastUpdated');
+                if (lastUpdatedEl) {
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    lastUpdatedEl.textContent = `Updated ${timeStr}`;
+                    lastUpdatedEl.title = `Data last fetched at ${now.toLocaleString()}`;
+                }
             }
         })
         .catch(error => console.error('Error loading analytics:', error));
@@ -868,9 +898,20 @@ function loadBeneficiaries(isBackground = false) {
 
 
 
+/**
+ * Renders beneficiaries page slice and updates count badge.
+ */
 function renderBeneficiaries(list) {
     const tbody = document.getElementById('beneficiariesTableBody');
     if (!tbody) return;
+
+    // Update count badge
+    const countBadge = document.getElementById('benResultCount');
+    if (countBadge) {
+        countBadge.textContent = list.length !== allBeneficiaries.length
+            ? `${list.length} of ${allBeneficiaries.length}`
+            : `${list.length}`;
+    }
 
     if (!list.length) {
         tbody.innerHTML = `
@@ -904,6 +945,35 @@ function renderBeneficiaries(list) {
             </tr>
         `;
     }).join('');
+}
+
+/**
+ * Renders the current page of beneficiaries (paginated slice of currentFilteredBens).
+ */
+function renderBeneficiaryPage() {
+    const total = currentFilteredBens.length;
+    const totalPages = Math.max(1, Math.ceil(total / benPageSize));
+    benPage = Math.min(benPage, totalPages);
+
+    const start = (benPage - 1) * benPageSize;
+    const pageSlice = currentFilteredBens.slice(start, start + benPageSize);
+    renderBeneficiaries(pageSlice);
+
+    // Build pagination bar (placed after the table container)
+    const tableContainer = document.getElementById('beneficiariesTableBody')?.closest('.table-container');
+    if (tableContainer) {
+        let bar = tableContainer.parentElement.querySelector('.pagination-bar.ben-bar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'pagination-bar ben-bar';
+            tableContainer.parentElement.appendChild(bar);
+        }
+        bar.innerHTML = buildPaginationHTML(benPage, totalPages, total, benPageSize, start,
+            (p) => { benPage = p; renderBeneficiaryPage(); },
+            (sz) => { benPageSize = sz; benPage = 1; renderBeneficiaryPage(); },
+            'ben'
+        );
+    }
 }
 
 /**
@@ -995,7 +1065,7 @@ window.viewBeneficiary = function (id) {
 // ── Registrations Table ──
 function loadRegistrations(isBackground = false) {
     const tbody = document.getElementById('registrationsTableBody');
-    if (tbody && !isBackground) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+    if (tbody && !isBackground) tbody.innerHTML = '<tr><td colspan="7"><div class="loading-spinner"></div></td></tr>';
 
     fetch('/mao/api/registrations', { credentials: 'include' })
         .then(response => response.json())
@@ -1008,17 +1078,30 @@ function loadRegistrations(isBackground = false) {
         })
         .catch(error => {
             console.error('Error loading registrations:', error);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load registrations</td></tr>';
+            if (tbody) tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load registrations</td></tr>';
         });
 }
 
+/**
+ * Renders a page slice of the registrations list.
+ * Includes: checkbox column (verified rows), always-visible View button,
+ * Print button for approved rows, result count badge, and pagination bar.
+ */
 function renderRegistrations(list) {
     const tbody = document.getElementById('registrationsTableBody');
     if (!tbody) return;
 
+    // Update result count badge
+    const countBadge = document.getElementById('regResultCount');
+    if (countBadge) {
+        countBadge.textContent = list.length !== allRegistrations.length
+            ? `${list.length} of ${allRegistrations.length}`
+            : `${list.length}`;
+    }
+
     if (!list.length) {
         tbody.innerHTML = `
-            <tr><td colspan="6">
+            <tr><td colspan="7">
                 <div class="empty-state">
                     <i class="fas fa-clipboard-list"></i>
                     <p>No registrations found</p>
@@ -1027,8 +1110,31 @@ function renderRegistrations(list) {
         return;
     }
 
-    tbody.innerHTML = list.map(r => `
+    tbody.innerHTML = list.map(r => {
+        // Checkbox: only for 'verified' rows (ready for MAO review + bulk approve)
+        const checkboxCell = r.status === 'verified'
+            ? `<td class="col-select"><input type="checkbox" class="reg-row-checkbox" data-id="${r.id}" onchange="updateBulkApproveBtn()"></td>`
+            : `<td class="col-select"></td>`;
+
+        // View button: always present for all rows
+        const viewBtn = `<button class="btn btn-primary btn-sm" onclick="viewRegistration(${r.id})" title="View Details">
+                <i class="fas fa-eye"></i>
+            </button>`;
+
+        // Print button: only for approved rows
+        const printBtn = r.status === 'approved'
+            ? `<button class="btn btn-secondary btn-sm print-btn" onclick="printRegistration(${r.id})" title="Print Form">
+                <i class="fas fa-print"></i>
+            </button>`
+            : '';
+
+        const deleteBtn = `<button class="btn btn-danger btn-sm" onclick="softDeleteRegistration(${r.id})" title="Move to Trash">
+            <i class="fas fa-trash-alt"></i>
+        </button>`;
+
+        return `
             <tr data-id="${r.id}" class="${r.status === 'verified' ? 'highlight-row' : ''}">
+                ${checkboxCell}
                 <td>
                     <div style="font-weight: 600; color: var(--text-dark); margin-bottom: 2px;">${r.beneficiary_name}</div>
                 </td>
@@ -1038,24 +1144,255 @@ function renderRegistrations(list) {
                 <td style="color:var(--text-light);font-size:0.85rem">${formatDate(r.created_at)}</td>
                 <td>
                     <div style="display: flex; gap: 0.5rem; align-items: center;">
-                        ${r.status !== 'approved' ? `
-                            <button class="btn btn-primary btn-sm" onclick="viewRegistration(${r.id})" title="Review Submission">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        ` : `
-                            <button class="btn btn-secondary btn-sm print-btn" onclick="printRegistration(${r.id})" title="Print Form">
-                                <i class="fas fa-print"></i>
-                            </button>
-                        `}
-                        <button class="btn btn-danger btn-sm" onclick="softDeleteRegistration(${r.id})" title="Move to Trash">
-                            <i class="fas fa-trash-alt"></i>
-                        </button>
+                        ${viewBtn}
+                        ${printBtn}
+                        ${deleteBtn}
                     </div>
                 </td>
             </tr>
-        `
-    ).join('');
+        `;
+    }).join('');
+
+    // Reset select-all checkbox state after re-render
+    const selectAll = document.getElementById('selectAllRegs');
+    if (selectAll) selectAll.checked = false;
+    updateBulkApproveBtn();
 }
+
+/**
+ * Renders the current page of registrations (paginated slice of currentFilteredRegs).
+ */
+function renderRegistrationPage() {
+    const total = currentFilteredRegs.length;
+    const totalPages = Math.max(1, Math.ceil(total / regPageSize));
+    regPage = Math.min(regPage, totalPages);
+
+    const start = (regPage - 1) * regPageSize;
+    const pageSlice = currentFilteredRegs.slice(start, start + regPageSize);
+    renderRegistrations(pageSlice);
+
+    // Build pagination bar
+    const tableContainer = document.getElementById('registrationsTableBody')?.closest('.table-container');
+    if (tableContainer) {
+        let bar = tableContainer.parentElement.querySelector('.pagination-bar.reg-bar');
+        if (!bar) {
+            bar = document.createElement('div');
+            bar.className = 'pagination-bar reg-bar';
+            tableContainer.parentElement.appendChild(bar);
+        }
+        bar.innerHTML = buildPaginationHTML(regPage, totalPages, total, regPageSize, start,
+            (p) => { regPage = p; renderRegistrationPage(); },
+            (sz) => { regPageSize = sz; regPage = 1; renderRegistrationPage(); },
+            'reg'
+        );
+    }
+}
+
+/**
+ * Builds the pagination bar HTML.
+ * @param {number} page - current page (1-indexed)
+ * @param {number} totalPages
+ * @param {number} total - total items in filtered set
+ * @param {number} pageSize - current rows per page
+ * @param {number} start - start index of current slice
+ * @param {Function} onPage - called with new page number
+ * @param {Function} onSize - called with new page size
+ * @param {string} prefix - 'reg' or 'ben' to namespace event handlers
+ */
+function buildPaginationHTML(page, totalPages, total, pageSize, start, onPage, onSize, prefix) {
+    window[`_pagOnPage_${prefix}`] = onPage;
+    window[`_pagOnSize_${prefix}`] = onSize;
+
+    const end = Math.min(start + pageSize, total);
+    const infoText = total === 0 ? 'No results' : `Showing ${start + 1}–${end} of ${total}`;
+
+    // Page buttons: show at most 5 around current page
+    let pageButtons = '';
+    const maxVisible = 5;
+    let rangeStart = Math.max(1, page - Math.floor(maxVisible / 2));
+    let rangeEnd = Math.min(totalPages, rangeStart + maxVisible - 1);
+    if (rangeEnd - rangeStart < maxVisible - 1) rangeStart = Math.max(1, rangeEnd - maxVisible + 1);
+
+    for (let p = rangeStart; p <= rangeEnd; p++) {
+        pageButtons += `<button class="pagination-btn${p === page ? ' active' : ''}" onclick="window['_pagOnPage_${prefix}'](${p})">${p}</button>`;
+    }
+
+    return `
+        <div class="pagination-info">${infoText}</div>
+        <div class="pagination-controls">
+            <select class="pagination-size-select" onchange="window['_pagOnSize_${prefix}'](parseInt(this.value))" title="Rows per page">
+                ${[25, 50, 100].map(sz => `<option value="${sz}"${sz === pageSize ? ' selected' : ''}>${sz} / page</option>`).join('')}
+            </select>
+            <button class="pagination-btn" onclick="window['_pagOnPage_${prefix}'](${page - 1})" ${page <= 1 ? 'disabled' : ''} title="Previous page">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            ${pageButtons}
+            <button class="pagination-btn" onclick="window['_pagOnPage_${prefix}'](${page + 1})" ${page >= totalPages ? 'disabled' : ''} title="Next page">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    `;
+}
+
+// ════════════════════════════════════════════════════
+// Column Sort — Registrations Table
+// ════════════════════════════════════════════════════
+
+/**
+ * Returns the 'value' string used for sorting a registration by a given column.
+ */
+function getSortValue(r, col) {
+    switch (col) {
+        case 'name':   return (r.beneficiary_name || '').toLowerCase();
+        case 'type':   return (r.form_type || '').toLowerCase();
+        case 'status': return (r.status || '').toLowerCase();
+        case 'date':   return r.created_at || '';
+        default:       return '';
+    }
+}
+
+/**
+ * Sorts an array of registrations by the current global sort state.
+ */
+function applySortToRegs(list) {
+    if (!regSortCol) return list;
+    return [...list].sort((a, b) => {
+        const va = getSortValue(a, regSortCol);
+        const vb = getSortValue(b, regSortCol);
+        const cmp = va < vb ? -1 : va > vb ? 1 : 0;
+        return regSortDir === 'asc' ? cmp : -cmp;
+    });
+}
+
+/**
+ * Attaches click listeners to sortable <th> elements.
+ * Updates arrow icons and re-renders the current page.
+ */
+function initSortHeaders() {
+    document.querySelectorAll('th.sortable').forEach(th => {
+        th.addEventListener('click', () => {
+            const col = th.dataset.sort;
+            if (regSortCol === col) {
+                regSortDir = regSortDir === 'asc' ? 'desc' : 'asc';
+            } else {
+                regSortCol = col;
+                regSortDir = 'asc';
+            }
+
+            // Update all sort icons
+            document.querySelectorAll('th.sortable').forEach(t => {
+                t.classList.remove('asc', 'desc');
+                const icon = t.querySelector('.sort-icon');
+                if (icon) icon.className = 'fas fa-sort sort-icon';
+            });
+
+            th.classList.add(regSortDir);
+            const icon = th.querySelector('.sort-icon');
+            if (icon) icon.className = `fas fa-sort-${regSortDir === 'asc' ? 'up' : 'down'} sort-icon`;
+
+            // Re-sort and re-render
+            currentFilteredRegs = applySortToRegs(currentFilteredRegs);
+            renderRegistrationPage();
+        });
+    });
+}
+
+// ════════════════════════════════════════════════════
+// Bulk Select — Checkbox Logic
+// ════════════════════════════════════════════════════
+
+/**
+ * Wires up the "Select All" header checkbox.
+ */
+function initSelectAll() {
+    const selectAll = document.getElementById('selectAllRegs');
+    if (!selectAll) return;
+    selectAll.addEventListener('change', function () {
+        document.querySelectorAll('.reg-row-checkbox').forEach(cb => {
+            cb.checked = this.checked;
+        });
+        updateBulkApproveBtn();
+    });
+}
+
+/**
+ * Shows/hides the bulk approve button based on checkbox selection count.
+ */
+function updateBulkApproveBtn() {
+    const count = document.querySelectorAll('.reg-row-checkbox:checked').length;
+    const btn = document.getElementById('bulkApproveBtn');
+    if (btn) {
+        btn.style.display = count > 0 ? '' : 'none';
+        if (count > 0) btn.innerHTML = `<i class="fas fa-check-double"></i> Approve ${count} Selected`;
+    }
+    // Also update the select-all indeterminate state
+    const selectAll = document.getElementById('selectAllRegs');
+    if (selectAll) {
+        const total = document.querySelectorAll('.reg-row-checkbox').length;
+        selectAll.indeterminate = count > 0 && count < total;
+        selectAll.checked = total > 0 && count === total;
+    }
+}
+
+/**
+ * Collects all checked verified-row IDs and POSTs a bulk-review request.
+ * Called by the "Approve Selected" button in the HTML.
+ */
+window.bulkMAOAction = async function (status) {
+    const ids = [...document.querySelectorAll('.reg-row-checkbox:checked')]
+        .map(cb => parseInt(cb.dataset.id))
+        .filter(id => !isNaN(id));
+
+    if (!ids.length) {
+        showToast('No registrations selected.', 'warning');
+        return;
+    }
+
+    const actionLabel = status === 'approved' ? 'approve' : 'reject';
+    const result = await Swal.fire({
+        title: `Bulk ${actionLabel.charAt(0).toUpperCase() + actionLabel.slice(1)}?`,
+        html: `You are about to <strong>${actionLabel}</strong> <strong>${ids.length}</strong> registration(s). This action cannot be easily undone.`,
+        icon: status === 'approved' ? 'question' : 'warning',
+        showCancelButton: true,
+        confirmButtonColor: status === 'approved' ? '#10b981' : '#ef4444',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: `Yes, ${actionLabel} all`,
+        cancelButtonText: 'Cancel'
+    });
+
+    if (!result.isConfirmed) return;
+
+    const btn = document.getElementById('bulkApproveBtn');
+    const originalHtml = btn ? btn.innerHTML : '';
+    if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...'; }
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+
+    try {
+        const response = await fetch('/mao/api/registrations/bulk-review', {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': csrfToken
+            },
+            body: JSON.stringify({ ids, status, remarks: 'Bulk action by MAO' })
+        });
+        const data = await response.json();
+        if (data.success) {
+            showToast(`${ids.length} registration(s) ${status} successfully.`, 'success');
+            loadStats();
+            loadRegistrations();
+        } else {
+            showToast(data.message || 'Bulk action failed.', 'error');
+        }
+    } catch (err) {
+        console.error('Bulk review error:', err);
+        showToast('Network error during bulk action.', 'error');
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
+    }
+};
 
 // ── Enhanced Review Modal Tabs & Logic ──
 let reviewMap = null;
