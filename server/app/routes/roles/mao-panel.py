@@ -730,3 +730,21 @@ def permanent_delete(rid):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+@mao_bp.route('/beneficiary/<int:bid>/id-card', methods=['GET'])
+@mao_required
+def get_beneficiary_id_card(bid):
+    """Render the Print-Ready Digital ID Blueprint for Beneficiary"""
+    muni = current_user.municipality
+    muni_filter = db.or_(
+        Beneficiary.municipality.ilike(f"%{muni}%"),
+        User.municipality.ilike(f"%{muni}%"),
+        Beneficiary.municipality.ilike("%Laguna%") if muni.lower() == "mabitac" else False
+    )
+    
+    beneficiary = Beneficiary.query.filter(Beneficiary.id == bid, muni_filter).first()
+    if not beneficiary:
+        return "Beneficiary not found or unauthorized access", 404
+        
+    return render_template('id_card/id-card.html', beneficiary=beneficiary)
+

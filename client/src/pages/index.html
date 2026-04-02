@@ -1,5 +1,11 @@
-{% extends "base.html" %} {% block title %}Farm Connect World - Transform Your
-Agricultural Journey{% endblock %} {% block content %}
+{% extends "base.html" %}
+{% block title %}Farm Connect World - Transform Your Agricultural Journey{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/nfc_qr_feature/scanner.css') }}" />
+{% endblock %}
+
+{% block content %}
 <!-- Hero Section -->
 <section id="home" class="hero">
     <div class="container">
@@ -17,7 +23,7 @@ Agricultural Journey{% endblock %} {% block content %}
                 mapping, and real-time analytics.
             </p>
             <div class="hero-buttons animate-fade-delay-2">
-                <a href="#features" class="btn btn-primary">Scan NFC / QR Code<i
+                <a href="#features" id="scanNfcQrBtn" class="btn btn-primary">Scan NFC / QR Code<i
                         class="fas fa-arrow-right"></i></a>
                 <a href="#about" class="btn btn-outline">Discover More</a>
             </div>
@@ -1084,9 +1090,99 @@ Agricultural Journey{% endblock %} {% block content %}
         <div class="banner-dots" id="resourceBannerDots"></div>
     </div>
 </section>
+
+<!-- Scanner Modal -->
+<div id="scannerModal" class="scanner-modal">
+    <div class="scanner-modal-content">
+        <div class="scanner-modal-header">
+            <h3><i class="fas fa-expand"></i> Scan & Verify</h3>
+            <button class="scanner-modal-close" id="scannerModalClose"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="scanner-modal-body">
+            
+            <div class="scanner-methods">
+                <button class="scanner-method-btn active" id="btn-method-qr">
+                    <i class="fas fa-qrcode"></i> Scan QR Code
+                </button>
+                <button class="scanner-method-btn" id="btn-method-nfc">
+                    <i class="fas fa-wifi"></i> Tap NFC Card
+                </button>
+            </div>
+
+            <div id="qr-view-area" class="scanner-view-area active">
+                <div id="qr-reader"></div>
+                <p class="qr-instructions">Position the QR code within the frame to scan.</p>
+            </div>
+
+            <div id="nfc-view-area" class="scanner-view-area">
+                <div class="nfc-tap-container">
+                    <div class="nfc-animation">
+                        <div class="pulse-ring"></div>
+                        <div class="pulse-ring"></div>
+                        <i class="fas fa-id-card nfc-icon"></i>
+                    </div>
+                    <div id="nfc-status-text" class="nfc-status-text">Ready to Scan</div>
+                    <div id="nfc-sub-text" class="nfc-sub-text">Hold your NFC-enabled ID card near the back of your device.</div>
+                </div>
+            </div>
+
+            <div id="scanner-loader" class="scanner-loader">
+                <i class="fas fa-spinner fa-spin fa-3x"></i>
+                <p style="margin-top: 15px; font-weight: 500;">Retrieving Beneficiary Data...</p>
+            </div>
+
+            <div id="scanner-result">
+                <div class="beneficiary-card">
+                    <div class="beneficiary-header">
+                        <div class="b-avatar" id="r-photo"></div>
+                        <div class="b-title">
+                            <h4 id="r-name">--</h4>
+                            <p>ID: <span id="r-rsbsa">--</span></p>
+                        </div>
+                    </div>
+                    <div class="b-details-grid">
+                        <div class="b-info-item">
+                            <span class="b-info-label">Date of Birth</span>
+                            <span class="b-info-value" id="r-dob">--</span>
+                        </div>
+                        <div class="b-info-item">
+                            <span class="b-info-label">Gender</span>
+                            <span class="b-info-value" id="r-gender">--</span>
+                        </div>
+                        <div class="b-info-item">
+                            <span class="b-info-label">Contact</span>
+                            <span class="b-info-value" id="r-contact">--</span>
+                        </div>
+                        <div class="b-info-item">
+                            <span class="b-info-label">Address</span>
+                            <span class="b-info-value" id="r-address">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="b-registrations">
+                    <h5><i class="fas fa-file-alt"></i> Records & Interventions</h5>
+                    <div class="reg-list" id="r-registrations-list">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn-scan-again" id="btn-scan-again">
+                        <i class="fas fa-redo"></i> Scan Another
+                    </button>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block scripts %}
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script src="{{ url_for('static', filename='js/nfc_qr_feature/scanner.js') }}"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <!-- Leaflet JS for Map -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />

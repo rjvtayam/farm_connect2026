@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Beneficiary ID Card - {{ beneficiary.first_name }} {{ beneficiary.last_name }}</title>
+    
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='fontawesome/css/all.min.css') }}">
+    
+    <!-- ID Card Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/id_card/id-card.css') }}">
+    
+    <!-- QR Code Generator JS -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body data-layout="vertical">
+
+    <!-- Controls (Hidden during print) -->
+    <div class="print-controls no-print">
+        <div class="controls-container">
+            <div class="controls-header">
+                <h2><i class="fas fa-id-badge" style="color: #10b981;"></i> ID Card Preview</h2>
+            </div>
+            
+            <div class="print-actions">
+                <div class="layout-toggle">
+                    <button class="btn toggle-btn" id="btn-vertical" onclick="switchLayout('vertical')">
+                        <i class="fas fa-portrait"></i> Vertical
+                    </button>
+                    <button class="btn toggle-btn" id="btn-horizontal" onclick="switchLayout('horizontal')">
+                        <i class="fas fa-images"></i> Horizontal
+                    </button>
+                </div>
+                
+                <button class="btn btn-print" onclick="window.print()">
+                    <i class="fas fa-print"></i> Print ID Card
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ID Card Container -->
+    <div class="id-print-area">
+        <!-- The actual card -->
+        <div class="id-card" id="idCard">
+            <!-- Glassmorphism Container to boost contrast over gradient orbs -->
+            <div class="id-glass-panel" style="width:100%; height:100%; display:flex; flex-direction: inherit; box-sizing: border-box; border-radius: inherit; z-index: 2;">
+            
+                <!-- Header section mapping to layout -->
+                <div class="id-card-header">
+                    <img src="{{ url_for('public.static', filename='FARM CONNECT LOGO/sample_logo.png') }}" class="id-logo" alt="FarmConnect Logo">
+                    <div class="id-header-text">
+                        <h3>FARM CONNECT</h3>
+                        <p>MUNI. OF {{ beneficiary.municipality|upper }}</p>
+                    </div>
+                </div>
+
+                <!-- Main Body -->
+                <div class="id-card-body">
+                    <div class="id-photo-wrapper">
+                        <div class="id-photo-container">
+                            {% if beneficiary.avatar_url %}
+                                <img src="{{ beneficiary.avatar_url }}" alt="Photo" class="id-photo">
+                            {% else %}
+                                <div class="id-photo-placeholder"><i class="fas fa-user-tie"></i></div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="id-details">
+                        <h2 class="id-name">{{ beneficiary.first_name|upper }} {{ beneficiary.last_name|upper }}</h2>
+                        <p class="id-role">REGISTERED BENEFICIARY</p>
+                        
+                        <div class="id-info-grid">
+                            <div class="id-info-item" style="grid-column: span 2;">
+                                <span class="info-label">RSBSA Ref ID:</span>
+                                <span class="info-value rsbsa-format">{{ beneficiary.rsbsa_id or 'NOT GENERATED' }}</span>
+                            </div>
+                            <div class="id-info-item" style="grid-column: span 2;">
+                                <span class="info-label">Address:</span>
+                                <span class="info-value">BRGY. {{ beneficiary.barangay|upper }}</span>
+                            </div>
+                            <div class="id-info-item">
+                                <span class="info-label">DOB:</span>
+                                <span class="info-value">{{ beneficiary.address.get('dob', 'N/A') if beneficiary.address else 'N/A' }}</span>
+                            </div>
+                            <div class="id-info-item">
+                                <span class="info-label">Gender:</span>
+                                <span class="info-value">{{ beneficiary.sex|upper if beneficiary.sex else 'N/A' }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer / QR Base -->
+                <div class="id-card-footer">
+                    <div class="qr-container">
+                        <div id="qrcode"></div>
+                    </div>
+                    <div class="footer-signatures">
+                        <div class="sig-line">
+                            <div class="sig-space"></div>
+                            <span>Beneficiary Signature</span>
+                        </div>
+                        <div class="sig-line">
+                            <div class="sig-space"></div>
+                            <span>Agriculture Office Auth</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="id-card-strip"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Data for JS -->
+    <script>
+        const rsbsaId = "{{ beneficiary.rsbsa_id or beneficiary.id }}";
+    </script>
+    <script src="{{ url_for('static', filename='js/id_card/id-card.js') }}"></script>
+</body>
+</html>

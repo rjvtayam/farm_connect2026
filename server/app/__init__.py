@@ -65,6 +65,7 @@ def create_app(config_name='development'):
     from app.routes.forms import forms_bp
     from app.routes.community import community_bp
     from app.routes.auth.community_auth import community_auth_bp
+    from app.routes.nfc_qr_feature.scanner import scanner_bp
     from flask import Blueprint
     
     # Register public folder as static asset source
@@ -88,6 +89,7 @@ def create_app(config_name='development'):
     app.register_blueprint(forms_bp, url_prefix='/forms')
     app.register_blueprint(community_bp, url_prefix='/community')
     app.register_blueprint(community_auth_bp, url_prefix='/auth')
+    app.register_blueprint(scanner_bp, url_prefix='/api/scanner')
     
     # Error handlers
     @app.errorhandler(404)

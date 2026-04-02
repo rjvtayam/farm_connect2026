@@ -940,6 +940,9 @@ function renderBeneficiaries(list) {
                         <button class="btn btn-primary btn-sm" onclick="viewBeneficiary(${b.id})" title="View Details">
                             <i class="fas fa-eye"></i> View
                         </button>
+                        <button class="btn btn-secondary btn-sm" style="background:#0f172a; color:white; border:none;" onclick="generatePrintableId(${b.id})" title="Print Digital ID">
+                            <i class="fas fa-id-badge"></i> Print ID
+                        </button>
                     </div>
                 </td>
             </tr>
@@ -1060,6 +1063,15 @@ window.viewBeneficiary = function (id) {
             console.error('Error finding registration for beneficiary:', err);
             showToast('Failed to load records.', 'error');
         });
+};
+
+/**
+ * Opens a new window with the Print-Ready Digital ID blueprint.
+ */
+window.generatePrintableId = function (id) {
+    if (!id) return;
+    const url = `/mao/beneficiary/${id}/id-card`;
+    window.open(url, '_blank', 'width=800,height=600,menubar=no,toolbar=no,location=no,status=no');
 };
 
 // ── Registrations Table ──
