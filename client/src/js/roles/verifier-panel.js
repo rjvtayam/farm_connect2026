@@ -1364,6 +1364,11 @@ function processGeoJson(data) {
 
         // Sync with global state for submission
         currentGeoJSON = JSON.stringify(data);
+        
+        // CRITICAL: Update parcelGeoMap so it's actually saved to DB
+        const idx = activeParcelIndex !== -1 ? activeParcelIndex : 0;
+        parcelGeoMap[idx] = data;
+        
         showFlashMessage('GeoJSON data imported & plotted.', 'success');
     }
 }
@@ -1387,7 +1392,13 @@ function processGpx(xmlString) {
         updateGisFields(center.lat, center.lng);
 
         // Sync with global state
-        currentGeoJSON = JSON.stringify(poly.toGeoJSON());
+        const geo = poly.toGeoJSON();
+        currentGeoJSON = JSON.stringify(geo);
+        
+        // CRITICAL: Update parcelGeoMap so it's actually saved to DB
+        const idx = activeParcelIndex !== -1 ? activeParcelIndex : 0;
+        parcelGeoMap[idx] = geo;
+
         showFlashMessage(`Imported ${points.length} points from GPX.`, 'success');
     } else {
         showFlashMessage('No coordinates found in GPX file.', 'warning');
@@ -1413,7 +1424,13 @@ function processKml(xmlString) {
             updateGisFields(center.lat, center.lng);
 
             // Sync with global state
-            currentGeoJSON = JSON.stringify(poly.toGeoJSON());
+            const geo = poly.toGeoJSON();
+            currentGeoJSON = JSON.stringify(geo);
+
+            // CRITICAL: Update parcelGeoMap so it's actually saved to DB
+            const idx = activeParcelIndex !== -1 ? activeParcelIndex : 0;
+            parcelGeoMap[idx] = geo;
+
             showFlashMessage('KML coordinates imported.', 'success');
             return;
         }
