@@ -557,7 +557,7 @@ def activity_feed():
         recent = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
             Beneficiary.municipality == muni,
             Registration.is_deleted == False
-        ).order_by(desc(Registration.created_at)).limit(10).all()
+        ).order_by(desc(Registration.updated_at)).limit(10).all()
         
         for r in recent:
             ben = Beneficiary.query.get(r.beneficiary_id)
@@ -566,7 +566,7 @@ def activity_feed():
             act_type = 'success' if r.status == 'approved' else ('warning' if r.status == 'pending' else 'danger')
             activities.append({
                 'message': f'{name} — {r.form_type.upper()} ({r.status})',
-                'timestamp': r.created_at.isoformat() if r.created_at else None,
+                'timestamp': r.updated_at.isoformat() if r.updated_at else (r.created_at.isoformat() if r.created_at else None),
                 'type': act_type
             })
     except Exception:

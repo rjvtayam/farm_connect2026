@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Real-time polling: refresh data every 15 seconds ──
     setInterval(() => {
         loadStats();
-        loadSubmissions();
+        loadSubmissions(true); // background refresh — preserve filters & page
     }, 15000);
 });
 
@@ -159,7 +159,7 @@ async function exportSubmissions() {
         }, 500);
     }
 }
-function applyFilters() {
+function applyFilters(resetPage = true) {
     const term = (document.getElementById('searchSubmissions')?.value || '').toLowerCase().trim();
     const status = (document.getElementById('filterStatus')?.value || '').toLowerCase();
     const type = (document.getElementById('filterType')?.value || '').toLowerCase();
@@ -191,7 +191,10 @@ function applyFilters() {
     filtered = applyEncoderSort(filtered);
 
     currentFilteredSubs = filtered;
-    subPage = 1;
+    if (resetPage) subPage = 1;
+    // Clamp page if current page exceeds total pages after filter
+    const totalPages = Math.max(1, Math.ceil(filtered.length / subPageSize));
+    if (subPage > totalPages) subPage = totalPages;
     renderSubmissionsPage();
 }
 
@@ -224,23 +227,22 @@ function loadStats() {
 
 
 // ── Submissions Table ──
-function loadSubmissions() {
+function loadSubmissions(isBackground = false) {
     const tbody = document.getElementById('submissionsTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+    if (tbody && !isBackground) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
 
     fetch('/encoder/api/submissions', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
             if (data.success) {
                 currentSubmissions = data.submissions;
-                currentFilteredSubs = currentSubmissions;
-                subPage = 1;
-                renderSubmissionsPage();
+                // Re-apply current filters (preserve page on background refresh)
+                applyFilters(!isBackground);
             }
         })
         .catch(error => {
             console.error('Error loading submissions:', error);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load submissions</td></tr>';
+            if (tbody && !isBackground) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load submissions</td></tr>';
         });
 }
 
@@ -646,37 +648,6 @@ window.editSubmission = function (id) {
 
 // ── Encoder Activity Feed ─────────────────────────────────────────────────────
 
-async function loadActivityFeed() {
-    const container = document.getElementById('activityFeedList');
-    if (!container) return;
-    try {
-        const res = await fetch('/encoder/api/activity-feed', { credentials: 'include' });
-        const data = await res.json();
-        if (data.success && data.activities.length > 0) {
-            container.innerHTML = data.activities.map(a => {
-                const timeAgo = a.timestamp ? formatDate(a.timestamp) : '';
-                const iconMap = { success: 'fa-check-circle', warning: 'fa-hourglass-half', danger: 'fa-times-circle' };
-                const colorMap = { success: '#10b981', warning: '#f59e0b', danger: '#ef4444' };
-                const icon = iconMap[a.type] || 'fa-circle';
-                const color = colorMap[a.type] || '#6b7280';
-                return `
-                <div class="activity-item" style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
-                    <div style="width:32px;height:32px;border-radius:50%;background:${color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas ${icon}" style="color:${color};font-size:0.85rem;"></i>
-                    </div>
-                    <div>
-                        <p style="margin:0;font-size:0.85rem;color:var(--text-dark);font-weight:500;">${a.message}</p>
-                        <span style="font-size:0.75rem;color:var(--text-light);">${timeAgo}</span>
-                    </div>
-                </div>`;
-            }).join('');
-        } else {
-            container.innerHTML = '<div class="activity-empty"><i class="fas fa-inbox"></i><p>No recent activity</p></div>';
-        }
-    } catch (e) {
-        container.innerHTML = '<div class="activity-empty"><i class="fas fa-exclamation-circle"></i><p>Could not load activity</p></div>';
-    }
-}
 
 // ── Form Viewer (inline iframe) ─────────────────────────────────────────────
 

@@ -551,7 +551,7 @@ def activity_feed():
         recent_regs = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
             muni_filter,
             Registration.is_deleted == False
-        ).order_by(desc(Registration.created_at)).limit(10).all()
+        ).order_by(desc(Registration.updated_at)).limit(10).all()
         
         for r in recent_regs:
             ben = Beneficiary.query.get(r.beneficiary_id)
@@ -566,7 +566,7 @@ def activity_feed():
 
             activities.append({
                 'message': message,
-                'timestamp': r.created_at.isoformat() if r.created_at else None,
+                'timestamp': r.updated_at.isoformat() if r.updated_at else (r.created_at.isoformat() if r.created_at else None),
                 'type': act_type
             })
     except Exception:

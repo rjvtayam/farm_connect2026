@@ -55,8 +55,8 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Real-time polling: refresh data every 15 seconds ──
     setInterval(() => {
         loadStats();
-        loadPendingSubmissions();
-        loadReviewedSubmissions();
+        loadPendingSubmissions(true);   // background refresh — preserve filters & page
+        loadReviewedSubmissions(true);  // background refresh — preserve filters & page
         loadActivityFeed();
     }, 15000);
 
@@ -189,7 +189,7 @@ function setupSearchAndFilters() {
     if (filterType) filterType.addEventListener('change', applyReviewedFilters);
 }
 
-function applyPendingFilters() {
+function applyPendingFilters(resetPage = true) {
     const term = (document.getElementById('searchPending')?.value || '').toLowerCase();
     const type = (document.getElementById('filterFormType')?.value || '').toLowerCase();
     const brgy = (document.getElementById('filterBrgyPending')?.value || '').toLowerCase();
@@ -205,11 +205,14 @@ function applyPendingFilters() {
 
     filtered = applyVerifierSort(filtered, pendingSortCol, pendingSortDir);
     currentFilteredPending = filtered;
-    pendingPage = 1;
+    if (resetPage) pendingPage = 1;
+    // Clamp page if current page exceeds total pages after filter
+    const totalPages = Math.max(1, Math.ceil(filtered.length / pendingPageSize));
+    if (pendingPage > totalPages) pendingPage = totalPages;
     renderPendingPage();
 }
 
-function applyReviewedFilters() {
+function applyReviewedFilters(resetPage = true) {
     const term = (document.getElementById('searchReviewed')?.value || '').toLowerCase();
     const status = (document.getElementById('filterStatus')?.value || '').toLowerCase();
     const type = (document.getElementById('filterType')?.value || '').toLowerCase();
@@ -225,7 +228,10 @@ function applyReviewedFilters() {
 
     filtered = applyVerifierSort(filtered, reviewedSortCol, reviewedSortDir);
     currentFilteredReviewed = filtered;
-    reviewedPage = 1;
+    if (resetPage) reviewedPage = 1;
+    // Clamp page if current page exceeds total pages after filter
+    const totalPages = Math.max(1, Math.ceil(filtered.length / reviewedPageSize));
+    if (reviewedPage > totalPages) reviewedPage = totalPages;
     renderReviewedPage();
 }
 
@@ -287,12 +293,14 @@ function loadStats() {
                 animateCount('pendingReview', data.stats.pending || 0);
                 animateCount('approvedToday', data.stats.verified || 0); // Repurpose "Approved Today" to show Verified items
                 animateCount('totalReviewed', data.stats.reviewed_today || 0);
+                animateCount('totalApproved', data.stats.approved || 0);
                 animateCount('rejectedCount', data.stats.rejected || 0);
 
                 if (data.trends) {
                     updateTrendBadge('pendingReviewTrend', data.trends.pending);
                     updateTrendBadge('approvedTodayTrend', data.trends.verified);
                     updateTrendBadge('totalReviewedTrend', data.trends.reviewed_today);
+                    updateTrendBadge('totalApprovedTrend', data.trends.approved);
                     updateTrendBadge('rejectedCountTrend', data.trends.rejected);
                 }
             }
@@ -305,9 +313,9 @@ function loadStats() {
 
 
 // ── Pending Submissions ──
-function loadPendingSubmissions() {
+function loadPendingSubmissions(isBackground = false) {
     const tbody = document.getElementById('pendingTableBody');
-    if (tbody) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+    if (tbody && !isBackground) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
 
     fetch('/verifier/api/submissions?status=pending', { credentials: 'include' })
         .then(response => response.json())
@@ -315,12 +323,12 @@ function loadPendingSubmissions() {
             if (data.success) {
                 allPendingSubmissions = data.submissions;
                 populateVerifierBrgyFilter();
-                applyPendingFilters(); // Use filtered render
+                applyPendingFilters(!isBackground); // preserve page on background refresh
             }
         })
         .catch(error => {
             console.error('Error loading pending:', error);
-            if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load submissions</td></tr>';
+            if (tbody && !isBackground) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load submissions</td></tr>';
         });
 }
 
@@ -384,37 +392,6 @@ function renderPendingTable(list, filteredCount, totalCount) {
 // Bulk Actions removed — verifiers must review submissions individually
 
 // ── Verifier Activity Feed ─────────────────────────────────────────────────────
-async function loadActivityFeed() {
-    const container = document.getElementById('activityFeedList');
-    if (!container) return;
-    try {
-        const res = await fetch('/verifier/api/activity-feed', { credentials: 'include' });
-        const data = await res.json();
-        if (data.success && data.activities.length > 0) {
-            container.innerHTML = data.activities.map(a => {
-                const timeAgo = a.timestamp ? formatDate(a.timestamp) : '';
-                const iconMap = { success: 'fa-check-circle', warning: 'fa-hourglass-half', danger: 'fa-times-circle' };
-                const colorMap = { success: '#10b981', warning: '#f59e0b', danger: '#ef4444' };
-                const icon = iconMap[a.type] || 'fa-circle';
-                const color = colorMap[a.type] || '#6b7280';
-                return `
-                <div class="activity-item" style="display:flex;align-items:flex-start;gap:0.75rem;padding:0.75rem 0;border-bottom:1px solid var(--border);">
-                    <div style="width:32px;height:32px;border-radius:50%;background:${color}20;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-                        <i class="fas ${icon}" style="color:${color};font-size:0.85rem;"></i>
-                    </div>
-                    <div>
-                        <p style="margin:0;font-size:0.85rem;color:var(--text-dark);font-weight:500;">${a.message}</p>
-                        <span style="font-size:0.75rem;color:var(--text-light);">${timeAgo}</span>
-                    </div>
-                </div>`;
-            }).join('');
-        } else {
-            container.innerHTML = '<div class="activity-empty"><i class="fas fa-inbox"></i><p>No recent activity</p></div>';
-        }
-    } catch (e) {
-        container.innerHTML = '<div class="activity-empty"><i class="fas fa-exclamation-circle"></i><p>Could not load activity</p></div>';
-    }
-}
 
 // ── Barangay Filter Population ─────────────────────────────────────────────────
 function populateVerifierBrgyFilter() {
@@ -662,10 +639,10 @@ async function handleFileDownload(response) {
 }
 
 // ── Reviewed Submissions (History) ──
-function loadReviewedSubmissions() {
+function loadReviewedSubmissions(isBackground = false) {
     const tbody = document.getElementById('reviewedTableBody');
     if (!tbody) return;
-    tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
+    if (!isBackground) tbody.innerHTML = '<tr><td colspan="6"><div class="loading-spinner"></div></td></tr>';
 
     // Fetch verified + approved + rejected
     Promise.all([
@@ -680,11 +657,11 @@ function loadReviewedSubmissions() {
                 ...(rejectedData.success ? rejectedData.submissions : [])
             ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-            applyReviewedFilters(); // Use filtered render
+            applyReviewedFilters(!isBackground); // preserve page on background refresh
         })
         .catch(error => {
             console.error('Error loading reviewed:', error);
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load history</td></tr>';
+            if (!isBackground) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-light)">Failed to load history</td></tr>';
         });
 }
 

@@ -296,7 +296,7 @@ def activity_feed():
         recent = Registration.query.filter(
             Registration.encoded_by == current_user.id,
             Registration.is_deleted == False
-        ).order_by(desc(Registration.created_at)).limit(10).all()
+        ).order_by(desc(Registration.updated_at)).limit(10).all()
         
         for r in recent:
             ben = Beneficiary.query.get(r.beneficiary_id)
@@ -309,7 +309,7 @@ def activity_feed():
             
             activities.append({
                 'message': f'Submitted {r.form_type.upper()} for {name} ({status_label})',
-                'timestamp': r.created_at.isoformat() if r.created_at else None,
+                'timestamp': r.updated_at.isoformat() if r.updated_at else (r.created_at.isoformat() if r.created_at else None),
                 'type': act_type
             })
     except Exception:
