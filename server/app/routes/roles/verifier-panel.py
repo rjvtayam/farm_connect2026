@@ -7,7 +7,8 @@ from flask_login import login_required, current_user
 import io
 import csv
 from datetime import datetime, timedelta
-from sqlalchemy import desc
+from sqlalchemy import desc, func
+import calendar as _cal
 
 from app.extensions import db, cache
 from app.models.registration import Registration, Beneficiary
@@ -108,6 +109,155 @@ def get_stats():
         }
     }
     cache.set(cache_key, result, timeout=300)
+    return jsonify(result)
+
+@verifier_bp.route('/api/analytics', methods=['GET'])
+@verifier_required
+def get_analytics():
+    """Get Verifier analytics scoped to municipality."""
+    import calendar as _cal
+    from sqlalchemy import func
+
+    muni = current_user.municipality
+
+    # ── Production Cache (10 min) ──
+    cache_key = f'verifier_analytics_{muni}'
+    cached = cache.get(cache_key)
+    if cached:
+        return jsonify(cached)
+
+    muni_filter = db.or_(
+        Beneficiary.municipality.ilike(f"%{muni}%"),
+        User.municipality.ilike(f"%{muni}%"),
+        Beneficiary.municipality.ilike("%Laguna%") if muni.lower() == "mabitac" else False
+    )
+
+    # ── Pipeline Status Distribution (all statuses, muni-wide) ──
+    pipeline_counts = db.session.query(
+        Registration.status, func.count(Registration.id)
+    ).join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter, Registration.is_deleted == False
+    ).group_by(Registration.status).all()
+
+    # ── Pending by Form Type (backlog insight) ──
+    pending_by_type = db.session.query(
+        Registration.form_type, func.count(Registration.id)
+    ).join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter,
+        Registration.status == 'pending',
+        Registration.is_deleted == False
+    ).group_by(Registration.form_type).all()
+
+    # ── Top Barangays with Pending Submissions (backlog) ──
+    pending_by_barangay = db.session.query(
+        Beneficiary.barangay, func.count(Beneficiary.id)
+    ).join(Registration, Registration.beneficiary_id == Beneficiary.id
+    ).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter,
+        Registration.status == 'pending',
+        Registration.is_deleted == False
+    ).group_by(Beneficiary.barangay
+    ).order_by(func.count(Beneficiary.id).desc()).limit(10).all()
+
+    # ── Monthly Reviews — how many this verifier reviewed per month (current year) ──
+    now = datetime.utcnow()
+    current_year   = now.year
+    last_year_val  = current_year - 1
+    current_year_start = datetime(current_year, 1, 1)
+    last_year_start    = datetime(last_year_val, 1, 1)
+    last_year_end      = datetime(last_year_val, 12, 31, 23, 59, 59)
+
+    # Current year: verified or rejected by this verifier
+    monthly_current_raw = db.session.query(
+        func.to_char(Registration.review_date, 'YYYY-MM'),
+        func.count(Registration.id)
+    ).filter(
+        Registration.verified_by == current_user.id,
+        Registration.review_date >= current_year_start,
+        Registration.is_deleted == False
+    ).group_by(func.to_char(Registration.review_date, 'YYYY-MM')).all()
+
+    # Last year
+    monthly_last_raw = db.session.query(
+        func.to_char(Registration.review_date, 'YYYY-MM'),
+        func.count(Registration.id)
+    ).filter(
+        Registration.verified_by == current_user.id,
+        Registration.review_date >= last_year_start,
+        Registration.review_date <= last_year_end,
+        Registration.is_deleted == False
+    ).group_by(func.to_char(Registration.review_date, 'YYYY-MM')).all()
+
+    cur_lookup      = {row[0]: row[1] for row in monthly_current_raw}
+    last_lookup     = {row[0]: row[1] for row in monthly_last_raw}
+    month_labels    = [_cal.month_abbr[m] for m in range(1, 13)]
+    current_arr     = [cur_lookup.get(f"{current_year}-{str(m).zfill(2)}", 0) for m in range(1, 13)]
+    last_arr        = [last_lookup.get(f"{last_year_val}-{str(m).zfill(2)}", 0) for m in range(1, 13)]
+
+    # ── KPI summary chips ──
+    raw_pipeline = dict(pipeline_counts)
+    total_muni   = sum(raw_pipeline.values())
+    pending_cnt  = raw_pipeline.get('pending', 0)
+    verified_cnt = raw_pipeline.get('verified', 0)
+    approved_cnt = raw_pipeline.get('approved', 0)
+    rejected_cnt = raw_pipeline.get('rejected', 0)
+
+    # This verifier's personal review count (all time, all statuses)
+    my_total_reviewed = Registration.query.filter(
+        Registration.verified_by == current_user.id,
+        Registration.is_deleted == False
+    ).count()
+
+    # Verified today
+    today = datetime.utcnow().date()
+    reviewed_today = Registration.query.filter(
+        Registration.verified_by == current_user.id,
+        db.func.date(Registration.review_date) == today,
+        Registration.is_deleted == False
+    ).count()
+
+    # ── Demographics (real data - counts of unique approved beneficiaries) ──
+    sex_counts = db.session.query(
+        Beneficiary.sex, func.count(Beneficiary.id)
+    ).join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(
+        muni_filter, Registration.status == 'approved'
+    ).group_by(Beneficiary.sex).all()
+
+    pwd_count     = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_pwd   == True).count()
+    four_ps_count = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_4ps  == True).count()
+    ip_count      = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Beneficiary.is_ip   == True).count()
+
+    result = {
+        'success': True,
+        'analytics': {
+            'pipeline':           raw_pipeline,
+            'pending_by_type':    dict(pending_by_type),
+            'pending_by_barangay': dict(pending_by_barangay),
+            'monthly': {
+                'month_labels': month_labels,
+                'current_year': str(current_year),
+                'last_year':    str(last_year_val),
+                'current_data': current_arr,
+                'last_data':    last_arr,
+            },
+            'kpi': {
+                'pending':          pending_cnt,
+                'verified':         verified_cnt,
+                'approved':         approved_cnt,
+                'rejected':         rejected_cnt,
+                'my_total_reviewed': my_total_reviewed,
+                'reviewed_today':   reviewed_today,
+                'total_muni':       total_muni,
+            },
+            'demographics': {
+                'sex':     dict(sex_counts),
+                'pwd':     pwd_count,
+                'four_ps': four_ps_count,
+                'ip':      ip_count,
+            }
+        }
+    }
+    cache.set(cache_key, result, timeout=600)
     return jsonify(result)
 
 @verifier_bp.route('/api/submissions', methods=['GET'])

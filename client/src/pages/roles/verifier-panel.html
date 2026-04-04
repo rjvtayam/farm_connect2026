@@ -66,6 +66,10 @@
                 <i class="fas fa-history"></i>
                 <span>Reviewed History</span>
             </a>
+            <a href="#analytics" class="nav-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Analytics</span>
+            </a>
             <a href="#settings" class="nav-item">
                 <i class="fas fa-sliders-h"></i>
                 <span>System Settings</span>
@@ -301,6 +305,106 @@
                             </table>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div id="analytics" class="content-section" style="display: none;">
+
+                <!-- Analytics Controls Bar -->
+                <div class="analytics-controls-bar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.75rem;margin-bottom:1.25rem;">
+                    <div>
+                        <h2 class="analytics-title"><i class="fas fa-chart-line"></i> Municipality Analytics</h2>
+                        <span class="analytics-subtitle" id="verifierAnalyticsSubtitle">Loading...</span>
+                    </div>
+                    <div class="analytics-controls-right">
+                        <span class="analytics-last-updated" id="verifierAnalyticsLastUpdated" title="Time data was last fetched"></span>
+                        <div class="analytics-year-badge" id="verifierAnalyticsYearBadge">
+                            <i class="fas fa-calendar-alt"></i>
+                            <span id="verifierAnalyticsYearLabel">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- KPI Chips -->
+                <div class="analytics-kpi-row" id="verifierAnalyticsKPIRow">
+                    <div class="kpi-chip kpi-chip--blue">
+                        <i class="fas fa-globe"></i>
+                        <div><span class="kpi-chip-value" id="verKpiTotal">—</span><span class="kpi-chip-label">Total Municipality</span></div>
+                    </div>
+                    <div class="kpi-chip kpi-chip--amber">
+                        <i class="fas fa-clock"></i>
+                        <div><span class="kpi-chip-value" id="verKpiPending">—</span><span class="kpi-chip-label">Pending</span></div>
+                    </div>
+                    <div class="kpi-chip kpi-chip--blue">
+                        <i class="fas fa-hourglass-half"></i>
+                        <div><span class="kpi-chip-value" id="verKpiVerified">—</span><span class="kpi-chip-label">Verified</span></div>
+                    </div>
+                    <div class="kpi-chip kpi-chip--green">
+                        <i class="fas fa-check-circle"></i>
+                        <div><span class="kpi-chip-value" id="verKpiApproved">—</span><span class="kpi-chip-label">Approved</span></div>
+                    </div>
+                    <div class="kpi-chip kpi-chip--red">
+                        <i class="fas fa-times-circle"></i>
+                        <div><span class="kpi-chip-value" id="verKpiRejected">—</span><span class="kpi-chip-label">Rejected</span></div>
+                    </div>
+                </div>
+
+                <div class="analytics-grid">
+
+                    <!-- Monthly Review Throughput (Full Width) -->
+                    <div class="content-card chart-card full-width-chart">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-area"></i> My Monthly Review Throughput (YoY)</h2>
+                            <div class="chart-legend-inline" id="verifierMonthlyLegend"></div>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container chart-container--tall">
+                                <canvas id="verifierMonthlyChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pipeline Backlog by Form Type (Bar) -->
+                    <div class="content-card chart-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-bar"></i> Pending Review by Form Type</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container">
+                                <canvas id="verifierTypeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Status Distribution (Doughnut) -->
+                    <div class="content-card chart-card">
+                        <div class="card-header">
+                            <h2><i class="fas fa-chart-pie"></i> Municipality Status Distribution</h2>
+                        </div>
+                        <div class="card-body">
+                            <div class="status-doughnut-wrapper">
+                                <div class="chart-container chart-container--doughnut">
+                                    <canvas id="verifierStatusChart"></canvas>
+                                </div>
+                                <div class="status-legend-list" id="verifierStatusLegendList"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Pending Backlog by Barangay (Horizontal Bar — Full Width) -->
+                    <div class="content-card chart-card full-width-chart">
+                        <div class="card-header">
+                            <h2><i class="fas fa-map-marker-alt"></i> Pending Backlog by Barangay</h2>
+                            <span class="chart-subtitle">Top 10 barangays requiring verification</span>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container chart-container--tall">
+                                <canvas id="verifierBarangayChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+
                 </div>
             </div>
 
@@ -658,6 +762,8 @@
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="{{ url_for('static', filename='js/roles/dashboard-common.js') }}"></script>
 <script src="{{ url_for('static', filename='js/roles/verifier-panel.js') }}"></script>
 

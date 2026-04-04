@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', function () {
     setupSearchAndFilters();
     loadTrashCount();
     loadActivityFeed();
+    loadAnalytics();
     initEncoderSockets();
     initEncoderSortHeaders();
 
@@ -51,6 +52,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Real-time polling: refresh data every 15 seconds ──
     setInterval(() => {
         loadStats();
+        loadAnalytics();
         loadSubmissions(true); // background refresh — preserve filters & page
     }, 15000);
 });
@@ -1037,3 +1039,460 @@ async function loadTrashCount() {
         }
     } catch (e) { /* silent */ }
 }
+
+// ── Analytics Module ──
+// Fixed semantic colors: status key → color (never positional)
+const STATUS_COLOR_MAP = {
+    'approved': { bg: '#10b981', light: 'rgba(16,185,129,0.12)', label: 'Approved' },
+    'rejected': { bg: '#ef4444', light: 'rgba(239,68,68,0.12)', label: 'Rejected' },
+    'pending': { bg: '#f59e0b', light: 'rgba(245,158,11,0.12)', label: 'Pending' },
+    'verified': { bg: '#3b82f6', light: 'rgba(59,130,246,0.12)', label: 'Pending' }, /* Verified by verifier, pending MAO */
+    'returned': { bg: '#8b5cf6', light: 'rgba(139,92,246,0.12)', label: 'Returned' },
+    'pending_verification': { bg: '#f59e0b', light: 'rgba(245,158,11,0.12)', label: 'Pending' },
+};
+
+// Curated multi-color palette for form types
+const TYPE_COLOR_MAP = {
+    'rsbsa': '#3b82f6',
+    'fish': '#06b6d4',
+    'boat': '#8b5cf6',
+    'ncfrs': '#f59e0b',
+};
+
+// 14-color palette for barangay bars (Mabitac-themed, vibrant but harmonious)
+const BRGY_PALETTE = [
+    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6',
+    '#a855f7', '#eab308', '#22d3ee', '#fb923c'
+];
+
+function loadAnalytics() {
+    fetch('/encoder/api/analytics', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderCharts(data.analytics);
+                populateAnalyticsKPIs(data.analytics);
+
+                // Update "Last Updated" timestamp
+                const lastUpdatedEl = document.getElementById('encoderAnalyticsLastUpdated');
+                if (lastUpdatedEl) {
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    lastUpdatedEl.textContent = `Updated ${timeStr}`;
+                    lastUpdatedEl.title = `Data last fetched at ${now.toLocaleString()}`;
+                }
+            }
+        })
+        .catch(error => console.error('Error loading analytics:', error));
+}
+
+/**
+ * Populate the KPI chips in the analytics controls bar from status data.
+ */
+function populateAnalyticsKPIs(analytics) {
+    const statusData = analytics.status || {};
+
+    const approved = statusData['approved'] || 0;
+    const rejected = statusData['rejected'] || 0;
+    const pending = (statusData['pending'] || 0) + (statusData['pending_verification'] || 0);
+    const total = Object.values(statusData).reduce((s, v) => s + v, 0);
+
+    const kpiTotal = document.getElementById('encKpiTotal');
+    const kpiApproved = document.getElementById('encKpiApproved');
+    const kpiPending = document.getElementById('encKpiPending');
+    const kpiRejected = document.getElementById('encKpiRejected');
+    const kpiRate = document.getElementById('encKpiRate');
+
+    if (kpiTotal) kpiTotal.textContent = total.toLocaleString();
+    if (kpiApproved) kpiApproved.textContent = approved.toLocaleString();
+    if (kpiPending) kpiPending.textContent = pending.toLocaleString();
+    if (kpiRejected) kpiRejected.textContent = rejected.toLocaleString();
+    
+    if (kpiRate) {
+        const rate = total > 0 ? Math.round((approved / total) * 100) : 0;
+        kpiRate.textContent = `${rate}%`;
+    }
+
+    // Update year badge
+    const growth = analytics.growth || {};
+    const yearLabel = document.getElementById('encoderAnalyticsYearLabel');
+    if (yearLabel && growth.current_year) {
+        yearLabel.textContent = `${growth.last_year} vs ${growth.current_year}`;
+    }
+}
+
+/**
+ * Shared custom tooltip style factory for Chart.js
+ */
+function makeTooltip(extraCallbacks) {
+    return {
+        enabled: false,
+        external: function (context) {
+            let tooltipEl = document.getElementById('mao-chart-tooltip');
+            if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'mao-chart-tooltip';
+                tooltipEl.style.cssText = [
+                    'position:absolute', 'background:rgba(15,23,42,0.93)', 'color:#f1f5f9',
+                    'border-radius:10px', 'padding:10px 14px', 'font-size:0.8rem', 'pointer-events:none',
+                    'box-shadow:0 8px 24px rgba(0,0,0,0.25)', 'z-index:9999', 'white-space:nowrap',
+                    'font-family:Inter,sans-serif', 'transition:opacity 0.15s', 'line-height:1.6'
+                ].join(';');
+                document.body.appendChild(tooltipEl);
+            }
+
+            const model = context.tooltip;
+            if (model.opacity === 0) {
+                tooltipEl.style.opacity = '0';
+                return;
+            }
+
+            // Build HTML
+            let html = '';
+            if (model.title?.length) {
+                html += `<div style="font-weight:700;margin-bottom:4px;color:#e2e8f0">${model.title[0]}</div>`;
+            }
+            model.body?.forEach((b, i) => {
+                const color = model.labelColors?.[i]?.backgroundColor || '#94a3b8';
+                const colorStr = typeof color === 'string' ? color : '#94a3b8';
+                html += `<div style="display:flex;align-items:center;gap:6px">
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${colorStr};flex-shrink:0"></span>
+                    <span>${b.lines?.join('') || ''}</span>
+                </div>`;
+            });
+
+            if (extraCallbacks?.afterBody) {
+                html += extraCallbacks.afterBody(model);
+            }
+
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.opacity = '1';
+
+            const pos = context.chart.canvas.getBoundingClientRect();
+            tooltipEl.style.left = (pos.left + window.scrollX + model.caretX + 12) + 'px';
+            tooltipEl.style.top = (pos.top + window.scrollY + model.caretY - 10) + 'px';
+        }
+    };
+}
+
+function renderCharts(analytics) {
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.animation = { duration: 800, easing: 'easeInOutQuart' };
+
+    // Destroy all old chart instances before re-creating
+    if (window.encoderCharts) {
+        Object.values(window.encoderCharts).forEach(c => { try { c.destroy(); } catch (e) { } });
+    }
+    window.encoderCharts = {};
+
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+    const tickColor = isDark ? '#94a3b8' : '#64748b';
+
+    // ─────────────────────────────────────────────────────────────
+    // 1. MONTHLY YEAR-OVER-YEAR COMPARISON (Line — Full Width)
+    // ─────────────────────────────────────────────────────────────
+    const monthlyCtx = document.getElementById('encoderMonthlyChart')?.getContext('2d');
+    if (monthlyCtx) {
+        const growth = analytics.growth || {};
+        const monthLabels = growth.month_labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentData = growth.current_data || new Array(12).fill(0);
+        const lastData = growth.last_data || new Array(12).fill(0);
+        const currentYear = growth.current_year || String(new Date().getFullYear());
+        const lastYear = growth.last_year || String(new Date().getFullYear() - 1);
+
+        // Gradient fill for current year
+        const gradCurrent = monthlyCtx.createLinearGradient(0, 0, 0, 400);
+        gradCurrent.addColorStop(0, 'rgba(59,130,246,0.25)');
+        gradCurrent.addColorStop(1, 'rgba(59,130,246,0)');
+
+        const gradLast = monthlyCtx.createLinearGradient(0, 0, 0, 400);
+        gradLast.addColorStop(0, 'rgba(148,163,184,0.18)');
+        gradLast.addColorStop(1, 'rgba(148,163,184,0)');
+
+        window.encoderCharts.monthly = new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: currentYear,
+                        data: currentData,
+                        borderColor: '#3b82f6',
+                        backgroundColor: gradCurrent,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#3b82f6',
+                        pointBorderWidth: 2,
+                        pointRadius: 5,
+                        pointHoverRadius: 7,
+                        pointHoverBackgroundColor: '#3b82f6',
+                    },
+                    {
+                        label: lastYear,
+                        data: lastData,
+                        borderColor: '#94a3b8',
+                        backgroundColor: gradLast,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2,
+                        borderDash: [6, 4],
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#94a3b8',
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6,
+                        pointHoverBackgroundColor: '#94a3b8',
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} registrations`,
+                            afterBody: items => {
+                                const a = items[0]?.parsed.y || 0;
+                                const b = items[1]?.parsed.y || 0;
+                                if (b === 0) return a > 0 ? [`\n  ↑ New this year`] : [];
+                                const diff = a - b;
+                                const pct = Math.round((diff / b) * 100);
+                                const arrow = diff >= 0 ? '↑' : '↓';
+                                const color = diff >= 0 ? '#10b981' : '#ef4444';
+                                return [`\n  ${arrow} ${Math.abs(pct)}% vs last year`];
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { color: tickColor, stepSize: 1, precision: 0 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: tickColor }
+                    }
+                }
+            }
+        });
+
+        // Render the inline legend in the card header
+        const legendEl = document.getElementById('encoderMonthlyLegend');
+        if (legendEl) {
+            legendEl.innerHTML = `
+                <span class="inline-legend-item">
+                    <span class="inline-legend-dot" style="background:#3b82f6"></span>
+                    ${currentYear}
+                </span>
+                <span class="inline-legend-item">
+                    <span class="inline-legend-dot" style="background:#94a3b8;border-style:dashed"></span>
+                    ${lastYear}
+                </span>`;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 2. REGISTRATION BY FORM TYPE (Bar — distinct colors per type)
+    // ─────────────────────────────────────────────────────────────
+    const typeCtx = document.getElementById('encoderTypeChart')?.getContext('2d');
+    if (typeCtx) {
+        const typesData = analytics.types || {};
+        const typeLabels = Object.keys(typesData).map(k => k.toUpperCase());
+        const typeValues = Object.values(typesData);
+        const typeBgColors = Object.keys(typesData).map(k => TYPE_COLOR_MAP[k.toLowerCase()] || '#6366f1');
+
+        window.encoderCharts.type = new Chart(typeCtx, {
+            type: 'bar',
+            data: {
+                labels: typeLabels,
+                datasets: [{
+                    label: 'Registrations',
+                    data: typeValues,
+                    backgroundColor: typeBgColors,
+                    borderRadius: 8,
+                    barThickness: 40,
+                    borderSkipped: false,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.y.toLocaleString()} registrations`
+                        }
+                    },
+                    datalabels: false
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { color: tickColor, precision: 0 }
+                    },
+                    x: {
+                        grid: { display: false },
+                        ticks: { color: tickColor }
+                    }
+                }
+            }
+        });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 3. STATUS DISTRIBUTION (Doughnut — fixed semantic colors)
+    // ─────────────────────────────────────────────────────────────
+    const statusCtx = document.getElementById('encoderStatusChart')?.getContext('2d');
+    if (statusCtx) {
+        const rawStatus = analytics.status || {};
+        const total = Object.values(rawStatus).reduce((s, v) => s + v, 0);
+
+        // Map each status key to its semantic color — never rely on order
+        const statusKeys = Object.keys(rawStatus);
+        const statusValues = statusKeys.map(k => rawStatus[k]);
+        const statusColors = statusKeys.map(k => (STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending']).bg);
+        const statusLabels = statusKeys.map(k => (STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending']).label);
+
+        window.encoderCharts.status = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusLabels,
+                datasets: [{
+                    data: statusValues,
+                    backgroundColor: statusColors,
+                    borderWidth: 3,
+                    borderColor: isDark ? '#1e293b' : '#ffffff',
+                    hoverOffset: 10,
+                    hoverBorderWidth: 0,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => {
+                                const val = ctx.parsed;
+                                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                                return ` ${val.toLocaleString()} records (${pct}%)`;
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Render the custom status legend list with counts and percentages
+        const legendListEl = document.getElementById('encoderStatusLegendList');
+        if (legendListEl) {
+            legendListEl.innerHTML = statusKeys.map((k, i) => {
+                const cfg = STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending'];
+                const count = rawStatus[k];
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return `
+                    <div class="status-legend-item">
+                        <span class="status-legend-dot" style="background:${cfg.bg}"></span>
+                        <span class="status-legend-name">${cfg.label}</span>
+                        <span class="status-legend-count">${count.toLocaleString()}</span>
+                        <span class="status-legend-pct">${pct}%</span>
+                    </div>`;
+            }).join('') + `
+                <div class="status-legend-total">
+                    <span>Total</span>
+                    <span>${total.toLocaleString()}</span>
+                </div>`;
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 4. BARANGAY DISTRIBUTION (Horizontal Bar — unique color per bar)
+    // ─────────────────────────────────────────────────────────────
+    const brgyCtx = document.getElementById('encoderBarangayChart')?.getContext('2d');
+    if (brgyCtx) {
+        const brgyData = analytics.barangays || {};
+        const brgyLabels = Object.keys(brgyData).map(b => b ? b.charAt(0).toUpperCase() + b.slice(1) : '—');
+        const brgyValues = Object.values(brgyData);
+        const brgyColors = brgyLabels.map((_, i) => BRGY_PALETTE[i % BRGY_PALETTE.length]);
+
+        window.encoderCharts.brgy = new Chart(brgyCtx, {
+            type: 'bar',
+            data: {
+                labels: brgyLabels,
+                datasets: [{
+                    label: 'Registrations',
+                    data: brgyValues,
+                    backgroundColor: brgyColors,
+                    borderRadius: { topRight: 6, bottomRight: 6 },
+                    borderSkipped: 'left',
+                }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        boxPadding: 5,
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.x.toLocaleString()} registrations`
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        beginAtZero: true,
+                        grid: { color: gridColor, drawBorder: false },
+                        ticks: { color: tickColor, precision: 0 }
+                    },
+                    y: {
+                        grid: { display: false },
+                        ticks: { color: tickColor, font: { weight: '600' } }
+                    }
+                }
+            }
+        });
+    }
+}
+
+
+
+

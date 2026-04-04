@@ -122,6 +122,22 @@ function setupSidebarNavigation() {
                 });
             }
 
+            // Force Chart.js to recalculate its grid dimensions if Analytics tab is shown
+            if (targetId === 'analytics') {
+                setTimeout(() => {
+                    const allCharts = {
+                        ...(window.encoderCharts || {}),
+                        ...(window.verifierCharts || {}),
+                        ...(window.maoCharts || {})
+                    };
+                    Object.values(allCharts).forEach(chart => {
+                        if (chart && typeof chart.resize === 'function') {
+                            chart.resize();
+                        }
+                    });
+                }, 15);
+            }
+
             // Scroll to top of main area
             const main = document.querySelector('.dashboard-main');
             if (main) main.scrollTop = 0;

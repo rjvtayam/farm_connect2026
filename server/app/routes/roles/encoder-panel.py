@@ -2,6 +2,7 @@
 Farm Connect - Encoder Panel Routes
 """
 
+import calendar as _cal
 from flask import Blueprint, render_template
 from flask_login import login_required
 from app.routes.auth import encoder_required
@@ -80,6 +81,112 @@ def get_stats():
         }
     }
     cache.set(cache_key, result, timeout=300)
+    return jsonify(result)
+
+@encoder_bp.route('/api/analytics', methods=['GET'])
+@encoder_required
+def get_analytics():
+    """Get Encoder analytics (scoped to current user's submissions)"""
+    from datetime import datetime, timedelta
+    from sqlalchemy import func
+
+    user_id = current_user.id
+
+    # ── Production Cache (10 min) ──
+    cache_key = f'encoder_analytics_{user_id}'
+    cached = cache.get(cache_key)
+    if cached:
+        return jsonify(cached)
+
+    base_filter = [
+        Registration.encoded_by == user_id,
+        Registration.is_deleted == False
+    ]
+
+    # ── Form Type Breakdown ──
+    type_counts = db.session.query(
+        Registration.form_type, func.count(Registration.id)
+    ).filter(*base_filter).group_by(Registration.form_type).all()
+
+    # ── Status Distribution ──
+    status_counts = db.session.query(
+        Registration.status, func.count(Registration.id)
+    ).filter(*base_filter).group_by(Registration.status).all()
+
+    # ── Top Barangays covered (by count of submissions) ──
+    barangay_counts = db.session.query(
+        Beneficiary.barangay, func.count(Beneficiary.id)
+    ).join(Registration, Registration.beneficiary_id == Beneficiary.id
+    ).filter(*base_filter
+    ).group_by(Beneficiary.barangay
+    ).order_by(func.count(Beneficiary.id).desc()).limit(10).all()
+
+    # ── Monthly YoY: current year vs last year ──
+    now = datetime.utcnow()
+    current_year   = now.year
+    last_year_val  = current_year - 1
+    current_year_start = datetime(current_year, 1, 1)
+    last_year_start    = datetime(last_year_val, 1, 1)
+    last_year_end      = datetime(last_year_val, 12, 31, 23, 59, 59)
+
+    growth_current_raw = db.session.query(
+        func.to_char(Registration.created_at, 'YYYY-MM'),
+        func.count(Registration.id)
+    ).filter(
+        Registration.encoded_by == user_id,
+        Registration.is_deleted == False,
+        Registration.created_at >= current_year_start
+    ).group_by(func.to_char(Registration.created_at, 'YYYY-MM')).all()
+
+    growth_last_raw = db.session.query(
+        func.to_char(Registration.created_at, 'YYYY-MM'),
+        func.count(Registration.id)
+    ).filter(
+        Registration.encoded_by == user_id,
+        Registration.is_deleted == False,
+        Registration.created_at >= last_year_start,
+        Registration.created_at <= last_year_end
+    ).group_by(func.to_char(Registration.created_at, 'YYYY-MM')).all()
+
+    current_lookup   = {row[0]: row[1] for row in growth_current_raw}
+    last_lookup      = {row[0]: row[1] for row in growth_last_raw}
+    month_labels     = [_cal.month_abbr[m] for m in range(1, 13)]
+    current_data_arr = [current_lookup.get(f"{current_year}-{str(m).zfill(2)}", 0) for m in range(1, 13)]
+    last_data_arr    = [last_lookup.get(f"{last_year_val}-{str(m).zfill(2)}", 0) for m in range(1, 13)]
+
+    # ── Totals for KPI chips ──
+    raw_status = dict(status_counts)
+    total      = sum(raw_status.values())
+    approved   = raw_status.get('approved', 0)
+    pending    = raw_status.get('pending', 0)
+    rejected   = raw_status.get('rejected', 0)
+    verified   = raw_status.get('verified', 0)
+    approval_rate = round((approved / total) * 100) if total > 0 else 0
+
+    result = {
+        'success': True,
+        'analytics': {
+            'types':    dict(type_counts),
+            'status':   raw_status,
+            'barangays': dict(barangay_counts),
+            'growth': {
+                'month_labels': month_labels,
+                'current_year': str(current_year),
+                'last_year':    str(last_year_val),
+                'current_data': current_data_arr,
+                'last_data':    last_data_arr,
+            },
+            'kpi': {
+                'total':         total,
+                'approved':      approved,
+                'pending':       pending,
+                'rejected':      rejected,
+                'verified':      verified,
+                'approval_rate': approval_rate,
+            }
+        }
+    }
+    cache.set(cache_key, result, timeout=600)
     return jsonify(result)
 
 @encoder_bp.route('/api/submissions', methods=['GET'])

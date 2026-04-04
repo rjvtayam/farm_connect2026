@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initCanvas();
     loadTrashCount();
     initVerifierSortHeaders();
+    loadAnalytics();
 
     // ── Real-time polling: refresh data every 15 seconds ──
     setInterval(() => {
@@ -58,10 +59,28 @@ document.addEventListener('DOMContentLoaded', function () {
         loadPendingSubmissions(true);   // background refresh — preserve filters & page
         loadReviewedSubmissions(true);  // background refresh — preserve filters & page
         loadActivityFeed();
+        loadAnalytics();
     }, 15000);
 
     initGlobalMap();
     initVerifierSockets();
+
+    // ── Handle Tab Clicks for Analytics Deferred Rendering ──
+    // This solves the Chart.js 0-dimension bug when refreshing in the background
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(link => {
+        link.addEventListener('click', function() {
+            if (this.getAttribute('href') === '#analytics') {
+                // Short timeout to wait for section to become display:block
+                setTimeout(() => {
+                    if (window.pendingVerifierAnalytics) {
+                        console.log('Rendering deferred verifier analytics...');
+                        renderVerifierCharts(window.pendingVerifierAnalytics);
+                        window.pendingVerifierAnalytics = null;
+                    }
+                }, 100);
+            }
+        });
+    });
 });
 
 /**
@@ -1741,4 +1760,441 @@ async function loadTrashCount() {
             else badge.style.display = 'none';
         }
     } catch (e) { /* silent */ }
+}
+
+// ── Analytics Module ──
+// Fixed semantic colors: status key → color (never positional)
+const STATUS_COLOR_MAP = {
+    'approved': { bg: '#10b981', light: 'rgba(16,185,129,0.12)', label: 'Approved' },
+    'rejected': { bg: '#ef4444', light: 'rgba(239,68,68,0.12)', label: 'Rejected' },
+    'pending': { bg: '#f59e0b', light: 'rgba(245,158,11,0.12)', label: 'Pending' },
+    'verified': { bg: '#3b82f6', light: 'rgba(59,130,246,0.12)', label: 'Verified' },
+    'returned': { bg: '#8b5cf6', light: 'rgba(139,92,246,0.12)', label: 'Returned' },
+    'pending_verification': { bg: '#f59e0b', light: 'rgba(245,158,11,0.12)', label: 'Pending' },
+};
+
+// Curated multi-color palette for form types
+const TYPE_COLOR_MAP = {
+    'rsbsa': '#3b82f6',
+    'fish': '#06b6d4',
+    'boat': '#8b5cf6',
+    'ncfrs': '#f59e0b',
+};
+
+// 14-color palette for barangay bars (Mabitac-themed)
+const BRGY_PALETTE = [
+    '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+    '#06b6d4', '#ec4899', '#84cc16', '#f97316', '#14b8a6',
+    '#a855f7', '#eab308', '#22d3ee', '#fb923c'
+];
+
+function loadAnalytics() {
+    fetch('/verifier/api/analytics', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                renderVerifierCharts(data.analytics);
+                populateVerifierKPIs(data.analytics);
+
+                // Update "Last Updated" timestamp
+                const lastUpdatedEl = document.getElementById('verifierAnalyticsLastUpdated');
+                if (lastUpdatedEl) {
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    lastUpdatedEl.textContent = `Updated ${timeStr}`;
+                    lastUpdatedEl.title = `Data last fetched at ${now.toLocaleString()}`;
+                }
+            }
+        })
+        .catch(error => console.error('Error loading analytics:', error));
+}
+
+/**
+ * Populate the KPI chips in the analytics controls bar from status data.
+ */
+function populateVerifierKPIs(analytics) {
+    const kpi = analytics.kpi || {};
+    
+    // Elements from verifier-panel.html
+    const elTotal = document.getElementById('verKpiTotal');
+    const elPending = document.getElementById('verKpiPending');
+    const elVerified = document.getElementById('verKpiVerified');
+    const elApproved = document.getElementById('verKpiApproved');
+    const elRejected = document.getElementById('verKpiRejected');
+
+    if (elTotal) elTotal.textContent = (kpi.total_muni || 0).toLocaleString();
+    if (elPending) elPending.textContent = (kpi.pending || 0).toLocaleString();
+    if (elVerified) elVerified.textContent = (kpi.verified || 0).toLocaleString();
+    if (elApproved) elApproved.textContent = (kpi.approved || 0).toLocaleString();
+    if (elRejected) elRejected.textContent = (kpi.rejected || 0).toLocaleString();
+
+    // Update Year Label
+    const monthly = analytics.monthly || {};
+    const yearLabel = document.getElementById('verifierAnalyticsYearLabel');
+    if (yearLabel && monthly.current_year) {
+        yearLabel.textContent = `${monthly.last_year} vs ${monthly.current_year}`;
+    }
+
+    // Update Subtitle
+    const subtitle = document.getElementById('verifierAnalyticsSubtitle');
+    if (subtitle) {
+        subtitle.textContent = 'Municipality-wide pipeline & review performance';
+    }
+}
+
+/**
+ * Shared custom tooltip style factory for Chart.js
+ */
+function makeTooltip(extraCallbacks) {
+    return {
+        enabled: false,
+        external: function (context) {
+            let tooltipEl = document.getElementById('mao-chart-tooltip');
+            if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'mao-chart-tooltip';
+                tooltipEl.style.cssText = [
+                    'position:absolute', 'background:rgba(15,23,42,0.93)', 'color:#f1f5f9',
+                    'border-radius:10px', 'padding:10px 14px', 'font-size:0.8rem', 'pointer-events:none',
+                    'box-shadow:0 8px 24px rgba(0,0,0,0.25)', 'z-index:9999', 'white-space:nowrap',
+                    'font-family:Inter,sans-serif', 'transition:opacity 0.15s', 'line-height:1.6'
+                ].join(';');
+                document.body.appendChild(tooltipEl);
+            }
+
+            const model = context.tooltip;
+            if (model.opacity === 0) {
+                tooltipEl.style.opacity = '0';
+                return;
+            }
+
+            let html = '';
+            if (model.title?.length) {
+                html += `<div style="font-weight:700;margin-bottom:4px;color:#e2e8f0">${model.title[0]}</div>`;
+            }
+            model.body?.forEach((b, i) => {
+                const color = model.labelColors?.[i]?.backgroundColor || '#94a3b8';
+                const colorStr = typeof color === 'string' ? color : '#94a3b8';
+                html += `<div style="display:flex;align-items:center;gap:6px">
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${colorStr};flex-shrink:0"></span>
+                    <span>${b.lines?.join('') || ''}</span>
+                </div>`;
+            });
+
+            if (extraCallbacks?.afterBody) {
+                html += extraCallbacks.afterBody(model);
+            }
+
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.opacity = '1';
+
+            const pos = context.chart.canvas.getBoundingClientRect();
+            tooltipEl.style.left = (pos.left + window.scrollX + model.caretX + 12) + 'px';
+            tooltipEl.style.top = (pos.top + window.scrollY + model.caretY - 10) + 'px';
+        }
+    };
+}
+
+function renderVerifierCharts(analytics) {
+    // Only render if the analytics section is actually visible to prevent Chart.js 0-dimension bugs
+    const analyticsSection = document.getElementById('analytics');
+    if (!analyticsSection || analyticsSection.style.display === 'none') {
+        // Store data for deferred rendering when tab is clicked
+        window.pendingVerifierAnalytics = analytics;
+        return;
+    }
+
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.animation = { duration: 800, easing: 'easeInOutQuart' };
+
+    if (!window.verifierCharts) window.verifierCharts = {};
+    Object.values(window.verifierCharts).forEach(c => { try { c.destroy(); } catch (e) { } });
+    window.verifierCharts = {};
+
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+    const tickColor = isDark ? '#94a3b8' : '#64748b';
+
+    // 1. MONTHLY REVIEW THROUGHPUT (Line)
+    const monthlyCtx = document.getElementById('verifierMonthlyChart')?.getContext('2d');
+    if (monthlyCtx) {
+        const monthly = analytics.monthly || {};
+        const monthLabels = monthly.month_labels || [];
+        const currentData = monthly.current_data || [];
+        const lastData = monthly.last_data || [];
+        const currentYear = monthly.current_year || '';
+        const lastYear = monthly.last_year || '';
+
+        const gradCurrent = monthlyCtx.createLinearGradient(0, 0, 0, 400);
+        gradCurrent.addColorStop(0, 'rgba(139,92,246,0.25)'); // purple for verifier
+        gradCurrent.addColorStop(1, 'rgba(139,92,246,0)');
+
+        window.verifierCharts.monthly = new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: currentYear,
+                        data: currentData,
+                        borderColor: '#8b5cf6',
+                        backgroundColor: gradCurrent,
+                        fill: true,
+                        tension: 0.4,
+                        borderWidth: 2.5,
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#8b5cf6',
+                        pointRadius: 5,
+                    },
+                    {
+                        label: lastYear,
+                        data: lastData,
+                        borderColor: '#94a3b8',
+                        borderDash: [6, 4],
+                        pointBackgroundColor: '#fff',
+                        pointBorderColor: '#94a3b8',
+                        pointRadius: 4,
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: makeTooltip({
+                        afterBody: items => {
+                            const a = items[0]?.parsed.y || 0;
+                            const b = items[1]?.parsed.y || 0;
+                            if (b === 0) return a > 0 ? [`\n  ↑ New this year`] : [];
+                            const diff = a - b;
+                            const pct = Math.round((diff / b) * 100);
+                            const arrow = diff >= 0 ? '↑' : '↓';
+                            return [`\n  ${arrow} ${Math.abs(pct)}% vs last year`];
+                        }
+                    })
+                },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } },
+                    x: { grid: { display: false }, ticks: { color: tickColor } }
+                }
+            }
+        });
+
+        const legendEl = document.getElementById('verifierMonthlyLegend');
+        if (legendEl) {
+            legendEl.innerHTML = `
+                <span class="inline-legend-item"><span class="inline-legend-dot" style="background:#8b5cf6"></span> ${currentYear}</span>
+                <span class="inline-legend-item"><span class="inline-legend-dot" style="background:#94a3b8;border-style:dashed"></span> ${lastYear}</span>`;
+        }
+    }
+
+    // 2. BACKLOG BY FORM TYPE (Bar)
+    const typeCtx = document.getElementById('verifierTypeChart')?.getContext('2d');
+    if (typeCtx) {
+        const typesData = analytics.pending_by_type || {};
+        const labels = Object.keys(typesData).map(k => k.toUpperCase());
+        const values = Object.values(typesData);
+        const colors = Object.keys(typesData).map(k => TYPE_COLOR_MAP[k.toLowerCase()] || '#6366f1');
+
+        window.verifierCharts.type = new Chart(typeCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ data: values, backgroundColor: colors, borderRadius: 8, barThickness: 40 }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: makeTooltip() },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } },
+                    x: { grid: { display: false }, ticks: { color: tickColor } }
+                }
+            }
+        });
+    }
+
+    // 3. MUNICIPALITY STATUS DISTRIBUTION (Doughnut)
+    const statusCtx = document.getElementById('verifierStatusChart')?.getContext('2d');
+    if (statusCtx) {
+        const pipeline = analytics.pipeline || {};
+        const total = Object.values(pipeline).reduce((s, v) => s + v, 0);
+        const keys = Object.keys(pipeline);
+        const values = Object.values(pipeline);
+        const colors = keys.map(k => (STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending']).bg);
+        const labels = keys.map(k => (STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending']).label);
+
+        window.verifierCharts.status = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: colors,
+                    borderWidth: 3,
+                    borderColor: isDark ? '#1e293b' : '#fff',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: makeTooltip({
+                        afterBody: model => {
+                            const val = model.dataPoints[0].raw;
+                            const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                            return `\n  Share: ${pct}%`;
+                        }
+                    })
+                }
+            }
+        });
+
+        const legendListEl = document.getElementById('verifierStatusLegendList');
+        if (legendListEl) {
+            legendListEl.innerHTML = keys.map(k => {
+                const cfg = STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending'];
+                const count = pipeline[k];
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return `<div class="status-legend-item">
+                    <span class="status-legend-dot" style="background:${cfg.bg}"></span>
+                    <span class="status-legend-name">${cfg.label}</span>
+                    <span class="status-legend-count">${count.toLocaleString()}</span>
+                    <span class="status-legend-pct">${pct}%</span>
+                </div>`;
+            }).join('') + `<div class="status-legend-total"><span>Total</span><span>${total.toLocaleString()}</span></div>`;
+        }
+    }
+
+    // 4. PENDING BACKLOG BY BARANGAY (Horizontal Bar)
+    const brgyCtx = document.getElementById('verifierBarangayChart')?.getContext('2d');
+    if (brgyCtx) {
+        const brgyData = analytics.pending_by_barangay || {};
+        const labels = Object.keys(brgyData).map(b => b ? b.charAt(0).toUpperCase() + b.slice(1) : '—');
+        const values = Object.values(brgyData);
+        const colors = labels.map((_, i) => BRGY_PALETTE[i % BRGY_PALETTE.length]);
+
+        window.verifierCharts.brgy = new Chart(brgyCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{ data: values, backgroundColor: colors, borderRadius: { topRight: 6, bottomRight: 6 }, borderSkipped: 'left' }]
+            },
+            options: {
+                indexAxis: 'y',
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: makeTooltip() },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: gridColor }, ticks: { color: tickColor, precision: 0 } },
+                    y: { grid: { display: false }, ticks: { color: tickColor, font: { weight: '600' } } }
+                }
+            }
+        });
+    }
+
+    // 5. DEMOGRAPHIC PROFILE (Radar)
+    const radarCtx = document.getElementById('demographicRadarChart')?.getContext('2d');
+    if (radarCtx) {
+        const demo = analytics.demographics || {};
+        const sexData = demo.sex || {};
+
+        const maleCount = sexData['Male'] || sexData['male'] || sexData['M'] || 0;
+        const femaleCount = sexData['Female'] || sexData['female'] || sexData['F'] || 0;
+        const pwdCount = demo.pwd || 0;
+        const fourPsCount = demo.four_ps || 0;
+        const ipCount = demo.ip || 0;
+
+        const radarLabels = ['Male', 'Female', 'PWD', '4Ps Member', 'IP'];
+        const radarValues = [maleCount, femaleCount, pwdCount, fourPsCount, ipCount];
+
+        window.verifierCharts.radar = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: radarLabels,
+                datasets: [{
+                    label: 'Beneficiaries',
+                    data: radarValues,
+                    backgroundColor: 'rgba(139,92,246,0.18)',
+                    borderColor: '#8b5cf6',
+                    pointBackgroundColor: '#8b5cf6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    borderWidth: 2.5,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: 'rgba(15,23,42,0.93)',
+                        titleColor: '#e2e8f0',
+                        bodyColor: '#94a3b8',
+                        padding: 12,
+                        cornerRadius: 10,
+                        callbacks: {
+                            label: ctx => ` ${ctx.parsed.r.toLocaleString()} beneficiaries`
+                        }
+                    }
+                },
+                scales: {
+                    r: {
+                        beginAtZero: true,
+                        grid: { color: gridColor },
+                        angleLines: { color: gridColor },
+                        pointLabels: { color: tickColor, font: { size: 12, weight: '600' } },
+                        ticks: { display: false, stepSize: 1 }
+                    }
+                }
+            }
+        });
+
+        // Render the demographic breakdown sidebar
+        const breakdownEl = document.getElementById('demographicBreakdown');
+        if (breakdownEl) {
+            const total = maleCount + femaleCount;
+            const malePct = total > 0 ? Math.round((maleCount / total) * 100) : 0;
+            const femalePct = total > 0 ? 100 - malePct : 0;
+
+            breakdownEl.innerHTML = `
+                <div class="demo-section-title">Sex Distribution</div>
+                <div class="demo-bar-row">
+                    <span class="demo-bar-label"><i class="fas fa-mars" style="color:#3b82f6"></i> Male</span>
+                    <div class="demo-progress-bar"><div class="demo-progress-fill" style="width:${malePct}%;background:#3b82f6"></div></div>
+                    <span class="demo-bar-count">${maleCount.toLocaleString()} <span class="demo-bar-pct">${malePct}%</span></span>
+                </div>
+                <div class="demo-bar-row">
+                    <span class="demo-bar-label"><i class="fas fa-venus" style="color:#ec4899"></i> Female</span>
+                    <div class="demo-progress-bar"><div class="demo-progress-fill" style="width:${femalePct}%;background:#ec4899"></div></div>
+                    <span class="demo-bar-count">${femaleCount.toLocaleString()} <span class="demo-bar-pct">${femalePct}%</span></span>
+                </div>
+                <div class="demo-section-title" style="margin-top:1.25rem">Special Categories</div>
+                <div class="demo-chip-grid">
+                    <div class="demo-chip" style="border-color:#8b5cf6;background:rgba(139,92,246,0.08)">
+                        <span class="demo-chip-icon" style="color:#8b5cf6"><i class="fas fa-wheelchair"></i></span>
+                        <span class="demo-chip-value">${pwdCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">PWD</span>
+                    </div>
+                    <div class="demo-chip" style="border-color:#f59e0b;background:rgba(245,158,11,0.08)">
+                        <span class="demo-chip-icon" style="color:#f59e0b"><i class="fas fa-hand-holding-heart"></i></span>
+                        <span class="demo-chip-value">${fourPsCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">4Ps</span>
+                    </div>
+                    <div class="demo-chip" style="border-color:#10b981;background:rgba(16,185,129,0.08)">
+                        <span class="demo-chip-icon" style="color:#10b981"><i class="fas fa-leaf"></i></span>
+                        <span class="demo-chip-value">${ipCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">IP</span>
+                    </div>
+                </div>`;
+        }
+    }
 }
