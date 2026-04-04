@@ -70,6 +70,10 @@
                 <i class="fas fa-chart-line"></i>
                 <span>Analytics</span>
             </a>
+            <a href="#reports" class="nav-item">
+                <i class="fas fa-file-alt"></i>
+                <span>Reports</span>
+            </a>
             <a href="#settings" class="nav-item">
                 <i class="fas fa-sliders-h"></i>
                 <span>System Settings</span>
@@ -426,6 +430,179 @@
                     </div>
 
                 </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reports" class="content-section">
+
+                <!-- Reports Page Header -->
+                <div class="rpt-page-header">
+                    <div class="rpt-page-header-left">
+                        <div class="rpt-page-icon">
+                            <i class="fas fa-clipboard-check"></i>
+                        </div>
+                        <div>
+                            <h2 class="rpt-page-title">Verification Reports &amp; Exports</h2>
+                            <p class="rpt-page-sub">Generate and download verification pipeline data, review history, and throughput summaries</p>
+                        </div>
+                    </div>
+                    <div class="rpt-page-header-right">
+                        <span class="rpt-page-badge"><i class="fas fa-user-check"></i> Verifier Records</span>
+                        <span class="rpt-page-badge rpt-page-badge--green"><i class="fas fa-circle"></i> Live Data</span>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Row -->
+                <div class="rpt-stats-row">
+                    <div class="rpt-stat">
+                        <i class="fas fa-hourglass-half rpt-stat-icon" style="color:#f59e0b;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatPending">—</span>
+                            <span class="rpt-stat-label">Pending Queue</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-check-double rpt-stat-icon" style="color:#10b981;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatVerified">—</span>
+                            <span class="rpt-stat-label">Verified</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-times-circle rpt-stat-icon" style="color:#ef4444;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatRejected">—</span>
+                            <span class="rpt-stat-label">Rejected</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-check-circle rpt-stat-icon" style="color:#4f46e5;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatApproved">—</span>
+                            <span class="rpt-stat-label">Final Approved</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Cards Grid -->
+                <div class="rpt-cards-grid">
+
+                    <!-- Card 1: Pending Queue CSV -->
+                    <div class="rpt-card">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                    <i class="fas fa-hourglass-half"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--amber">CSV</span>
+                                    <span class="rpt-badge rpt-badge--gray">Live Queue</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">Pending Queue Export</h3>
+                            <p class="rpt-card-desc">Download a snapshot of your current pending review queue. Use this to plan your workday, assign priorities, or share the backlog with supervisors.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> All currently pending submissions</li>
+                                <li><i class="fas fa-check"></i> Beneficiary name, encoder, barangay</li>
+                                <li><i class="fas fa-check"></i> Form type and submission date</li>
+                                <li><i class="fas fa-check"></i> Filterable by form type &amp; barangay</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-alt"></i> .CSV format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-bolt"></i> Instant download</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--amber" onclick="exportPendingSubmissions(event)">
+                                <i class="fas fa-download"></i>
+                                <span>Export Pending Queue</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Reviewed History CSV -->
+                    <div class="rpt-card">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--green">CSV</span>
+                                    <span class="rpt-badge rpt-badge--gray">Full History</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">Reviewed History Export</h3>
+                            <p class="rpt-card-desc">Export your complete review history — all submissions you have verified, approved, or rejected — including your remarks and decision timestamps.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> Verified, approved &amp; rejected records</li>
+                                <li><i class="fas fa-check"></i> Beneficiary name, encoder, barangay</li>
+                                <li><i class="fas fa-check"></i> Final status &amp; reviewer remarks</li>
+                                <li><i class="fas fa-check"></i> Ideal for audit trail documentation</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-alt"></i> .CSV format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-bolt"></i> Instant download</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--green" onclick="exportReviewedSubmissions(event)">
+                                <i class="fas fa-download"></i>
+                                <span>Export Review History</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Analytics PDF (Coming Soon) -->
+                    <div class="rpt-card rpt-card--muted">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--blue">PDF</span>
+                                    <span class="rpt-badge rpt-badge--coming">Coming Soon</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">Monthly Throughput Report</h3>
+                            <p class="rpt-card-desc">An auto-generated performance PDF showing your review throughput, monthly trends, verification rate, and barangay pipeline breakdowns.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> Monthly review throughput chart</li>
+                                <li><i class="fas fa-check"></i> Verification rate &amp; decision split</li>
+                                <li><i class="fas fa-check"></i> Top pending barangays heatmap</li>
+                                <li><i class="fas fa-check"></i> Printable &amp; shareable format</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-pdf"></i> .PDF format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-hourglass-half"></i> Next release</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--blue" onclick="showToast('Throughput PDF report is being prepared for the next release.', 'info')">
+                                <i class="fas fa-bell"></i>
+                                <span>Notify Me When Ready</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Data Disclaimer -->
+                <div class="rpt-disclaimer">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Exports include only submissions within your review jurisdiction. All download actions are logged for compliance and audit tracking purposes.</span>
+                </div>
+
             </div>
 
             <!-- System Settings Section -->

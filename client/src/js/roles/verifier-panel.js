@@ -338,6 +338,17 @@ function loadStats() {
                     updateTrendBadge('totalApprovedTrend', data.trends.approved);
                     updateTrendBadge('rejectedCountTrend', data.trends.rejected);
                 }
+
+                // ── Reports tab quick-stats (real-time, no extra API call) ──
+                const s = data.stats;
+                const setRpt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = (val || 0).toLocaleString();
+                };
+                setRpt('rptStatPending',  s.pending  || 0);
+                setRpt('rptStatVerified', s.verified || 0);
+                setRpt('rptStatRejected', s.rejected || 0);
+                setRpt('rptStatApproved', s.approved || 0);
             }
         })
         .catch(error => console.error('Error loading stats:', error));
@@ -593,15 +604,14 @@ window.viewReviewedSubmission = function(id) {
 };
 
 
-window.exportPendingSubmissions = async function () {
-    const btn = document.querySelector('button[onclick="exportPendingSubmissions()"]');
-    const originalHtml = btn.innerHTML;
+window.exportPendingSubmissions = async function (evt) {
+    const btn = (evt && evt.currentTarget) || document.querySelector('button[onclick="exportPendingSubmissions()"]');
+    const originalHtml = btn ? btn.innerHTML : '';
     const search = document.getElementById('searchPending')?.value || '';
     const formType = document.getElementById('filterFormType')?.value || '';
 
     try {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...'; }
 
         const params = new URLSearchParams();
         params.append('status', 'pending_verification');
@@ -618,21 +628,19 @@ window.exportPendingSubmissions = async function () {
         showToast('Export failed', 'error');
     } finally {
         setTimeout(() => {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
+            if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
         }, 500);
     }
 };
 
-window.exportReviewedSubmissions = async function () {
-    const btn = document.querySelector('button[onclick="exportReviewedSubmissions()"]');
-    const originalHtml = btn.innerHTML;
+window.exportReviewedSubmissions = async function (evt) {
+    const btn = (evt && evt.currentTarget) || document.querySelector('button[onclick="exportReviewedSubmissions()"]');
+    const originalHtml = btn ? btn.innerHTML : '';
     const search = document.getElementById('searchReviewed')?.value || '';
     const status = document.getElementById('filterStatus')?.value || '';
 
     try {
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...';
+        if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Exporting...'; }
 
         const params = new URLSearchParams();
         params.append('status', status || 'reviewed');
@@ -648,8 +656,7 @@ window.exportReviewedSubmissions = async function () {
         showToast('Export failed', 'error');
     } finally {
         setTimeout(() => {
-            btn.disabled = false;
-            btn.innerHTML = originalHtml;
+            if (btn) { btn.disabled = false; btn.innerHTML = originalHtml; }
         }, 500);
     }
 };

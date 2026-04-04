@@ -306,6 +306,23 @@ function loadStats() {
                     updateTrendBadge('pendingVerificationCountTrend', data.trends.pending_verification);
                     updateTrendBadge('beneficiariesCountTrend', data.trends.beneficiaries);
                 }
+
+                // ── Reports tab quick-stats (real-time, no extra API call) ──
+                const s = data.stats;
+                const setRpt = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.textContent = (val || 0).toLocaleString();
+                };
+                setRpt('rptStatTotal',    s.total    || 0);
+                setRpt('rptStatApproved', s.approved || 0);
+                setRpt('rptStatPending',  (s.pending || 0) + (s.pending_verification || 0));
+
+                // Last Export — read from localStorage (updated when export runs)
+                const lastExportEl = document.getElementById('rptStatDate');
+                if (lastExportEl) {
+                    const stored = localStorage.getItem('mao_last_export_date');
+                    lastExportEl.textContent = stored || 'Never';
+                }
             }
         })
         .catch(error => console.error('Error loading stats:', error));
@@ -1050,6 +1067,13 @@ window.exportBeneficiariesCSV = function () {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
+
+    const now = new Date();
+    const timeStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    localStorage.setItem('mao_last_export_date', timeStr);
+    const lastExportEl = document.getElementById('rptStatDate');
+    if (lastExportEl) lastExportEl.textContent = timeStr;
+
     showToast(`Exported ${list.length} beneficiaries to CSV.`, 'success');
 };
 
@@ -2046,6 +2070,12 @@ window.exportReport = async function () {
         a.click();
         window.URL.revokeObjectURL(url);
         a.remove();
+
+        const now = new Date();
+        const timeStr = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) + ' ' + now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem('mao_last_export_date', timeStr);
+        const lastExportEl = document.getElementById('rptStatDate');
+        if (lastExportEl) lastExportEl.textContent = timeStr;
 
         showToast('Report exported successfully!', 'success');
     } catch (e) {

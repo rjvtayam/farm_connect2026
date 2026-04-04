@@ -454,33 +454,175 @@
 
             <!-- Reports Section -->
             <div id="reports" class="content-section">
-                <div class="reports-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
-                    <div class="content-card report-card">
-                        <div class="card-body" style="padding: 2rem; text-align: center;">
-                            <div class="report-icon" style="font-size: 3rem; color: #10b981; margin-bottom: 1.5rem;">
-                                <i class="fas fa-file-csv"></i>
+
+                <!-- Reports Page Header -->
+                <div class="rpt-page-header">
+                    <div class="rpt-page-header-left">
+                        <div class="rpt-page-icon">
+                            <i class="fas fa-file-chart-line"></i>
+                        </div>
+                        <div>
+                            <h2 class="rpt-page-title">Reports &amp; Data Exports</h2>
+                            <p class="rpt-page-sub">Generate, download, and share official registry data from the MAO dashboard</p>
+                        </div>
+                    </div>
+                    <div class="rpt-page-header-right">
+                        <span class="rpt-page-badge"><i class="fas fa-shield-alt"></i> Official Records</span>
+                        <span class="rpt-page-badge rpt-page-badge--green"><i class="fas fa-circle"></i> Live Data</span>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Row -->
+                <div class="rpt-stats-row">
+                    <div class="rpt-stat">
+                        <i class="fas fa-database rpt-stat-icon" style="color:#4f46e5;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatTotal">—</span>
+                            <span class="rpt-stat-label">Total Records</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-check-circle rpt-stat-icon" style="color:#10b981;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatApproved">—</span>
+                            <span class="rpt-stat-label">Approved</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-clock rpt-stat-icon" style="color:#f59e0b;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatPending">—</span>
+                            <span class="rpt-stat-label">Pending</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-calendar-day rpt-stat-icon" style="color:#3b82f6;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatDate">—</span>
+                            <span class="rpt-stat-label">Last Export</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Cards Grid -->
+                <div class="rpt-cards-grid">
+
+                    <!-- Card 1: Full Registry CSV -->
+                    <div class="rpt-card">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <i class="fas fa-file-csv"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--green">CSV</span>
+                                    <span class="rpt-badge rpt-badge--gray">All Records</span>
+                                </div>
                             </div>
-                            <h3 style="margin-bottom: 0.5rem;">Complete Registry Export</h3>
-                            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">Download the full list of all registrations and beneficiaries for external processing.</p>
-                            <button class="btn btn-success" style="width: 100%; justify-content: center;" onclick="exportReport()">
-                                <i class="fas fa-download"></i> Generate CSV Report
+                            <h3 class="rpt-card-title">Complete Registry Export</h3>
+                            <p class="rpt-card-desc">Download the full official registry of all approved, pending, and rejected submissions including beneficiary profiles, barangay data, and form types.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> All registration statuses included</li>
+                                <li><i class="fas fa-check"></i> Beneficiary name, RSBSA ID, barangay</li>
+                                <li><i class="fas fa-check"></i> Submission date &amp; form type columns</li>
+                                <li><i class="fas fa-check"></i> Compatible with Excel &amp; Google Sheets</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-alt"></i> .CSV format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-bolt"></i> Instant download</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--green" onclick="exportReport()">
+                                <i class="fas fa-download"></i>
+                                <span>Generate CSV Report</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
                             </button>
                         </div>
                     </div>
 
-                    <div class="content-card report-card">
-                        <div class="card-body" style="padding: 2rem; text-align: center;">
-                            <div class="report-icon" style="font-size: 3rem; color: #3b82f6; margin-bottom: 1.5rem;">
-                                <i class="fas fa-chart-line"></i>
+                    <!-- Card 2: Beneficiaries Only CSV -->
+                    <div class="rpt-card">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #4f46e5, #7c3aed);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #4f46e5, #7c3aed);">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--purple">CSV</span>
+                                    <span class="rpt-badge rpt-badge--gray">Approved Only</span>
+                                </div>
                             </div>
-                            <h3 style="margin-bottom: 0.5rem;">Monthly Analytics PDF</h3>
-                            <p style="color: #64748b; font-size: 0.9rem; margin-bottom: 1.5rem;">Generate a visual summary of registration trends and status distribution.</p>
-                            <button class="btn btn-primary" style="width: 100%; justify-content: center;" onclick="showToast('Analytics PDF generation is being prepared for next release.', 'info')">
-                                <i class="fas fa-file-pdf"></i> View Summary
+                            <h3 class="rpt-card-title">Active Beneficiaries Export</h3>
+                            <p class="rpt-card-desc">Export a filtered list of all active, approved beneficiaries with RSBSA IDs. Ideal for validating lists against PhilSys and government program databases.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> Approved registrations only</li>
+                                <li><i class="fas fa-check"></i> RSBSA ID, full name, and mobile</li>
+                                <li><i class="fas fa-check"></i> Barangay and municipality data</li>
+                                <li><i class="fas fa-check"></i> Filtered by current barangay selection</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-alt"></i> .CSV format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-bolt"></i> Instant download</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--purple" onclick="exportBeneficiariesCSV()">
+                                <i class="fas fa-download"></i>
+                                <span>Export Beneficiaries</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
                             </button>
                         </div>
                     </div>
+
+                    <!-- Card 3: Analytics PDF (Coming Soon) -->
+                    <div class="rpt-card rpt-card--muted">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--blue">PDF</span>
+                                    <span class="rpt-badge rpt-badge--coming">Coming Soon</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">Monthly Analytics Report</h3>
+                            <p class="rpt-card-desc">An auto-generated visual PDF report with charts, KPI summaries, and barangay breakdowns. Designed for official submission to the Municipal Agriculture Office.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> Monthly registration trend charts</li>
+                                <li><i class="fas fa-check"></i> Status distribution pie chart</li>
+                                <li><i class="fas fa-check"></i> Barangay-level performance table</li>
+                                <li><i class="fas fa-check"></i> Official letterhead formatting</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-pdf"></i> .PDF format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-hourglass-half"></i> Next release</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--blue" onclick="showToast('Monthly Analytics PDF is being prepared for the next release.', 'info')">
+                                <i class="fas fa-bell"></i>
+                                <span>Notify Me When Ready</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
                 </div>
+
+                <!-- Data Disclaimer -->
+                <div class="rpt-disclaimer">
+                    <i class="fas fa-info-circle"></i>
+                    <span>All exported data reflects real-time records from the Farm Connect database. Exports are logged for audit purposes. For data concerns, contact your system administrator.</span>
+                </div>
+
             </div>
 
             <!-- System Settings Section -->

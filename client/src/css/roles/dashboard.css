@@ -3849,3 +3849,446 @@ th.sortable.desc .sort-icon {
     .analytics-controls { flex-direction: column; align-items: flex-start; }
     .demo-chip-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ============================================
+   Reports Page — Premium Design System (rpt-*)
+   Used by MAO, Encoder, Verifier panels
+   ============================================ */
+
+/* ── Page Header ── */
+.rpt-page-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+    border-radius: 16px;
+    padding: 1.75rem 2rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+    position: relative;
+    overflow: hidden;
+}
+
+.rpt-page-header::before {
+    content: '';
+    position: absolute;
+    top: -40px; right: -40px;
+    width: 200px; height: 200px;
+    background: radial-gradient(circle, rgba(79,70,229,0.25) 0%, transparent 70%);
+    border-radius: 50%;
+}
+
+.rpt-page-header-left {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    z-index: 1;
+}
+
+.rpt-page-icon {
+    width: 52px; height: 52px;
+    background: linear-gradient(135deg, #4f46e5, #818cf8);
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; color: white;
+    flex-shrink: 0;
+    box-shadow: 0 4px 16px rgba(79,70,229,0.35);
+}
+
+.rpt-page-title {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: white;
+    margin: 0 0 0.25rem 0;
+    letter-spacing: -0.02em;
+}
+
+.rpt-page-sub {
+    font-size: 0.85rem;
+    color: rgba(255,255,255,0.55);
+    margin: 0;
+    font-weight: 400;
+}
+
+.rpt-page-header-right {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    z-index: 1;
+    flex-wrap: wrap;
+}
+
+.rpt-page-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.375rem 0.875rem;
+    border-radius: 50px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.75);
+    border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(4px);
+    letter-spacing: 0.01em;
+}
+
+.rpt-page-badge--green {
+    background: rgba(16,185,129,0.18);
+    color: #6ee7b7;
+    border-color: rgba(16,185,129,0.25);
+}
+
+.rpt-page-badge--green i {
+    font-size: 0.5rem;
+    animation: rptPulse 2s infinite;
+}
+
+@keyframes rptPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* ── Quick Stats Row ── */
+.rpt-stats-row {
+    display: flex;
+    align-items: center;
+    background: white;
+    border-radius: 14px;
+    padding: 1.25rem 2rem;
+    margin-bottom: 1.75rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.04);
+    gap: 0;
+    flex-wrap: wrap;
+}
+
+.rpt-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    flex: 1;
+    min-width: 120px;
+    padding: 0.5rem 1rem;
+}
+
+.rpt-stat-icon {
+    font-size: 1.35rem;
+    flex-shrink: 0;
+}
+
+.rpt-stat div {
+    display: flex;
+    flex-direction: column;
+}
+
+.rpt-stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #1e293b;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+}
+
+.rpt-stat-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #94a3b8;
+    font-weight: 600;
+    margin-top: 2px;
+}
+
+.rpt-stat-divider {
+    width: 1px;
+    height: 48px;
+    background: #e2e8f0;
+    flex-shrink: 0;
+}
+
+/* ── Report Cards Grid ── */
+.rpt-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 1.75rem;
+}
+
+/* ── Individual Report Card ── */
+.rpt-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05), 0 1px 2px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.05);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.22s cubic-bezier(0.4,0,0.2,1),
+                box-shadow 0.22s cubic-bezier(0.4,0,0.2,1);
+    position: relative;
+}
+
+.rpt-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,0,0,0.1);
+}
+
+.rpt-card--muted {
+    opacity: 0.88;
+}
+
+.rpt-card--muted:hover {
+    transform: translateY(-2px);
+    opacity: 1;
+}
+
+/* Colored top accent strip */
+.rpt-card-accent {
+    height: 5px;
+    width: 100%;
+    flex-shrink: 0;
+}
+
+.rpt-card-body {
+    padding: 1.75rem;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.rpt-card-header-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+}
+
+.rpt-card-icon-wrap {
+    width: 52px; height: 52px;
+    border-radius: 14px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.35rem;
+    color: white;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.15);
+    flex-shrink: 0;
+    transition: transform 0.2s;
+}
+
+.rpt-card:hover .rpt-card-icon-wrap {
+    transform: scale(1.06) rotate(-3deg);
+}
+
+.rpt-card-badges {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+}
+
+.rpt-badge {
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.rpt-badge--green  { background: #dcfce7; color: #16a34a; }
+.rpt-badge--purple { background: #ede9fe; color: #7c3aed; }
+.rpt-badge--blue   { background: #dbeafe; color: #1d4ed8; }
+.rpt-badge--amber  { background: #fef3c7; color: #d97706; }
+.rpt-badge--gray   { background: #f1f5f9; color: #64748b; border: 1px solid #e2e8f0; }
+.rpt-badge--coming {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    color: #92400e;
+    border: 1px solid #fbbf24;
+    animation: rptPulse 2.5s infinite;
+}
+
+.rpt-card-title {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #1e293b;
+    margin: 0 0 0.6rem 0;
+    letter-spacing: -0.015em;
+}
+
+.rpt-card-desc {
+    font-size: 0.875rem;
+    color: #64748b;
+    line-height: 1.6;
+    margin: 0 0 1.25rem 0;
+    flex-grow: 1;
+}
+
+/* Feature list */
+.rpt-card-features {
+    list-style: none;
+    padding: 0; margin: 0 0 1.25rem 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.rpt-card-features li {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+    color: #475569;
+    font-weight: 500;
+}
+
+.rpt-card-features li i {
+    color: #10b981;
+    font-size: 0.65rem;
+    background: #dcfce7;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Meta row */
+.rpt-card-meta {
+    display: flex;
+    gap: 0.875rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+    flex-wrap: wrap;
+}
+
+.rpt-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.75rem;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.rpt-meta-item i {
+    font-size: 0.7rem;
+}
+
+/* ── Card Footer / Action Button ── */
+.rpt-card-footer {
+    padding: 1.25rem 1.75rem;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+}
+
+.rpt-btn {
+    width: 100%;
+    padding: 0.8rem 1.25rem;
+    border-radius: 10px;
+    border: none;
+    cursor: pointer;
+    font-family: inherit;
+    font-size: 0.875rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.625rem;
+    transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+    letter-spacing: 0.01em;
+    position: relative;
+    overflow: hidden;
+}
+
+.rpt-btn:active { transform: scale(0.97); }
+
+.rpt-btn-arrow {
+    margin-left: auto;
+    font-size: 0.75rem;
+    transition: transform 0.2s;
+    opacity: 0.6;
+}
+
+.rpt-btn:hover .rpt-btn-arrow {
+    transform: translateX(4px);
+    opacity: 1;
+}
+
+/* Color variants */
+.rpt-btn--green {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: white;
+    box-shadow: 0 4px 14px rgba(16,185,129,0.25);
+}
+.rpt-btn--green:hover {
+    box-shadow: 0 6px 20px rgba(16,185,129,0.4);
+    transform: translateY(-1px);
+}
+
+.rpt-btn--purple {
+    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    color: white;
+    box-shadow: 0 4px 14px rgba(79,70,229,0.25);
+}
+.rpt-btn--purple:hover {
+    box-shadow: 0 6px 20px rgba(79,70,229,0.4);
+    transform: translateY(-1px);
+}
+
+.rpt-btn--blue {
+    background: linear-gradient(135deg, #3b82f6, #06b6d4);
+    color: white;
+    box-shadow: 0 4px 14px rgba(59,130,246,0.25);
+}
+.rpt-btn--blue:hover {
+    box-shadow: 0 6px 20px rgba(59,130,246,0.4);
+    transform: translateY(-1px);
+}
+
+.rpt-btn--amber {
+    background: linear-gradient(135deg, #f59e0b, #d97706);
+    color: white;
+    box-shadow: 0 4px 14px rgba(245,158,11,0.25);
+}
+.rpt-btn--amber:hover {
+    box-shadow: 0 6px 20px rgba(245,158,11,0.4);
+    transform: translateY(-1px);
+}
+
+/* ── Disclaimer strip ── */
+.rpt-disclaimer {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    background: #f0f9ff;
+    border: 1px solid #bae6fd;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    font-size: 0.8rem;
+    color: #0369a1;
+    line-height: 1.6;
+}
+
+.rpt-disclaimer i {
+    font-size: 0.9rem;
+    color: #0ea5e9;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+/* ── Responsive ── */
+@media (max-width: 900px) {
+    .rpt-page-header { flex-direction: column; align-items: flex-start; }
+    .rpt-page-header-right { align-self: flex-start; }
+    .rpt-stats-row { gap: 0.5rem; }
+    .rpt-stat { min-width: 100px; padding: 0.5rem 0.5rem; }
+    .rpt-stat-divider { display: none; }
+}
+
+@media (max-width: 640px) {
+    .rpt-page-header { padding: 1.25rem; }
+    .rpt-cards-grid { grid-template-columns: 1fr; }
+    .rpt-stats-row { flex-direction: column; align-items: flex-start; gap: 0.75rem; }
+    .rpt-stat-divider { display: none; }
+    .rpt-stat { min-width: 0; width: 100%; padding: 0; }
+}

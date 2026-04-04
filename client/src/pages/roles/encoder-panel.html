@@ -63,6 +63,10 @@
                 <i class="fas fa-chart-line"></i>
                 <span>Analytics</span>
             </a>
+            <a href="#reports" class="nav-item">
+                <i class="fas fa-file-alt"></i>
+                <span>Reports</span>
+            </a>
             <a href="#settings" class="nav-item">
                 <i class="fas fa-sliders-h"></i>
                 <span>System Settings</span>
@@ -469,6 +473,144 @@
                     </div>
 
                 </div>
+            </div>
+
+            <!-- Reports Section -->
+            <div id="reports" class="content-section">
+
+                <!-- Reports Page Header -->
+                <div class="rpt-page-header">
+                    <div class="rpt-page-header-left">
+                        <div class="rpt-page-icon">
+                            <i class="fas fa-file-export"></i>
+                        </div>
+                        <div>
+                            <h2 class="rpt-page-title">My Reports &amp; Exports</h2>
+                            <p class="rpt-page-sub">Download and review your personal submission records from the Encoder dashboard</p>
+                        </div>
+                    </div>
+                    <div class="rpt-page-header-right">
+                        <span class="rpt-page-badge"><i class="fas fa-user-edit"></i> My Records</span>
+                        <span class="rpt-page-badge rpt-page-badge--green"><i class="fas fa-circle"></i> Live Data</span>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Row -->
+                <div class="rpt-stats-row">
+                    <div class="rpt-stat">
+                        <i class="fas fa-file-alt rpt-stat-icon" style="color:#4f46e5;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatTotal">—</span>
+                            <span class="rpt-stat-label">My Submissions</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-check-circle rpt-stat-icon" style="color:#10b981;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatApproved">—</span>
+                            <span class="rpt-stat-label">Approved</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-hourglass-half rpt-stat-icon" style="color:#f59e0b;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatPending">—</span>
+                            <span class="rpt-stat-label">Pending</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-times-circle rpt-stat-icon" style="color:#ef4444;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatRejected">—</span>
+                            <span class="rpt-stat-label">Rejected</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Cards Grid -->
+                <div class="rpt-cards-grid">
+
+                    <!-- Card 1: My Submissions CSV -->
+                    <div class="rpt-card">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <i class="fas fa-file-csv"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--green">CSV</span>
+                                    <span class="rpt-badge rpt-badge--gray">All Submissions</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">My Submissions Export</h3>
+                            <p class="rpt-card-desc">Download a complete CSV of all your submitted registrations, including current status, form type, barangay assignments, and timestamps.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> All your submission statuses</li>
+                                <li><i class="fas fa-check"></i> Beneficiary name, form type, barangay</li>
+                                <li><i class="fas fa-check"></i> Submission &amp; last-updated dates</li>
+                                <li><i class="fas fa-check"></i> Compatible with Excel &amp; Google Sheets</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-alt"></i> .CSV format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-bolt"></i> Instant download</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--green" onclick="exportSubmissions()">
+                                <i class="fas fa-download"></i>
+                                <span>Export My Submissions</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: Analytics PDF (Coming Soon) -->
+                    <div class="rpt-card rpt-card--muted">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);">
+                                    <i class="fas fa-chart-bar"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--blue">PDF</span>
+                                    <span class="rpt-badge rpt-badge--coming">Coming Soon</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">My Performance Summary</h3>
+                            <p class="rpt-card-desc">A personal productivity report featuring your monthly submission trends, approval rate, and barangay coverage — formatted for supervisor review.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> Monthly submission trend chart</li>
+                                <li><i class="fas fa-check"></i> Approval rate gauge</li>
+                                <li><i class="fas fa-check"></i> Barangay coverage heatmap</li>
+                                <li><i class="fas fa-check"></i> Printable &amp; shareable format</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-pdf"></i> .PDF format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-hourglass-half"></i> Next release</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--blue" onclick="showToast('Performance PDF report is being prepared for the next release.', 'info')">
+                                <i class="fas fa-bell"></i>
+                                <span>Notify Me When Ready</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Data Disclaimer -->
+                <div class="rpt-disclaimer">
+                    <i class="fas fa-info-circle"></i>
+                    <span>Exported data only includes registrations you have personally submitted. For complete registry access, contact your supervising MAO officer.</span>
+                </div>
+
             </div>
 
             <!-- System Settings Section -->
