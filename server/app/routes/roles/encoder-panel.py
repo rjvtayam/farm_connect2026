@@ -163,12 +163,29 @@ def get_analytics():
     verified   = raw_status.get('verified', 0)
     approval_rate = round((approved / total) * 100) if total > 0 else 0
 
+    # ── Demographics ──
+    sex_counts = db.session.query(
+        Beneficiary.sex, func.count(Beneficiary.id)
+    ).join(Registration, Registration.beneficiary_id == Beneficiary.id).filter(
+        *base_filter, Registration.status == 'approved'
+    ).group_by(Beneficiary.sex).all()
+
+    pwd_count     = Beneficiary.query.join(Registration, Registration.beneficiary_id == Beneficiary.id).filter(*base_filter, Registration.status == 'approved', Beneficiary.is_pwd   == True).count()
+    four_ps_count = Beneficiary.query.join(Registration, Registration.beneficiary_id == Beneficiary.id).filter(*base_filter, Registration.status == 'approved', Beneficiary.is_4ps  == True).count()
+    ip_count      = Beneficiary.query.join(Registration, Registration.beneficiary_id == Beneficiary.id).filter(*base_filter, Registration.status == 'approved', Beneficiary.is_ip   == True).count()
+
     result = {
         'success': True,
         'analytics': {
             'types':    dict(type_counts),
             'status':   raw_status,
             'barangays': dict(barangay_counts),
+            'demographics': {
+                'sex': dict(sex_counts),
+                'pwd': pwd_count,
+                'four_ps': four_ps_count,
+                'ip': ip_count
+            },
             'growth': {
                 'month_labels': month_labels,
                 'current_year': str(current_year),

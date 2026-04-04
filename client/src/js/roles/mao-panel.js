@@ -346,9 +346,15 @@ function loadAnalytics() {
     fetch('/mao/api/analytics', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                renderCharts(data.analytics);
-                populateAnalyticsKPIs(data.analytics);
+            if (data.success && data.analytics) {
+                const newDataStr = JSON.stringify(data.analytics);
+
+                // Prevent destroying and re-rendering charts if data hasn't changed
+                if (window._lastMaoAnalyticsStr !== newDataStr) {
+                    window._lastMaoAnalyticsStr = newDataStr;
+                    renderCharts(data.analytics);
+                    populateAnalyticsKPIs(data.analytics);
+                }
 
                 // Update "Last Updated" timestamp
                 const lastUpdatedEl = document.getElementById('analyticsLastUpdated');
@@ -378,11 +384,18 @@ function populateAnalyticsKPIs(analytics) {
     const kpiPending = document.getElementById('kpiPending');
     const kpiRejected = document.getElementById('kpiRejected');
     const kpiVerified = document.getElementById('kpiVerified');
+    const kpiRate = document.getElementById('maoKpiRate');
 
     if (kpiApproved) kpiApproved.textContent = approved.toLocaleString();
     if (kpiPending) kpiPending.textContent = pending.toLocaleString();
     if (kpiRejected) kpiRejected.textContent = rejected.toLocaleString();
     if (kpiVerified) kpiVerified.textContent = verified.toLocaleString();
+    
+    if (kpiRate) {
+        const total = Object.values(statusData).reduce((s, v) => s + v, 0);
+        const rate = total > 0 ? Math.round((approved / total) * 100) : 0;
+        kpiRate.textContent = `${rate}%`;
+    }
 
     // Update year badge
     const growth = analytics.growth || {};

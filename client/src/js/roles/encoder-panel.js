@@ -1070,9 +1070,15 @@ function loadAnalytics() {
     fetch('/encoder/api/analytics', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                renderCharts(data.analytics);
-                populateAnalyticsKPIs(data.analytics);
+            if (data.success && data.analytics) {
+                const newDataStr = JSON.stringify(data.analytics);
+
+                // Prevent destroying and re-rendering charts if data hasn't changed
+                if (window._lastEncoderAnalyticsStr !== newDataStr) {
+                    window._lastEncoderAnalyticsStr = newDataStr;
+                    renderCharts(data.analytics);
+                    populateAnalyticsKPIs(data.analytics);
+                }
 
                 // Update "Last Updated" timestamp
                 const lastUpdatedEl = document.getElementById('encoderAnalyticsLastUpdated');
@@ -1490,6 +1496,107 @@ function renderCharts(analytics) {
                 }
             }
         });
+    }
+
+    // ─────────────────────────────────────────────────────────────
+    // 5. DEMOGRAPHIC PROFILE (Radar — real data)
+    // ─────────────────────────────────────────────────────────────
+    const radarCtx = document.getElementById('encoderDemographicRadarChart')?.getContext('2d');
+    if (radarCtx) {
+        const demo = analytics.demographics || {};
+        const sexData = demo.sex || {};
+
+        // Normalize sex keys (API may return 'Male', 'male', 'M', etc.)
+        const maleCount = sexData['Male'] || sexData['male'] || sexData['M'] || 0;
+        const femaleCount = sexData['Female'] || sexData['female'] || sexData['F'] || 0;
+        const pwdCount = demo.pwd || 0;
+        const fourPsCount = demo.four_ps || 0;
+        const ipCount = demo.ip || 0;
+
+        const radarLabels = ['Male', 'Female', 'PWD', '4Ps Member', 'IP'];
+        const radarValues = [maleCount, femaleCount, pwdCount, fourPsCount, ipCount];
+
+        window.encoderCharts.radar = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: radarLabels,
+                datasets: [{
+                    label: 'Beneficiaries',
+                    data: radarValues,
+                    backgroundColor: 'rgba(139,92,246,0.18)',
+                    borderColor: '#8b5cf6',
+                    pointBackgroundColor: '#8b5cf6',
+                    pointBorderColor: '#fff',
+                    pointBorderWidth: 2,
+                    pointRadius: 5,
+                    pointHoverRadius: 7,
+                    borderWidth: 2.5,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    r: {
+                        angleLines: { color: gridColor },
+                        grid: { color: gridColor },
+                        pointLabels: {
+                            color: tickColor,
+                            font: { family: "'Inter', sans-serif", size: 12, weight: '500' }
+                        },
+                        ticks: { display: false, stepSize: Math.max(1, Math.ceil(Math.max(...radarValues) / 5)) }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: makeTooltip()
+                }
+            }
+        });
+
+        // Render the demographic breakdown sidebar
+        const breakdownEl = document.getElementById('encoderDemographicBreakdown');
+        if (breakdownEl) {
+            const total = maleCount + femaleCount;
+            const malePct = total > 0 ? Math.round((maleCount / total) * 100) : 0;
+            const femalePct = total > 0 ? 100 - malePct : 0;
+
+            breakdownEl.innerHTML = `
+                <div class="demo-section-title">Sex Distribution</div>
+                <div class="demo-bar-row">
+                    <span class="demo-bar-label"><i class="fas fa-mars" style="color:#3b82f6"></i> Male</span>
+                    <div class="demo-progress-bar">
+                        <div class="demo-progress-fill" style="width:${malePct}%;background:#3b82f6"></div>
+                    </div>
+                    <span class="demo-bar-count">${maleCount.toLocaleString()} <span class="demo-bar-pct">${malePct}%</span></span>
+                </div>
+                <div class="demo-bar-row">
+                    <span class="demo-bar-label"><i class="fas fa-venus" style="color:#ec4899"></i> Female</span>
+                    <div class="demo-progress-bar">
+                        <div class="demo-progress-fill" style="width:${femalePct}%;background:#ec4899"></div>
+                    </div>
+                    <span class="demo-bar-count">${femaleCount.toLocaleString()} <span class="demo-bar-pct">${femalePct}%</span></span>
+                </div>
+                <div class="demo-section-title" style="margin-top:1.25rem">Special Categories</div>
+                <div class="demo-chip-grid">
+                    <div class="demo-chip" style="border-color:#8b5cf6;background:rgba(139,92,246,0.08)">
+                        <span class="demo-chip-icon" style="color:#8b5cf6"><i class="fas fa-wheelchair"></i></span>
+                        <span class="demo-chip-value">${pwdCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">PWD</span>
+                    </div>
+                    <div class="demo-chip" style="border-color:#f59e0b;background:rgba(245,158,11,0.08)">
+                        <span class="demo-chip-icon" style="color:#f59e0b"><i class="fas fa-hand-holding-heart"></i></span>
+                        <span class="demo-chip-value">${fourPsCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">4Ps</span>
+                    </div>
+                    <div class="demo-chip" style="border-color:#10b981;background:rgba(16,185,129,0.08)">
+                        <span class="demo-chip-icon" style="color:#10b981"><i class="fas fa-leaf"></i></span>
+                        <span class="demo-chip-value">${ipCount.toLocaleString()}</span>
+                        <span class="demo-chip-label">Indigenous</span>
+                    </div>
+                </div>
+            `;
+        }
     }
 }
 

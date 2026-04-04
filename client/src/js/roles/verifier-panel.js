@@ -66,22 +66,38 @@ document.addEventListener('DOMContentLoaded', function () {
     initVerifierSockets();
 
     // ── Handle Tab Clicks for Analytics Deferred Rendering ──
-    // This solves the Chart.js 0-dimension bug when refreshing in the background
+    // Multiple retries ensure charts render even if the section takes time to become visible
     document.querySelectorAll('.sidebar-nav .nav-item').forEach(link => {
         link.addEventListener('click', function() {
             if (this.getAttribute('href') === '#analytics') {
-                // Short timeout to wait for section to become display:block
-                setTimeout(() => {
-                    if (window.pendingVerifierAnalytics) {
-                        console.log('Rendering deferred verifier analytics...');
-                        renderVerifierCharts(window.pendingVerifierAnalytics);
-                        window.pendingVerifierAnalytics = null;
-                    }
-                }, 100);
+                attemptDeferredAnalyticsRender();
             }
         });
     });
 });
+
+/**
+ * Attempt to render deferred analytics with multiple retries.
+ * This ensures charts render reliably when switching to the analytics tab.
+ */
+function attemptDeferredAnalyticsRender() {
+    const retryDelays = [50, 150, 300, 600];
+    retryDelays.forEach(delay => {
+        setTimeout(() => {
+            const section = document.getElementById('analytics');
+            const isVisible = section && section.offsetParent !== null;
+            if (isVisible && window._lastVerifierAnalyticsData) {
+                // Check if charts already exist and are valid
+                const hasCharts = window.verifierCharts && Object.keys(window.verifierCharts).length > 0;
+                if (!hasCharts) {
+                    console.log(`[Analytics] Rendering deferred charts (delay: ${delay}ms)`);
+                    renderVerifierCharts(window._lastVerifierAnalyticsData);
+                    populateVerifierKPIs(window._lastVerifierAnalyticsData);
+                }
+            }
+        }, delay);
+    });
+}
 
 /**
  * Verifier Specific Socket Events
@@ -1792,9 +1808,26 @@ function loadAnalytics() {
     fetch('/verifier/api/analytics', { credentials: 'include' })
         .then(response => response.json())
         .then(data => {
-            if (data.success) {
-                renderVerifierCharts(data.analytics);
-                populateVerifierKPIs(data.analytics);
+            if (data.success && data.analytics) {
+                const newDataStr = JSON.stringify(data.analytics);
+
+                // Prevent destroying and re-rendering charts if data hasn't changed.
+                // This completely fixes charts vanishing or blinking during the polling interval.
+                if (window._lastAnalyticsStr !== newDataStr) {
+                    window._lastAnalyticsStr = newDataStr;
+                    // Always store the latest data globally for deferred rendering
+                    window._lastVerifierAnalyticsData = data.analytics;
+
+                    // Attempt to render — renderVerifierCharts handles visibility internally
+                    renderVerifierCharts(data.analytics);
+                    populateVerifierKPIs(data.analytics);
+                }
+
+                // Subtitle update (Optional, already set in HTML but good practice to keep synced if needed)
+                const subtitle = document.getElementById('verifierAnalyticsSubtitle');
+                if (subtitle && subtitle.textContent === 'Loading...') {
+                    subtitle.textContent = "Performance overview & pipeline";
+                }
 
                 // Update "Last Updated" timestamp
                 const lastUpdatedEl = document.getElementById('verifierAnalyticsLastUpdated');
@@ -1821,12 +1854,20 @@ function populateVerifierKPIs(analytics) {
     const elVerified = document.getElementById('verKpiVerified');
     const elApproved = document.getElementById('verKpiApproved');
     const elRejected = document.getElementById('verKpiRejected');
+    const elRate = document.getElementById('verKpiRate');
 
     if (elTotal) elTotal.textContent = (kpi.total_muni || 0).toLocaleString();
     if (elPending) elPending.textContent = (kpi.pending || 0).toLocaleString();
     if (elVerified) elVerified.textContent = (kpi.verified || 0).toLocaleString();
     if (elApproved) elApproved.textContent = (kpi.approved || 0).toLocaleString();
     if (elRejected) elRejected.textContent = (kpi.rejected || 0).toLocaleString();
+
+    if (elRate) {
+        const total = kpi.total_muni || 0;
+        const approved = kpi.approved || 0;
+        const rate = total > 0 ? Math.round((approved / total) * 100) : 0;
+        elRate.textContent = `${rate}%`;
+    }
 
     // Update Year Label
     const monthly = analytics.monthly || {};
@@ -1896,11 +1937,20 @@ function makeTooltip(extraCallbacks) {
 }
 
 function renderVerifierCharts(analytics) {
-    // Only render if the analytics section is actually visible to prevent Chart.js 0-dimension bugs
+    if (!analytics) return;
+
+    // Check visibility using offsetParent (more reliable than inline style check)
+    // offsetParent is null when element or ancestor has display:none
     const analyticsSection = document.getElementById('analytics');
-    if (!analyticsSection || analyticsSection.style.display === 'none') {
-        // Store data for deferred rendering when tab is clicked
-        window.pendingVerifierAnalytics = analytics;
+    if (!analyticsSection || analyticsSection.offsetParent === null) {
+        // Section is hidden — data is already stored in window._lastVerifierAnalyticsData
+        // It will be rendered when the user clicks the Analytics tab
+        return;
+    }
+
+    // Ensure Chart.js is available
+    if (typeof Chart === 'undefined') {
+        console.warn('[Analytics] Chart.js not loaded yet');
         return;
     }
 
