@@ -21,6 +21,12 @@ window.togglePasswordVisibility = function(button, inputId) {
 // Load data on page load
 
 
+// ── Utility Functions ──
+window.setRpt = function(id, val) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = (val || 0).toLocaleString();
+};
+
 // ── Modal Management ──
 function openModal(modalId) {
     const modal = document.getElementById(modalId);
@@ -99,6 +105,12 @@ function setupSidebarNavigation() {
     const sections = document.querySelectorAll('.content-section');
     const dashboardHome = document.getElementById('dashboard-home');
 
+    // ── Set initial display state on page load ──
+    // Hide all content sections and show only the dashboard home.
+    // This prevents all sections from stacking on load.
+    sections.forEach(section => { section.style.display = 'none'; });
+    if (dashboardHome) dashboardHome.style.display = 'block';
+
     navLinks.forEach(link => {
         link.addEventListener('click', function (e) {
             const href = this.getAttribute('href');
@@ -115,6 +127,17 @@ function setupSidebarNavigation() {
             if (targetId === 'dashboard') {
                 if (dashboardHome) dashboardHome.style.display = 'block';
                 sections.forEach(section => section.style.display = 'none');
+
+                // Resize admin dashboard charts (they're inside dashboard-home)
+                setTimeout(() => {
+                    const adminCharts = [
+                        window.usersRoleChartInstance,
+                        window.activityOverviewChartInstance
+                    ].filter(Boolean);
+                    adminCharts.forEach(chart => {
+                        if (typeof chart.resize === 'function') chart.resize();
+                    });
+                }, 15);
             } else {
                 if (dashboardHome) dashboardHome.style.display = 'none';
                 sections.forEach(section => {

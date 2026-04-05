@@ -309,10 +309,6 @@ function loadStats() {
 
                 // ── Reports tab quick-stats (real-time, no extra API call) ──
                 const s = data.stats;
-                const setRpt = (id, val) => {
-                    const el = document.getElementById(id);
-                    if (el) el.textContent = (val || 0).toLocaleString();
-                };
                 setRpt('rptStatTotal',    s.total    || 0);
                 setRpt('rptStatApproved', s.approved || 0);
                 setRpt('rptStatPending',  (s.pending || 0) + (s.pending_verification || 0));

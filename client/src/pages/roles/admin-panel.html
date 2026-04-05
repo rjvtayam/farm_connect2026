@@ -68,6 +68,10 @@
                 <i class="fas fa-history"></i>
                 <span>Activity Logs</span>
             </a>
+            <a href="#reports" class="nav-item">
+                <i class="fas fa-chart-bar"></i>
+                <span>Reports</span>
+            </a>
             <a href="#settings" class="nav-item">
                 <i class="fas fa-sliders-h"></i>
                 <span>System Settings</span>
@@ -376,8 +380,216 @@
                 </div>
             </div>
 
+            <!-- Reports Section -->
+            <div id="reports" class="content-section">
+
+                <!-- Reports Page Header -->
+                <div class="rpt-page-header">
+                    <div class="rpt-page-header-left">
+                        <div class="rpt-page-icon">
+                            <i class="fas fa-chart-bar"></i>
+                        </div>
+                        <div>
+                            <h2 class="rpt-page-title">System Reports &amp; Exports</h2>
+                            <p class="rpt-page-sub">Generate and download system-wide audit logs, user activity summaries, and registry data exports</p>
+                        </div>
+                    </div>
+                    <div class="rpt-page-header-right">
+                        <span class="rpt-page-badge"><i class="fas fa-user-shield"></i> Admin Access</span>
+                        <span class="rpt-page-badge rpt-page-badge--green"><i class="fas fa-circle"></i> Live Data</span>
+                    </div>
+                </div>
+
+                <!-- Quick Stats Row -->
+                <div class="rpt-stats-row">
+                    <div class="rpt-stat">
+                        <i class="fas fa-users rpt-stat-icon" style="color:#4f46e5;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatUsers">—</span>
+                            <span class="rpt-stat-label">Total Staff Users</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-user-check rpt-stat-icon" style="color:#10b981;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatActive">—</span>
+                            <span class="rpt-stat-label">Active Accounts</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-users-cog rpt-stat-icon" style="color:#06b6d4;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatCommunity">—</span>
+                            <span class="rpt-stat-label">Community Members</span>
+                        </div>
+                    </div>
+                    <div class="rpt-stat-divider"></div>
+                    <div class="rpt-stat">
+                        <i class="fas fa-stream rpt-stat-icon" style="color:#f59e0b;"></i>
+                        <div>
+                            <span class="rpt-stat-value" id="rptStatLogs">—</span>
+                            <span class="rpt-stat-label">Activity Log Entries</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Report Cards Grid -->
+                <div class="rpt-cards-grid">
+
+                    <!-- Card 1: Staff User Directory CSV -->
+                    <div class="rpt-card">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #4f46e5, #6366f1);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #4f46e5, #6366f1);">
+                                    <i class="fas fa-users-cog"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--blue">CSV</span>
+                                    <span class="rpt-badge rpt-badge--gray">All Staff</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">Staff User Directory</h3>
+                            <p class="rpt-card-desc">Export a complete CSV of all registered staff members including their role, contact details, account status, and registration date.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> All staff roles (MAO, Encoder, Verifier)</li>
+                                <li><i class="fas fa-check"></i> Email, contact number, and account status</li>
+                                <li><i class="fas fa-check"></i> Last login and registration date</li>
+                                <li><i class="fas fa-check"></i> Compatible with Excel &amp; Google Sheets</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-alt"></i> .CSV format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-bolt"></i> Instant download</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--blue" onclick="exportAdminUsers()">
+                                <i class="fas fa-download"></i>
+                                <span>Export Staff Directory</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: System Activity Log CSV -->
+                    <div class="rpt-card">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #f59e0b, #d97706);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #f59e0b, #d97706);">
+                                    <i class="fas fa-history"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--amber">CSV</span>
+                                    <span class="rpt-badge rpt-badge--gray">Audit Trail</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">System Activity Log</h3>
+                            <p class="rpt-card-desc">Download a complete audit trail of all system events — including logins, submissions, approvals, rejections, and data modifications — for compliance tracking.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> All system-wide user actions</li>
+                                <li><i class="fas fa-check"></i> Timestamps, user identity, and IP (if tracked)</li>
+                                <li><i class="fas fa-check"></i> Action type and affected resource</li>
+                                <li><i class="fas fa-check"></i> Ideal for compliance and audit reports</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-alt"></i> .CSV format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-bolt"></i> Instant download</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--amber" onclick="exportAdminActivityLog()">
+                                <i class="fas fa-download"></i>
+                                <span>Export Activity Log</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Community Members CSV -->
+                    <div class="rpt-card">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #10b981, #059669);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #10b981, #059669);">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--green">CSV</span>
+                                    <span class="rpt-badge rpt-badge--gray">Community</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">Community Members Export</h3>
+                            <p class="rpt-card-desc">Export all registered community members (public users) — including their profile details, account status, and last login information.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> All community member profiles</li>
+                                <li><i class="fas fa-check"></i> Account provider and verification status</li>
+                                <li><i class="fas fa-check"></i> Last login and registration dates</li>
+                                <li><i class="fas fa-check"></i> Useful for community engagement analysis</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-alt"></i> .CSV format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-bolt"></i> Instant download</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--green" onclick="exportAdminCommunityMembers()">
+                                <i class="fas fa-download"></i>
+                                <span>Export Community Members</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: System Health PDF (Coming Soon) -->
+                    <div class="rpt-card rpt-card--muted">
+                        <div class="rpt-card-accent" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);"></div>
+                        <div class="rpt-card-body">
+                            <div class="rpt-card-header-row">
+                                <div class="rpt-card-icon-wrap" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);">
+                                    <i class="fas fa-file-chart-line"></i>
+                                </div>
+                                <div class="rpt-card-badges">
+                                    <span class="rpt-badge rpt-badge--blue">PDF</span>
+                                    <span class="rpt-badge rpt-badge--coming">Coming Soon</span>
+                                </div>
+                            </div>
+                            <h3 class="rpt-card-title">System Health Report</h3>
+                            <p class="rpt-card-desc">An auto-generated executive summary PDF covering system-wide user growth, submission trends, registration pipeline health, and role-based performance metrics.</p>
+                            <ul class="rpt-card-features">
+                                <li><i class="fas fa-check"></i> Monthly user signups &amp; growth chart</li>
+                                <li><i class="fas fa-check"></i> Submission pipeline overview</li>
+                                <li><i class="fas fa-check"></i> Role performance breakdown</li>
+                                <li><i class="fas fa-check"></i> Printable executive summary format</li>
+                            </ul>
+                            <div class="rpt-card-meta">
+                                <span class="rpt-meta-item"><i class="fas fa-file-pdf"></i> .PDF format</span>
+                                <span class="rpt-meta-item"><i class="fas fa-hourglass-half"></i> Next release</span>
+                            </div>
+                        </div>
+                        <div class="rpt-card-footer">
+                            <button class="rpt-btn rpt-btn--blue" onclick="showToast('System Health PDF report is being developed for the next release.', 'info')">
+                                <i class="fas fa-bell"></i>
+                                <span>Notify Me When Ready</span>
+                                <i class="fas fa-arrow-right rpt-btn-arrow"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+
+                <!-- Data Disclaimer -->
+                <div class="rpt-disclaimer">
+                    <i class="fas fa-shield-alt"></i>
+                    <span>All exports are logged as administrative actions. Data is provided in real-time and contains sensitive information — handle with appropriate security protocols.</span>
+                </div>
+
+            </div>
+
             <!-- Settings Section -->
-            <div id="settings" class="content-section" style="display: none;">
+            <div id="settings" class="content-section">
                 <div class="content-card">
                     <div class="card-header">
                         <h2><i class="fas fa-sliders-h"></i> System Settings</h2>

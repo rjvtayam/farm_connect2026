@@ -387,6 +387,13 @@ function loadStats() {
                     updateTrendBadge('activeEncodersTrend', data.trends.encoder_count);
                     updateTrendBadge('activeVerifiersTrend', data.trends.verifier_count);
                 }
+
+                // ── Reports tab quick-stats (real-time, no extra API call) ──
+                const s = data.stats;
+                setRpt('rptStatUsers',     (s.total_users || 0));
+                setRpt('rptStatActive',    (s.active_users !== undefined ? s.active_users : (s.total_users || 0)));
+                setRpt('rptStatCommunity', s.community_members || 0);
+                setRpt('rptStatLogs',      s.activity_log_count || s.total_activity || 0);
             }
         })
         .catch(error => console.error('Error loading stats:', error));
@@ -992,3 +999,72 @@ async function loadTrashCount() {
         }
     } catch (e) { /* silent */ }
 }
+
+// ── Admin Reports: CSV Exports ────────────────────────────────────────────────
+
+/**
+ * Generic CSV downloader for admin export endpoints.
+ * @param {string} url - API endpoint
+ * @param {string} defaultFilename - fallback filename
+ * @param {HTMLElement|null} btn - button element to show loading state
+ */
+async function _adminCsvDownload(url, defaultFilename, btn) {
+    const originalHtml = btn ? btn.innerHTML : '';
+    try {
+        if (btn) {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Preparing...';
+        }
+
+        const response = await fetch(url, { credentials: 'include' });
+        if (!response.ok) throw new Error(`Export failed (status ${response.status})`);
+
+        const blob = await response.blob();
+        const downloadUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+
+        // Try to extract filename from Content-Disposition header
+        const cd = response.headers.get('Content-Disposition');
+        let filename = defaultFilename;
+        if (cd && cd.includes('filename=')) {
+            filename = cd.split('filename=')[1].replace(/"/g, '').trim();
+        }
+
+        a.href = downloadUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(downloadUrl);
+        a.remove();
+
+        showFlashMessage('CSV exported successfully!', 'success');
+    } catch (error) {
+        console.error('Admin CSV export error:', error);
+        showFlashMessage('Export failed. Please try again.', 'error');
+    } finally {
+        if (btn) {
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalHtml;
+            }, 600);
+        }
+    }
+}
+
+/** Export all staff users (MAO, Encoder, Verifier) as CSV */
+window.exportAdminUsers = function() {
+    const btn = document.querySelector('button[onclick="exportAdminUsers()"]');
+    _adminCsvDownload('/admin/api/reports/users-export', 'admin_staff_directory.csv', btn);
+};
+
+/** Export full system activity log as CSV */
+window.exportAdminActivityLog = function() {
+    const btn = document.querySelector('button[onclick="exportAdminActivityLog()"]');
+    _adminCsvDownload('/admin/api/reports/activity-export', 'admin_activity_log.csv', btn);
+};
+
+/** Export all community members as CSV */
+window.exportAdminCommunityMembers = function() {
+    const btn = document.querySelector('button[onclick="exportAdminCommunityMembers()"]');
+    _adminCsvDownload('/admin/api/reports/community-export', 'admin_community_members.csv', btn);
+};
