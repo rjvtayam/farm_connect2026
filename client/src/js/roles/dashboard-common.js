@@ -352,6 +352,25 @@ function getCSRFToken() {
 // ── Profile & Account Management ─────────────────────────────────────────────
 let selectedProfileFile = null;
 
+window.switchSettingsTab = function(tabId) {
+    // Update active nav button
+    document.querySelectorAll('.settings-nav-btn').forEach(btn => {
+        if (!btn.classList.contains('danger-tab') || tabId === 'danger') {
+            btn.classList.remove('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    const targetBtn = document.querySelector(`.settings-nav-btn[onclick="switchSettingsTab('${tabId}')"]`);
+    if (targetBtn) targetBtn.classList.add('active');
+
+    // Update active pane
+    document.querySelectorAll('.settings-pane').forEach(pane => pane.classList.remove('active'));
+    const targetPane = document.getElementById(`settings-pane-${tabId}`);
+    if (targetPane) targetPane.classList.add('active');
+};
+
+
 function handleProfileFile(file) {
     if (!file) return;
     const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif'];
@@ -377,13 +396,19 @@ function handleProfileFile(file) {
 function saveProfile() {
     const fullNameEl = document.getElementById('profileFullName');
     const fullName = fullNameEl ? fullNameEl.value.trim() : '';
+
+    const emailEl = document.getElementById('profileEmail');
+    const email = emailEl ? emailEl.value.trim() : '';
+
+    const contactEl = document.getElementById('profileContact');
+    const contactNo = contactEl ? contactEl.value.trim() : '';
     
     if (!fullName) {
         showFlashMessage('Full name cannot be empty.', 'error');
         return;
     }
 
-    const submitBtn = document.querySelector('#profileModal .btn-primary');
+    const submitBtn = document.querySelector('#profileFormEmbedded .btn-primary');
     if (submitBtn) {
         submitBtn.disabled = true;
         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
@@ -391,6 +416,8 @@ function saveProfile() {
 
     const formData = new FormData();
     formData.append('full_name', fullName);
+    if (email) formData.append('email', email);
+    if (contactNo) formData.append('contact_no', contactNo);
     if (selectedProfileFile) formData.append('profile_image', selectedProfileFile);
 
     fetch('/auth/update-profile', {
@@ -402,7 +429,6 @@ function saveProfile() {
     .then((data) => {
         if (data.success) {
             showFlashMessage('Profile updated successfully!', 'success');
-            closeModal('profileModal');
             
             // ── Real-Time Sidebar Update ──
             const nameEls = document.querySelectorAll('.user-name');
@@ -416,7 +442,7 @@ function saveProfile() {
                 if (sidebarAvatar) {
                     sidebarAvatar.innerHTML = `<img src="${bustedUrl}" alt="Profile" style="width:100%; height:100%; object-fit:cover; border-radius:inherit;">`;
                 }
-                // Also update the preview in case they open the modal again
+                // Also update the preview
                 const preview = document.getElementById('profileAvatarPreview');
                 if (preview) {
                     preview.innerHTML = `<img src="${bustedUrl}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:50%;">`;
@@ -432,7 +458,7 @@ function saveProfile() {
     .finally(() => {
         if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes';
+            submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Profile';
         }
     });
 }
