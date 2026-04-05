@@ -621,6 +621,16 @@
 .badge-verifier { background: #FEF3C7; color: #D97706; }
 .badge-admin    { background: #E0E7FF; color: #4F46E5; }
 .badge-type     { background: #F3E8FF; color: #7C3AED; }
+.badge-rsbsa    { background: #F3E8FF; color: #7C3AED; }
+.badge-fish     { background: #E0F2FE; color: #0284C7; }
+.badge-boat     { background: #E0E7FF; color: #4F46E5; }
+.badge-ncfrs    { background: #FFE4E6; color: #E11D48; }
+
+[data-theme="dark"] .badge-rsbsa    { background: rgba(124, 58, 237, 0.15); color: #c4b5fd; border: 1px solid rgba(124, 58, 237, 0.2); }
+[data-theme="dark"] .badge-fish     { background: rgba(2, 132, 199, 0.15); color: #7dd3fc; border: 1px solid rgba(2, 132, 199, 0.2); }
+[data-theme="dark"] .badge-boat     { background: rgba(79, 70, 229, 0.15); color: #a5b4fc; border: 1px solid rgba(79, 70, 229, 0.2); }
+[data-theme="dark"] .badge-ncfrs    { background: rgba(225, 29, 72, 0.15); color: #fda4af; border: 1px solid rgba(225, 29, 72, 0.2); }
+
 
 .status-badge {
     display: inline-flex;

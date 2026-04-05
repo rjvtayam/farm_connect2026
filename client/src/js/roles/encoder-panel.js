@@ -431,7 +431,7 @@ function renderSubmissions(list, filteredCount, totalCount) {
         return `
         <tr${remarksAttr}>
             <td><span style="font-weight:600;color:var(--text-dark)">${name}</span></td>
-            <td><span class="badge badge-type">${type.toUpperCase()}</span></td>
+            <td><span class="badge badge-${type.toLowerCase().split('_')[0]}">${type.toUpperCase().replace('_REGISTRATION', '')}</span></td>
             <td style="color:var(--text-light);font-size:0.85rem">${barangay}</td>
             <td><span class="status-badge ${statusClass}">${statusLabel}</span>${remarksIcon}</td>
             <td style="color:var(--text-light);font-size:0.85rem">${formatDate(date)}</td>
@@ -501,7 +501,7 @@ window.viewSubmission = function (id) {
                                 </div>
                                 <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
                                     <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Form Type</span>
-                                    <p style="margin:4px 0 0 0;"><span class="badge badge-type">${type.toUpperCase()}</span></p>
+                                    <p style="margin:4px 0 0 0;"><span class="badge badge-${type.toLowerCase().split('_')[0]}">${type.toUpperCase().replace('_REGISTRATION', '')}</span></p>
                                 </div>
                                 <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
                                     <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Status</span>

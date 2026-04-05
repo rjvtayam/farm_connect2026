@@ -410,7 +410,7 @@ function renderPendingTable(list, filteredCount, totalCount) {
         return `
             <tr data-id="${s.id}" class="${s.locked_by ? 'locked-row' : ''}">
                 <td><span style="font-weight:600;color:var(--text-dark)">${s.beneficiary_name}</span></td>
-                <td><span class="badge badge-type">${s.form_type.toUpperCase()}</span></td>
+                <td><span class="badge badge-${s.form_type.toLowerCase().split('_')[0]}">${s.form_type.toUpperCase().replace('_REGISTRATION', '')}</span></td>
                 <td>${s.encoder_name}</td>
                 <td>${s.barangay}</td>
                 <td style="color:var(--text-light);font-size:0.85rem">${formatDate(s.created_at)}</td>
@@ -732,7 +732,7 @@ function renderReviewedTable(list, filteredCount, totalCount) {
     tbody.innerHTML = list.map(s => `
         <tr>
             <td><span style="font-weight:600;color:var(--text-dark)">${s.beneficiary_name}</span></td>
-            <td><span class="badge badge-type">${s.form_type.toUpperCase()}</span></td>
+            <td><span class="badge badge-${s.form_type.toLowerCase().split('_')[0]}">${s.form_type.toUpperCase().replace('_REGISTRATION', '')}</span></td>
             <td>${s.encoder_name || '—'}</td>
             <td>${s.barangay || '—'}</td>
             <td><span class="status-badge ${s.status}">${s.status}</span></td>

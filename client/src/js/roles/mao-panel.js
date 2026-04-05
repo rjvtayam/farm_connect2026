@@ -1183,7 +1183,7 @@ function renderRegistrations(list) {
                 <td>
                     <div style="font-weight: 600; color: var(--text-dark); margin-bottom: 2px;">${r.beneficiary_name}</div>
                 </td>
-                <td><span class="badge badge-type">${r.form_type.toUpperCase()}</span></td>
+                <td><span class="badge badge-${r.form_type.toLowerCase().split('_')[0]}">${r.form_type.toUpperCase().replace('_REGISTRATION', '')}</span></td>
                 <td>${r.barangay}</td>
                 <td><span class="status-badge ${r.status}">${formatStatus(r.status)}</span></td>
                 <td style="color:var(--text-light);font-size:0.85rem">${formatDate(r.created_at)}</td>
