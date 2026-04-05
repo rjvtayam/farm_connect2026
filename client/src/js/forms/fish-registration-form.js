@@ -74,23 +74,23 @@ function setupEventListeners() {
             const prov = document.getElementById('province');
 
             if (isResident) {
-                if (muni) { 
-                    muni.value = 'Mabitac'; muni.readOnly = true; muni.classList.add('fg-locked'); 
+                if (muni) {
+                    muni.value = 'Mabitac'; muni.readOnly = true; muni.classList.add('fg-locked');
                     muni.setAttribute('data-dropdown-disabled', 'false');
                 }
-                if (prov) { 
-                    prov.value = 'Laguna'; prov.readOnly = true; prov.classList.add('fg-locked'); 
+                if (prov) {
+                    prov.value = 'Laguna'; prov.readOnly = true; prov.classList.add('fg-locked');
                     prov.setAttribute('data-dropdown-disabled', 'false');
                 }
                 const brgy = document.getElementById('street'); // In fish form, street/barangay are in one field
                 if (brgy) brgy.setAttribute('data-dropdown-disabled', 'false');
             } else {
-                if (muni) { 
-                    muni.value = ''; muni.readOnly = false; muni.classList.remove('fg-locked'); 
+                if (muni) {
+                    muni.value = ''; muni.readOnly = false; muni.classList.remove('fg-locked');
                     muni.setAttribute('data-dropdown-disabled', 'true');
                 }
-                if (prov) { 
-                    prov.value = ''; prov.readOnly = false; prov.classList.remove('fg-locked'); 
+                if (prov) {
+                    prov.value = ''; prov.readOnly = false; prov.classList.remove('fg-locked');
                     prov.setAttribute('data-dropdown-disabled', 'true');
                 }
                 const brgy = document.getElementById('street');

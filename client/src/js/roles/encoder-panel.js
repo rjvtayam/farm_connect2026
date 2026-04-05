@@ -473,62 +473,20 @@ window.viewSubmission = function (id) {
             const sub = data.submission;
             const type = sub.form_type || 'rsbsa';
 
-            // For non-RSBSA forms, show a structured detail card modal
-            if (type !== 'rsbsa') {
-                const b = sub.beneficiary || {};
-                const name = b.full_name || `${b.first_name || ''} ${b.last_name || ''}`.trim() || 'Unknown';
-                const statusClass = sub.status || 'pending';
-                const remarksHtml = sub.remarks
-                    ? `<div style="margin-top:1rem;padding:0.75rem 1rem;background:#fff1f2;border:1px solid #fecdd3;border-radius:10px;color:#e11d48;font-size:0.875rem;">
-                        <i class="fas fa-exclamation-circle"></i> <strong>Verifier Remarks:</strong> ${sub.remarks}
-                       </div>` : '';
+            const dlRouteMap = {
+                'rsbsa': '/forms/download/rsba-enrollment',
+                'fish': '/forms/download/fish-registration',
+                'boat': '/forms/download/boat-registration',
+                'ncfrs': '/forms/download/ncfrs'
+            };
+            const endpoint = dlRouteMap[type] || '/forms/download/rsba-enrollment';
+            const titleType = type.toUpperCase().replace('_REGISTRATION', '').replace('_', ' ');
 
-                const modalHtml = `
-                <div id="detailCardOverlay_${id}" class="modal" style="display:flex;z-index:10000;">
-                    <div class="modal-overlay" onclick="this.closest('.modal').remove()" style="position:fixed;top:0;left:0;width:100%;height:100%;"></div>
-                    <div class="modal-content" style="max-width:520px;width:95%;border-radius:16px;box-shadow:0 25px 50px -12px rgba(0,0,0,0.4);position:relative;margin:auto;overflow:hidden;">
-                        <div class="modal-header" style="padding:1rem 1.5rem;border-bottom:1px solid #e2e8f0;display:flex;justify-content:space-between;align-items:center;background:#f8fafc;">
-                            <h3 style="margin:0;font-size:1.05rem;font-weight:700;color:#334155;display:flex;align-items:center;gap:0.5rem;">
-                                <i class="fas fa-file-alt" style="color:var(--primary);"></i> Submission Details
-                            </h3>
-                            <button onclick="this.closest('.modal').remove()" style="background:#e2e8f0;color:#475569;border:none;width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:1rem;">&times;</button>
-                        </div>
-                        <div class="modal-body" style="padding:1.5rem;">
-                            <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1rem;">
-                                <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
-                                    <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Beneficiary</span>
-                                    <p style="margin:4px 0 0 0;font-weight:700;color:#1e293b;font-size:0.95rem;">${name}</p>
-                                </div>
-                                <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
-                                    <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Form Type</span>
-                                    <p style="margin:4px 0 0 0;"><span class="badge badge-${type.toLowerCase().split('_')[0]}">${type.toUpperCase().replace('_REGISTRATION', '')}</span></p>
-                                </div>
-                                <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
-                                    <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Status</span>
-                                    <p style="margin:4px 0 0 0;"><span class="status-badge ${statusClass}">${statusClass}</span></p>
-                                </div>
-                                <div style="background:#f8fafc;padding:0.75rem;border-radius:10px;border:1px solid #e2e8f0;">
-                                    <span style="font-size:0.65rem;color:#64748b;text-transform:uppercase;font-weight:700;">Barangay</span>
-                                    <p style="margin:4px 0 0 0;font-size:0.875rem;color:#1e293b;">${b.barangay || '—'}</p>
-                                </div>
-                            </div>
-                            <div style="background:#f0fdf4;padding:0.75rem 1rem;border-radius:10px;border:1px solid #bbf7d0;font-size:0.8rem;color:#166534;">
-                                <i class="fas fa-info-circle"></i> Full PDF document viewer for <strong>${type.toUpperCase()}</strong> forms is coming soon.
-                            </div>
-                            ${remarksHtml}
-                        </div>
-                    </div>
-                </div>`;
-                document.body.insertAdjacentHTML('beforeend', modalHtml);
-                return;
-            }
-
-            // RSBSA: Show PDF viewer
             showFlashMessage('Preparing PDF document for viewing...', 'info');
 
             const parsed = typeof sub.data_json === 'string' ? JSON.parse(sub.data_json) : (sub.data_json || {});
 
-            return fetch('/forms/download/rsba-enrollment', {
+            return fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(parsed),
@@ -544,7 +502,7 @@ window.viewSubmission = function (id) {
                     <div class="modal-content premium-modal-content" style="max-width:1000px; width:95%; height:90vh; background:white; border-radius:16px; box-shadow:0 25px 50px -12px rgba(0,0,0,0.5); position:relative; margin:auto; overflow:hidden; display:flex; flex-direction:column;">
                         <div class="modal-header" style="padding:1rem 1.5rem; border-bottom:1px solid #e2e8f0; display:flex; justify-content:space-between; align-items:center; background:#f8fafc;">
                             <h3 style="margin:0; font-size:1.1rem; font-weight:700; color:#334155; display:flex; align-items:center; gap:0.5rem;">
-                                <i class="fas fa-file-pdf" style="color:#ef4444;"></i> Document Viewer: RSBSA Form
+                                <i class="fas fa-file-pdf" style="color:#ef4444;"></i> Document Viewer: ${titleType} Form
                             </h3>
                             ${result.sub.remarks ? `
                             <div style="margin-left: 2rem; padding: 0.4rem 1rem; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 20px; color: #e11d48; font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
@@ -576,25 +534,30 @@ window.viewSubmission = function (id) {
 
 
 window.downloadSubmissionPdf = function (id, type) {
-    if (type !== 'rsbsa') {
-        showFlashMessage('PDF download is currently only supported for RSBSA forms.', 'warn');
+    const dlRouteMap = {
+        'rsbsa': '/forms/download/rsba-enrollment',
+        'fish': '/forms/download/fish-registration',
+        'boat': '/forms/download/boat-registration',
+        'ncfrs': '/forms/download/ncfrs'
+    };
+    
+    const endpoint = dlRouteMap[type];
+    if (!endpoint) {
+        showFlashMessage('PDF download is currently not supported for this form type.', 'warn');
         return;
     }
 
     const csrfToken = getCSRFToken();
-    showFlashMessage('Generating PDF, please wait...', 'info');
+    showFlashMessage('Generating PDF...', 'info');
 
-    // 1. Fetch the submission data
     fetch(`/encoder/api/submissions/${id}`, { headers: { 'X-CSRFToken': csrfToken } })
         .then(r => r.json())
         .then(data => {
             if (!data.success) throw new Error('Failed to fetch submission data');
-
             const sub = data.submission;
             const parsed = typeof sub.data_json === 'string' ? JSON.parse(sub.data_json) : (sub.data_json || {});
 
-            // 2. Send data to PDF generator endpoint
-            return fetch('/forms/download/rsba-enrollment', {
+            return fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(parsed),
@@ -608,7 +571,8 @@ window.downloadSubmissionPdf = function (id, type) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `RSBSA_Enrollment_Form_${id}.pdf`;
+            const titleType = (type || "").toUpperCase().replace("_REGISTRATION", "").replace("_", " ");
+            a.download = `${titleType}_Form_${id}.pdf`;
             document.body.appendChild(a);
             a.click();
             a.remove();

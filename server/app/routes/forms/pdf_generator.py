@@ -859,25 +859,41 @@ def generate_fish_pdf(data):
 
 
 def _map_fish_fields(data):
-    """Map fish registration data to PDF field names."""
+    """Map fish registration data directly to the AcroForm exact field names."""
     fields = {}
     pi = data.get('personalInfo', data)
     fields['registration_no'] = data.get('registrationNo', '')
     fields['registration_date'] = data.get('registrationDate', '')
+    fields['new_renewal'] = data.get('status', 'new')
+    
     fields['last_name'] = pi.get('lastName') or pi.get('surname') or pi.get('last_name') or data.get('lastName') or ''
     fields['first_name'] = pi.get('firstName') or pi.get('first_name') or data.get('firstName') or ''
     fields['middle_name'] = pi.get('middleName') or pi.get('middle_name') or ''
-    fields['appellation'] = pi.get('extensionName') or pi.get('suffix') or pi.get('appellation') or ''
-    fields['street'] = data.get('street', '')
-    fields['city'] = data.get('city', 'Alaminos')
-    fields['province'] = data.get('province', 'Pangasinan')
-    fields['contact_no'] = pi.get('contactNo', data.get('contactNo', ''))
-    fields['date_of_birth'] = pi.get('dateOfBirth', data.get('dateOfBirth', ''))
+    fields['appelation'] = pi.get('extensionName') or pi.get('suffix') or pi.get('appellation') or '' # Misspelled in PDF
+    
+    addr = pi.get('address', data)
+    fields['street_barangay'] = f"{addr.get('street', '')} {addr.get('barangay', '')}".strip() or data.get('street', '')
+    fields['city_municipality'] = addr.get('municipality', '') or data.get('city', 'Alaminos')
+    fields['province'] = addr.get('province', '') or data.get('province', 'Pangasinan')
+    
+    fields['contact_no'] = pi.get('contactNo', pi.get('mobileNumber', data.get('contactNo', '')))
+    
+    dob = pi.get('dateOfBirth', data.get('dateOfBirth', ''))
+    if dob and '-' in dob:
+        parts = dob.split('-') # YYYY-MM-DD
+        if len(parts) == 3:
+            fields['date_of_birth_year'] = parts[0]
+            fields['date_of_birth_month'] = parts[1]
+            fields['date_of_birth_day'] = parts[2]
+            
     fields['place_of_birth'] = pi.get('placeOfBirth', data.get('placeOfBirth', ''))
-    fields['gender'] = pi.get('gender', data.get('gender', ''))
+    fields['gender'] = pi.get('gender', pi.get('sex', data.get('gender', '')))
     fields['civil_status'] = pi.get('civilStatus', data.get('civilStatus', ''))
-    fields['emergency_person'] = data.get('emergencyPerson', '')
-    fields['emergency_contact'] = data.get('emergencyContact', '')
+    
+    ec = data.get('emergencyContact', {})
+    fields['person_in_case_of_emergency'] = ec.get('person') or data.get('emergencyPerson', '')
+    fields['emergency_contact_no'] = ec.get('contact') or data.get('emergencyContact', '')
+    
     return fields
 
 
@@ -944,27 +960,34 @@ def generate_boat_pdf(data):
 
 
 def _map_boat_fields(data):
-    """Map boat registration data to PDF field names."""
+    """Map boat registration data strictly to the exact AcroForm names."""
     fields = {}
-    fields['province'] = data.get('province', '')
-    fields['municipality'] = data.get('municipality', '')
-    fields['mfvr_no'] = data.get('mfvrNo', '')
-    fields['date_application'] = data.get('dateApplication', '')
-    fields['owner_name'] = data.get('ownerName', '')
-    fields['owner_address'] = data.get('ownerAddress', '')
+    fields['province'] = data.get('province', 'Pangasinan')
+    fields['municipal/city'] = data.get('municipality', 'Alaminos')
+    fields['mvfr_no'] = data.get('mfvrNo', '') # Mispelled mvfr vs mfvr in PDF
+    fields['date of application'] = data.get('dateApplication', '')
+    
+    owner = data.get('owner', data)
+    fields['name_of_owner'] = (owner.get('name') or 
+                              f"{owner.get('firstName', '')} {owner.get('lastName', '')}".strip() or 
+                              data.get('ownerName', ''))
+    fields['address'] = owner.get('address', data.get('ownerAddress', ''))
+    
     fields['homeport'] = data.get('homeport', '')
-    fields['vessel_name'] = data.get('vesselName', '')
+    fields['name_of_fishing_vessel'] = data.get('vesselName', '')
     fields['vessel_type'] = data.get('vesselType', '')
     fields['place_built'] = data.get('placeBuilt', '')
     fields['year_built'] = data.get('yearBuilt', '')
-    fields['reg_length'] = data.get('regLength', '')
-    fields['reg_breadth'] = data.get('regBreadth', '')
-    fields['reg_depth'] = data.get('regDepth', '')
+    fields['registered_length'] = data.get('regLength', '')
+    fields['registered_breadth'] = data.get('regBreadth', '')
+    fields['registered_depth'] = data.get('regDepth', '')
     fields['gross_tonnage'] = data.get('grossTonnage', '')
     fields['net_tonnage'] = data.get('netTonnage', '')
-    fields['engine_make'] = data.get('engineMake', '')
-    fields['serial_number'] = data.get('serialNumber', '')
-    fields['horsepower'] = data.get('horsepower', '')
+    
+    engine = data.get('engine', data)
+    fields['engine_make'] = engine.get('make') or data.get('engineMake', '')
+    fields['serial_number'] = engine.get('serialNumber') or data.get('serialNumber', '')
+    fields['horsepower'] = engine.get('horsepower') or data.get('horsepower', '')
     return fields
 
 
@@ -1030,30 +1053,41 @@ def generate_ncfrs_pdf(data):
 
 
 def _map_ncfrs_fields(data):
-    """Map NCFRS enrollment data to PDF field names."""
+    """Map NCFRS enrollment data to the exact AcroForm names."""
     fields = {}
     pi = data.get('personalInfo', data)
-    fields['enrollment_type'] = data.get('enrollmentType', '')
+    
+    fields['reference_no'] = data.get('referenceNumber', '')
+    fields['new_existing'] = data.get('enrollmentType', 'new')
+    
     fields['last_name'] = pi.get('lastName') or pi.get('surname') or pi.get('last_name') or data.get('lastName') or ''
     fields['first_name'] = pi.get('firstName') or pi.get('first_name') or data.get('firstName') or ''
     fields['middle_name'] = pi.get('middleName') or pi.get('middle_name') or ''
     fields['suffix'] = pi.get('extensionName') or pi.get('suffix') or pi.get('appellation') or ''
-    fields['house_no'] = data.get('houseNo', '')
-    fields['street'] = data.get('street', '')
-    fields['barangay'] = data.get('barangay', '')
     fields['sex'] = pi.get('sex', data.get('sex', ''))
-    fields['municipality'] = data.get('municipality', '')
-    fields['province'] = data.get('province', '')
-    fields['region'] = data.get('region', '')
-    fields['mobile_number'] = data.get('mobileNumber', '')
-    fields['landline_number'] = data.get('landlineNumber', '')
+    
+    addr = pi.get('address', data)
+    fields['house_lot_bldg_no'] = addr.get('houseNo', data.get('houseNo', ''))
+    fields['street_sitio_subd'] = addr.get('street', data.get('street', ''))
+    fields['barangay'] = addr.get('barangay', data.get('barangay', ''))
+    fields['municipal_city'] = addr.get('municipality', data.get('municipality', ''))
+    fields['province'] = addr.get('province', data.get('province', ''))
+    fields['region'] = addr.get('region', data.get('region', ''))
+    
     fields['date_of_birth'] = pi.get('dateOfBirth', data.get('dateOfBirth', ''))
     fields['place_of_birth'] = pi.get('placeOfBirth', data.get('placeOfBirth', ''))
     fields['civil_status'] = pi.get('civilStatus', data.get('civilStatus', ''))
-    fields['education'] = data.get('education', '')
-    fields['gov_id'] = data.get('govId', '')
-    fields['id_type'] = data.get('idType', '')
-    fields['id_number'] = data.get('idNumber', '')
+    
+    # Needs to extract list or raw string
+    education = pi.get('education', data.get('education', ''))
+    if isinstance(education, list) and len(education) > 0: education = education[0]
+    fields['highest_educational_attainment'] = education
+    
+    fields['id_type'] = pi.get('idType', data.get('idType', ''))
+    fields['id_no'] = pi.get('idNumber', data.get('idNumber', ''))
+    fields['contact_number1'] = pi.get('mobileNumber', data.get('mobileNumber', ''))
+    fields['contact_number2'] = pi.get('landlineNumber', data.get('landlineNumber', ''))
+    fields['religion'] = pi.get('religion', data.get('religion', ''))
     return fields
 
 
