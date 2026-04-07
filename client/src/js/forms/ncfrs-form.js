@@ -8,6 +8,7 @@
 /* ═══════════════════════════════  STATE  ══════════════════════════════ */
 let parcelCount = 0;
 let signaturePad;
+let _editingSubmissionId = null; // Set by POPULATE_FORM message when in edit mode
 
 /* ══════════════════════════════════  INIT  ════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
@@ -17,7 +18,83 @@ document.addEventListener('DOMContentLoaded', () => {
     setupEventListeners();
     addFarmParcel(); // start with one parcel
     bindFormSubmit();
+
+    // Signal parent that the form is ready to receive data
+    if (window.parent !== window) {
+        window.parent.postMessage({ type: 'FORM_READY' }, '*');
+    }
 });
+
+/* ═════════════════════════  EDIT MODE LISTENER  ════════════════════════════ */
+window.addEventListener('message', (event) => {
+    if (!event.data || event.data.type !== 'POPULATE_FORM') return;
+    const { data, submissionId } = event.data;
+    _editingSubmissionId = submissionId || null;
+    if (data) populateForm(data);
+});
+
+/**
+ * Populate all NCFRS form fields from stored nested JSON.
+ */
+function populateForm(d) {
+    const pi   = d.personalInfo  || {};
+    const addr = pi.address      || {};
+    const cert = d.certification || {};
+
+    const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
+    const setRadio = (name, v) => { const r = document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; };
+    const setCheck = (name, vals) => {
+        document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+            cb.checked = Array.isArray(vals) ? vals.includes(cb.value) : cb.value === vals;
+        });
+    };
+
+    setCheck('enrollmentType', d.enrollmentType);
+
+    // Personal info
+    set('lastName',    pi.lastName);
+    set('firstName',   pi.firstName);
+    set('middleName',  pi.middleName);
+    set('suffix',      pi.suffix);
+    setRadio('sex',    pi.sex);
+    set('mobileNumber',   pi.mobileNumber);
+    set('landlineNumber', pi.landlineNumber);
+    set('dateOfBirth',   pi.dateOfBirth);
+    set('placeOfBirth',  pi.placeOfBirth);
+    setRadio('civilStatus', pi.civilStatus);
+    setRadio('education',   pi.education);
+    setRadio('govId',       pi.govId);
+    set('idType',   pi.idType);
+    set('idNumber', pi.idNumber);
+
+    // Address
+    set('houseNo',     addr.houseNo);
+    set('street',      addr.street);
+    set('barangay',    addr.barangay);
+    set('municipality', addr.municipality);
+    set('province',    addr.province);
+    set('region',      addr.region);
+
+    // Certification
+    set('certDate',    cert.date);
+    set('printedName', cert.printedName);
+
+    // Show edit banner and change submit button
+    if (_editingSubmissionId) {
+        let banner = document.getElementById('editBannerInfo');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'editBannerInfo';
+            banner.style.cssText = 'background:#fffbeb;border:1px solid #fcd34d;color:#92400e;padding:0.6rem 1rem;border-radius:8px;font-size:0.85rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;';
+            banner.innerHTML = '<i class="fas fa-edit"></i> Editing existing submission — changes will update the record.';
+            document.querySelector('form')?.prepend(banner);
+        }
+        
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes & Re-submit';
+    }
+}
+
 
 /* ══════════════════════════════  FORM INIT  ═══════════════════════════════ */
 function initializeForm() {
@@ -349,19 +426,29 @@ function bindFormSubmit() {
         const formData = collectFormData();
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+        const isEdit = !!_editingSubmissionId;
+        const url    = isEdit ? `/encoder/api/submissions/${_editingSubmissionId}` : '/forms/submit/ncfrs';
+        const method = isEdit ? 'PUT' : 'POST';
+
         try {
-            const res = await fetch('/forms/submit/ncfrs', {
-                method: 'POST',
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(formData),
             });
             const json = await res.json();
             if (json.success) {
-                const msg = document.getElementById('successMessage');
-                msg.style.display = 'block';
-                msg.textContent = `✓ NCFRS Enrollment submitted successfully! ID: ${json.registration_id || ''}`;
-                msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => { msg.style.display = 'none'; }, 6000);
+                if (isEdit && window.parent !== window) {
+                    window.parent.postMessage({ type: 'SUBMISSION_UPDATED', id: _editingSubmissionId }, '*');
+                } else {
+                    const msg = document.getElementById('successMessage');
+                    if (msg) {
+                        msg.style.display = 'block';
+                        msg.textContent = `✓ NCFRS Enrollment submitted successfully! ID: ${json.registration_id || ''}`;
+                        msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => { msg.style.display = 'none'; }, 6000);
+                    }
+                }
             } else {
                 showToast(json.message || 'Submission failed.', 'error');
             }

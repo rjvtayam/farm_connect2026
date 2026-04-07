@@ -244,45 +244,100 @@ def get_submission(rid):
 @encoder_bp.route('/api/submissions/<int:rid>', methods=['PUT', 'POST'])
 @encoder_required
 def update_registration(rid):
-    """Update an existing registration (especially if rejected)"""
-    # Using POST as fallback for PUT if needed by some clients
+    """Update an existing registration (especially if rejected). Handles all form types."""
     registration = Registration.query.filter_by(id=rid, encoded_by=current_user.id).first()
     if not registration:
         return jsonify({'success': False, 'message': 'Submission not found'}), 404
         
     data = request.get_json()
+    form_type = registration.form_type  # 'rsbsa', 'fish', 'boat', 'ncfrs'
     try:
-        # 1. Update Beneficiary — only overwrite fields that are actually provided
+        # 1. Update Beneficiary fields based on form type
         ben = Beneficiary.query.get(registration.beneficiary_id)
         if ben:
-            if 'firstName' in data:       ben.first_name = data['firstName']
-            if 'surname' in data:         ben.last_name = data['surname']
-            if 'middleName' in data:      ben.middle_name = data['middleName']
-            if 'extensionName' in data:   ben.extension_name = data['extensionName']
-            if 'sex' in data:             ben.sex = data['sex']
-            if data.get('dateOfBirth'):
-                ben.date_of_birth = datetime.strptime(data['dateOfBirth'], '%Y-%m-%d').date()
-            if 'civilStatus' in data:     ben.civil_status = data['civilStatus']
-            if 'spouseName' in data:      ben.spouse_name = data['spouseName']
-            if 'houseNo' in data or 'street' in data:
-                ben.address_street = f"{data.get('houseNo', '')} {data.get('street', '')}".strip()
-            if 'barangay' in data:        ben.barangay = data['barangay']
-            if 'province' in data:        ben.province = data['province']
-            if 'region' in data:          ben.region = data['region']
-            if 'mobileNumber' in data:    ben.mobile_number = data['mobileNumber']
-            if 'landlineNumber' in data:  ben.landline = data['landlineNumber']
-            if 'pwd' in data:             ben.is_pwd = data['pwd'] == 'Yes'
-            if 'fourPs' in data:          ben.is_4ps = data['fourPs'] == 'Yes'
-            if 'indigenous' in data:      ben.is_ip = data['indigenous'] == 'Yes'
-            if 'indigenousSpecify' in data: ben.ip_group = data['indigenousSpecify']
-            if 'religion' in data:        ben.religion = data['religion']
-            if 'emergencyPerson' in data: ben.emergency_contact_name = data['emergencyPerson']
-            if 'emergencyContact' in data: ben.emergency_contact_no = data['emergencyContact']
+            if form_type == 'rsbsa':
+                # ── RSBSA: flat structure ──────────────────────────────
+                if 'firstName' in data:       ben.first_name = data['firstName']
+                if 'surname' in data:         ben.last_name = data['surname']
+                if 'middleName' in data:      ben.middle_name = data['middleName']
+                if 'extensionName' in data:   ben.extension_name = data['extensionName']
+                if 'sex' in data:             ben.sex = data['sex']
+                if data.get('dateOfBirth'):
+                    ben.date_of_birth = datetime.strptime(data['dateOfBirth'], '%Y-%m-%d').date()
+                if 'civilStatus' in data:     ben.civil_status = data['civilStatus']
+                if 'spouseName' in data:      ben.spouse_name = data['spouseName']
+                if 'houseNo' in data or 'street' in data:
+                    ben.address_street = f"{data.get('houseNo', '')} {data.get('street', '')}".strip()
+                if 'barangay' in data:        ben.barangay = data['barangay']
+                if 'province' in data:        ben.province = data['province']
+                if 'region' in data:          ben.region = data['region']
+                if 'mobileNumber' in data:    ben.mobile_number = data['mobileNumber']
+                if 'landlineNumber' in data:  ben.landline = data['landlineNumber']
+                if 'pwd' in data:             ben.is_pwd = data['pwd'] == 'Yes'
+                if 'fourPs' in data:          ben.is_4ps = data['fourPs'] == 'Yes'
+                if 'indigenous' in data:      ben.is_ip = data['indigenous'] == 'Yes'
+                if 'indigenousSpecify' in data: ben.ip_group = data['indigenousSpecify']
+                if 'religion' in data:        ben.religion = data['religion']
+                if 'emergencyPerson' in data: ben.emergency_contact_name = data['emergencyPerson']
+                if 'emergencyContact' in data: ben.emergency_contact_no = data['emergencyContact']
 
-        # 2. Update Registration
+            elif form_type == 'fish':
+                # ── Fish: nested under personalInfo / emergencyContact ──
+                pi   = data.get('personalInfo', {})
+                addr = pi.get('address', {})
+                ec   = data.get('emergencyContact', {})
+                if 'firstName' in pi:   ben.first_name = pi['firstName']
+                if 'lastName' in pi:    ben.last_name  = pi['lastName']
+                if 'middleName' in pi:  ben.middle_name = pi['middleName']
+                if 'appellation' in pi: ben.extension_name = pi['appellation']
+                if 'gender' in pi:      ben.sex = pi['gender']
+                if pi.get('dateOfBirth'):
+                    ben.date_of_birth = datetime.strptime(pi['dateOfBirth'], '%Y-%m-%d').date()
+                if 'civilStatus' in pi: ben.civil_status = pi['civilStatus']
+                # 'street' is the barangay dropdown in the fish form
+                if 'street' in addr:    ben.barangay = addr['street']
+                if 'city' in addr:      ben.municipality = addr['city']
+                if 'province' in addr:  ben.province = addr['province']
+                if 'contactNo' in pi:   ben.mobile_number = pi['contactNo']
+                if 'person' in ec:      ben.emergency_contact_name = ec['person']
+                if 'contact' in ec:     ben.emergency_contact_no = ec['contact']
+
+            elif form_type == 'boat':
+                # ── Boat: nested under owner / vessel ──────────────────
+                owner = data.get('owner', {})
+                if 'name' in owner:
+                    parts = owner['name'].split()
+                    if parts:
+                        ben.first_name = parts[0]
+                        ben.last_name  = parts[-1] if len(parts) > 1 else parts[0]
+                if 'address' in owner:      ben.address_street = owner['address']
+                if 'municipality' in data:  ben.municipality = data['municipality']
+                if 'province' in data:      ben.province = data['province']
+
+            elif form_type == 'ncfrs':
+                # ── NCFRS: nested under personalInfo ───────────────────
+                pi   = data.get('personalInfo', {})
+                addr = pi.get('address', {})
+                if 'firstName' in pi:   ben.first_name = pi['firstName']
+                if 'lastName' in pi:    ben.last_name  = pi['lastName']
+                if 'middleName' in pi:  ben.middle_name = pi['middleName']
+                if 'suffix' in pi:      ben.extension_name = pi['suffix']
+                if 'sex' in pi:         ben.sex = pi['sex']
+                if pi.get('dateOfBirth'):
+                    ben.date_of_birth = datetime.strptime(pi['dateOfBirth'], '%Y-%m-%d').date()
+                if 'civilStatus' in pi:    ben.civil_status = pi['civilStatus']
+                if 'houseNo' in addr or 'street' in addr:
+                    ben.address_street = f"{addr.get('houseNo', '')} {addr.get('street', '')}".strip()
+                if 'barangay' in addr:     ben.barangay = addr['barangay']
+                if 'municipality' in addr: ben.municipality = addr['municipality']
+                if 'province' in addr:     ben.province = addr['province']
+                if 'region' in addr:       ben.region = addr['region']
+                if 'mobileNumber' in pi:   ben.mobile_number = pi['mobileNumber']
+
+        # 2. Update Registration JSON data
         registration.data = data
         if registration.status == 'rejected':
-            registration.status = 'pending' # Re-submit
+            registration.status = 'pending'  # Re-submit for review
             
         db.session.commit()
         cache.delete(f'encoder_stats_{current_user.id}')

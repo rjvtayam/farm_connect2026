@@ -420,7 +420,7 @@ function renderSubmissions(list, filteredCount, totalCount) {
 
         const date = s.submission_date || s.created_at;
         const isEditable = (statusClass === 'pending' || statusClass === 'rejected');
-        const isApproved = statusClass === 'approved';
+        const canDownloadPdf = (statusClass === 'approved' || statusClass === 'verified');
 
         // Rejection remarks tooltip
         const remarksAttr = (statusClass === 'rejected' && s.remarks)
@@ -441,7 +441,7 @@ function renderSubmissions(list, filteredCount, totalCount) {
                         <i class="fas fa-eye"></i>
                     </button>
                     ${isEditable ? `<button class="btn btn-warning btn-sm" onclick="editSubmission(${s.id})" title="Edit Submission"><i class="fas fa-edit"></i></button>` : ''}
-                    ${isApproved ? `<button class="btn btn-success btn-sm" onclick="downloadSubmissionPdf(${s.id}, '${type}')" title="Download PDF"><i class="fas fa-download"></i></button>` : ''}
+                    ${canDownloadPdf ? `<button class="btn btn-success btn-sm" onclick="downloadSubmissionPdf(${s.id}, '${type}')" title="Download PDF"><i class="fas fa-download"></i></button>` : ''}
                     <button class="btn btn-danger btn-sm" onclick="softDeleteSubmission(${s.id})" title="Move to Trash">
                         <i class="fas fa-trash-alt"></i>
                     </button>
@@ -460,6 +460,120 @@ function renderSubmissions(list, filteredCount, totalCount) {
             tableContainer.insertAdjacentElement('afterend', pb);
         }
     }
+}
+
+// ── PDF Data Normalizer: converts nested DB JSON → flat PDF format ──────────
+function normalizePdfData(type, data) {
+    if (!data || typeof data !== 'object') return data;
+
+    if (type === 'fish' && data.personalInfo) {
+        const pi = data.personalInfo || {};
+        const addr = pi.address || {};
+        const ec = data.emergencyContact || {};
+        const liv = data.livelihood || {};
+        const cert = data.certification || {};
+        return {
+            registrationNo: data.registrationNo || '',
+            registrationDate: data.registrationDate || '',
+            registrationType: data.registrationType || 'new',
+            salutation: pi.salutation || '',
+            lastName: pi.lastName || '',
+            firstName: pi.firstName || '',
+            middleName: pi.middleName || '',
+            appellation: pi.appellation || '',
+            street: addr.street || '',
+            city: addr.city || '',
+            province: addr.province || '',
+            contactNo: pi.contactNo || '',
+            residentSince: pi.residentSince || '',
+            age: pi.age || '',
+            dateOfBirth: pi.dateOfBirth || '',
+            placeOfBirth: pi.placeOfBirth || '',
+            gender: pi.gender || '',
+            civilStatus: pi.civilStatus || '',
+            numChildren: pi.numChildren || '',
+            nationality: pi.nationality || '',
+            education: pi.education || '',
+            emergencyPerson: ec.person || '',
+            relationship: ec.relationship || '',
+            emergencyContact: ec.contact || '',
+            emergencyAddress: ec.address || '',
+            mainIncome: liv.mainIncome || [],
+            otherIncome: liv.otherIncome || [],
+            printedName: cert.printedName || '',
+            dateAccomplished: cert.dateAccomplished || '',
+        };
+    }
+
+    if (type === 'boat' && (data.owner || data.vessel)) {
+        const owner = data.owner || {};
+        const vessel = data.vessel || {};
+        const dim = data.dimensions || {};
+        const prop = data.propulsion || {};
+        const cert = data.certification || {};
+        return {
+            province: data.province || '',
+            municipality: data.municipality || '',
+            mfvrNo: data.mfvrNo || '',
+            dateApplication: data.dateApplication || '',
+            regType: data.registrationType || [],
+            ownerName: owner.name || '',
+            ownerAddress: owner.address || '',
+            homeport: vessel.homeport || '',
+            vesselName: vessel.name || '',
+            vesselType: vessel.type || '',
+            placeBuilt: vessel.placeBuilt || '',
+            yearBuilt: vessel.yearBuilt || '',
+            material: vessel.materials || [],
+            regLength: dim.regLength || '',
+            regBreadth: dim.regBreadth || '',
+            regDepth: dim.regDepth || '',
+            tonnageLength: dim.tonnageLength || '',
+            tonnageBreadth: dim.tonnageBreadth || '',
+            tonnageDepth: dim.tonnageDepth || '',
+            grossTonnage: dim.grossTonnage || '',
+            netTonnage: dim.netTonnage || '',
+            engineMake: prop.engineMake || '',
+            serialNumber: prop.serialNumber || '',
+            horsepower: prop.horsepower || '',
+            gear: data.fishingGear || [],
+            gearsOther: data.gearsOther || '',
+            ownerPrintedName: cert.ownerPrintedName || '',
+        };
+    }
+
+    if (type === 'ncfrs' && data.personalInfo) {
+        const pi = data.personalInfo || {};
+        const addr = pi.address || {};
+        const cert = data.certification || {};
+        return {
+            enrollmentType: data.enrollmentType || [],
+            lastName: pi.lastName || '',
+            firstName: pi.firstName || '',
+            middleName: pi.middleName || '',
+            suffix: pi.suffix || '',
+            houseNo: addr.houseNo || '',
+            street: addr.street || '',
+            barangay: addr.barangay || '',
+            municipality: addr.municipality || '',
+            province: addr.province || '',
+            region: addr.region || '',
+            sex: pi.sex || '',
+            mobileNumber: pi.mobileNumber || '',
+            landlineNumber: pi.landlineNumber || '',
+            dateOfBirth: pi.dateOfBirth || '',
+            placeOfBirth: pi.placeOfBirth || '',
+            civilStatus: pi.civilStatus || '',
+            education: pi.education || '',
+            govId: pi.govId || '',
+            idType: pi.idType || '',
+            idNumber: pi.idNumber || '',
+            certDate: cert.date || '',
+            printedName: cert.printedName || '',
+        };
+    }
+
+    return data; // rsbsa or already-flat — pass through as-is
 }
 
 window.viewSubmission = function (id) {
@@ -485,11 +599,12 @@ window.viewSubmission = function (id) {
             showFlashMessage('Preparing PDF document for viewing...', 'info');
 
             const parsed = typeof sub.data_json === 'string' ? JSON.parse(sub.data_json) : (sub.data_json || {});
+            const pdfPayload = normalizePdfData(type, parsed);
 
             return fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify(parsed),
+                body: JSON.stringify(pdfPayload),
             }).then(res => {
                 if (!res.ok) throw new Error('PDF generation failed on server');
                 return { blob: res.blob(), sub: sub };
@@ -556,11 +671,12 @@ window.downloadSubmissionPdf = function (id, type) {
             if (!data.success) throw new Error('Failed to fetch submission data');
             const sub = data.submission;
             const parsed = typeof sub.data_json === 'string' ? JSON.parse(sub.data_json) : (sub.data_json || {});
+            const pdfPayload = normalizePdfData(type, parsed);
 
             return fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify(parsed),
+                body: JSON.stringify(pdfPayload),
             });
         })
         .then(res => {

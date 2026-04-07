@@ -396,7 +396,7 @@ def review_registration(rid):
 @mao_bp.route('/api/registrations/bulk-review', methods=['POST'])
 @mao_required
 def bulk_review_registrations():
-    """Bulk Approval or Rejection by MAO"""
+    """Bulk Approval or Rejection by MAO (municipality-scoped)"""
     data = request.get_json()
     ids = data.get('ids', [])
     new_status = data.get('status')
@@ -404,9 +404,22 @@ def bulk_review_registrations():
     
     if not ids or new_status not in ['approved', 'rejected']:
         return jsonify({'success': False, 'message': 'Invalid request'}), 400
+
+    user_muni = current_user.municipality or ''
+    muni_filter = db.or_(
+        Beneficiary.municipality.ilike(f'%{user_muni}%'),
+        User.municipality.ilike(f'%{user_muni}%'),
+        Beneficiary.municipality.ilike('%Laguna%') if user_muni.lower() == 'mabitac' else False
+    )
         
     try:
-        registrations = Registration.query.filter(Registration.id.in_(ids)).all()
+        registrations = Registration.query.join(Beneficiary).outerjoin(
+            User, Registration.encoded_by == User.id
+        ).filter(
+            Registration.id.in_(ids),
+            muni_filter,
+            Registration.is_deleted == False
+        ).all()
         for r in registrations:
             r.status = new_status
             r.approved_by = current_user.id

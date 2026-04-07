@@ -418,7 +418,7 @@ def submit_fish():
             'place_of_birth': pi.get('placeOfBirth'),
             'civil_status':   pi.get('civilStatus'),
             'address_street': addr.get('street'),
-            'barangay':       addr.get('city'),
+            'barangay':       addr.get('street'),   # Fish form: 'street' IS the barangay dropdown
             'municipality':   addr.get('city'),
             'province':       addr.get('province'),
             'mobile_number':  pi.get('contactNo'),

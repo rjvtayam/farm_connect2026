@@ -891,8 +891,12 @@ def _map_fish_fields(data):
     fields['civil_status'] = pi.get('civilStatus', data.get('civilStatus', ''))
     
     ec = data.get('emergencyContact', {})
-    fields['person_in_case_of_emergency'] = ec.get('person') or data.get('emergencyPerson', '')
-    fields['emergency_contact_no'] = ec.get('contact') or data.get('emergencyContact', '')
+    if isinstance(ec, str):
+        fields['person_in_case_of_emergency'] = data.get('emergencyPerson', '')
+        fields['emergency_contact_no'] = ec
+    else:
+        fields['person_in_case_of_emergency'] = ec.get('person') or data.get('emergencyPerson', '')
+        fields['emergency_contact_no'] = ec.get('contact') or data.get('emergencyContact', '')
     
     return fields
 

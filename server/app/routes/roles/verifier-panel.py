@@ -449,7 +449,7 @@ def review_submission(id):
                  
              # Save GIS Data directly into the submission JSON payload
              gis_data = data.get('gis_data')
-             if gis_data and submission.form_type == 'rsba':
+             if gis_data and submission.form_type == 'rsbsa':
                  try:
                      # submission.data property setter handles json.dumps
                      form_data = submission.data or {}
@@ -529,7 +529,7 @@ def review_submission(id):
 @verifier_bp.route('/api/submissions/bulk-review', methods=['POST'])
 @verifier_required
 def bulk_review_submissions():
-    """Bulk Verify or Reject submissions"""
+    """Bulk Verify or Reject submissions (municipality-scoped)"""
     data = request.get_json()
     ids = data.get('ids', [])
     new_status = data.get('status')
@@ -537,9 +537,22 @@ def bulk_review_submissions():
     
     if not ids or new_status not in ['verified', 'rejected']:
         return jsonify({'success': False, 'message': 'Invalid request'}), 400
+
+    user_muni = current_user.municipality or ''
+    muni_filter = db.or_(
+        Beneficiary.municipality.ilike(f'%{user_muni}%'),
+        User.municipality.ilike(f'%{user_muni}%'),
+        Beneficiary.municipality.ilike('%Laguna%') if user_muni.lower() == 'mabitac' else False
+    )
         
     try:
-        submissions = Registration.query.filter(Registration.id.in_(ids)).all()
+        submissions = Registration.query.join(Beneficiary).outerjoin(
+            User, Registration.encoded_by == User.id
+        ).filter(
+            Registration.id.in_(ids),
+            muni_filter,
+            Registration.is_deleted == False
+        ).all()
         for s in submissions:
             # Basic municipality check could be added here for robustness
             s.status = new_status
@@ -705,7 +718,10 @@ def activity_feed():
     
     try:
         recent = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(
-            Beneficiary.municipality == muni,
+            db.or_(
+                Beneficiary.municipality.ilike(f'%{muni}%'),
+                User.municipality.ilike(f'%{muni}%')
+            ),
             Registration.is_deleted == False
         ).order_by(desc(Registration.updated_at)).limit(10).all()
         

@@ -7,6 +7,7 @@
 
 /* ═══════════════════════════════  STATE  ══════════════════════════════ */
 const signaturePads = {};
+let _editingSubmissionId = null; // Set by POPULATE_FORM message when in edit mode
 
 /* ══════════════════════════════════  INIT  ════════════════════════════════ */
 document.addEventListener('DOMContentLoaded', () => {
@@ -16,7 +17,93 @@ document.addEventListener('DOMContentLoaded', () => {
     initThumbmarkUpload();
     setupEventListeners();
     bindFormSubmit();
+
+    // Signal parent that the form is ready to receive data
+    if (window.parent !== window) {
+        window.parent.postMessage({ type: 'FORM_READY' }, '*');
+    }
 });
+
+/* ═════════════════════════  EDIT MODE LISTENER  ════════════════════════════ */
+window.addEventListener('message', (event) => {
+    if (!event.data || event.data.type !== 'POPULATE_FORM') return;
+    const { data, submissionId } = event.data;
+    _editingSubmissionId = submissionId || null;
+    if (data) populateForm(data);
+});
+
+/**
+ * Populate all fish form fields from stored nested JSON.
+ */
+function populateForm(d) {
+    const pi   = d.personalInfo   || {};
+    const addr = pi.address       || {};
+    const ec   = d.emergencyContact || {};
+    const liv  = d.livelihood     || {};
+    const cert = d.certification  || {};
+
+    const set = (id, v) => { const el = document.getElementById(id); if (el && v !== undefined && v !== null) el.value = v; };
+    const setRadio = (name, v) => { const r = document.querySelector(`input[name="${name}"][value="${v}"]`); if (r) r.checked = true; };
+    const setCheck = (name, vals) => {
+        document.querySelectorAll(`input[name="${name}"]`).forEach(cb => {
+            cb.checked = Array.isArray(vals) ? vals.includes(cb.value) : cb.value === vals;
+        });
+    };
+
+    set('registrationNo',   d.registrationNo);
+    set('registrationDate', d.registrationDate);
+    setRadio('registrationType', d.registrationType);
+
+    // Personal info
+    set('salutation',   pi.salutation);
+    set('lastName',     pi.lastName);
+    set('firstName',    pi.firstName);
+    set('middleName',   pi.middleName);
+    set('appellation',  pi.appellation);
+    set('street',       addr.street);
+    set('city',         addr.city);
+    set('province',     addr.province);
+    set('contactNo',    pi.contactNo);
+    set('residentSince',pi.residentSince);
+    set('age',          pi.age);
+    set('dateOfBirth',  pi.dateOfBirth);
+    set('placeOfBirth', pi.placeOfBirth);
+    setRadio('gender',      pi.gender);
+    setRadio('civilStatus', pi.civilStatus);
+    set('numChildren',  pi.numChildren);
+    setRadio('nationality', pi.nationality);
+    setRadio('education',   pi.education);
+
+    // Emergency contact
+    set('emergencyPerson',  ec.person);
+    set('relationship',     ec.relationship);
+    set('emergencyContact', ec.contact);
+    set('emergencyAddress', ec.address);
+
+    // Livelihood
+    setCheck('mainIncome',  liv.mainIncome);
+    setCheck('otherIncome', liv.otherIncome);
+
+    // Certification
+    set('printedName',    cert.printedName);
+    set('dateAccomplished', cert.dateAccomplished);
+
+    // Show edit banner and change submit button
+    if (_editingSubmissionId) {
+        let banner = document.getElementById('editBannerInfo');
+        if (!banner) {
+            banner = document.createElement('div');
+            banner.id = 'editBannerInfo';
+            banner.style.cssText = 'background:#fffbeb;border:1px solid #fcd34d;color:#92400e;padding:0.6rem 1rem;border-radius:8px;font-size:0.85rem;font-weight:600;margin-bottom:1rem;display:flex;align-items:center;gap:0.5rem;';
+            banner.innerHTML = '<i class="fas fa-edit"></i> Editing existing submission — changes will update the record.';
+            document.querySelector('form')?.prepend(banner);
+        }
+        
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) submitBtn.innerHTML = '<i class="fas fa-save"></i> Save Changes & Re-submit';
+    }
+}
+
 
 /* ══════════════════════════════  FORM INIT  ═══════════════════════════════ */
 function initializeForm() {
@@ -356,19 +443,29 @@ function bindFormSubmit() {
         const formData = collectFormData();
         const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
 
+        const isEdit = !!_editingSubmissionId;
+        const url    = isEdit ? `/encoder/api/submissions/${_editingSubmissionId}` : '/forms/submit/fish';
+        const method = isEdit ? 'PUT' : 'POST';
+
         try {
-            const res = await fetch('/forms/submit/fish', {
-                method: 'POST',
+            const res = await fetch(url, {
+                method,
                 headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
                 body: JSON.stringify(formData),
             });
             const json = await res.json();
             if (json.success) {
-                const msg = document.getElementById('successMessage');
-                msg.style.display = 'block';
-                msg.textContent = `✓ Registration submitted successfully! ID: ${json.registration_id || formData.registrationNo}`;
-                msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                setTimeout(() => { msg.style.display = 'none'; }, 6000);
+                if (isEdit && window.parent !== window) {
+                    window.parent.postMessage({ type: 'SUBMISSION_UPDATED', id: _editingSubmissionId }, '*');
+                } else {
+                    const msg = document.getElementById('successMessage');
+                    if (msg) {
+                        msg.style.display = 'block';
+                        msg.textContent = `✓ Registration submitted successfully! ID: ${json.registration_id || formData.registrationNo}`;
+                        msg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        setTimeout(() => { msg.style.display = 'none'; }, 6000);
+                    }
+                }
             } else {
                 showToast(json.message || 'Submission failed.', 'error');
             }
@@ -380,6 +477,7 @@ function bindFormSubmit() {
         }
     });
 }
+
 
 /* ══════════════════════════  PDF DOWNLOAD  ═════════════════════════════════ */
 async function downloadPDF() {
