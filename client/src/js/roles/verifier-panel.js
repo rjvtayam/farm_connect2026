@@ -1821,6 +1821,17 @@ function loadAnalytics() {
                     // Always store the latest data globally for deferred rendering
                     window._lastVerifierAnalyticsData = data.analytics;
 
+                    // Reset chart store so deferred logic can recreate them with fresh data if hidden
+                    if (window.verifierCharts) {
+                        try {
+                            const section = document.getElementById('analytics');
+                            if (!section || section.offsetParent === null) {
+                                Object.values(window.verifierCharts).forEach(c => c.destroy());
+                                window.verifierCharts = {};
+                            }
+                        } catch (e) {}
+                    }
+
                     // Attempt to render — renderVerifierCharts handles visibility internally
                     renderVerifierCharts(data.analytics);
                     populateVerifierKPIs(data.analytics);

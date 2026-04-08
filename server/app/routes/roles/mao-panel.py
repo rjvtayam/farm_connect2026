@@ -47,6 +47,7 @@ def get_stats():
     approved = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Registration.is_deleted == False).count()
     pending_approval = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'verified', Registration.is_deleted == False).count()
     pending_verification = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'pending', Registration.is_deleted == False).count()
+    rejected = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'rejected', Registration.is_deleted == False).count()
     
     # Only count beneficiaries who have at least ONE approved registration
     beneficiaries = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(
@@ -60,6 +61,7 @@ def get_stats():
     old_approved = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'approved', Registration.created_at <= thirty_days_ago, Registration.is_deleted == False).count()
     old_pending_approval = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'verified', Registration.created_at <= thirty_days_ago, Registration.is_deleted == False).count()
     old_pending_verification = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'pending', Registration.created_at <= thirty_days_ago, Registration.is_deleted == False).count()
+    old_rejected = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.status == 'rejected', Registration.created_at <= thirty_days_ago, Registration.is_deleted == False).count()
     old_beneficiaries = Beneficiary.query.join(Registration).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Beneficiary.created_at <= thirty_days_ago, Registration.is_deleted == False).distinct().count()
 
     def calc_trend(current, old):
@@ -73,6 +75,7 @@ def get_stats():
             'approved': approved,
             'pending': pending_approval,
             'pending_verification': pending_verification,
+            'rejected': rejected,
             'beneficiaries': beneficiaries
         },
         'trends': {
@@ -80,6 +83,7 @@ def get_stats():
             'approved': calc_trend(approved, old_approved),
             'pending': calc_trend(pending_approval, old_pending_approval),
             'pending_verification': calc_trend(pending_verification, old_pending_verification),
+            'rejected': calc_trend(rejected, old_rejected),
             'beneficiaries': calc_trend(beneficiaries, old_beneficiaries)
         }
     }

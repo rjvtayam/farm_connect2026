@@ -50,10 +50,41 @@ document.addEventListener('DOMContentLoaded', function () {
     // ── Real-time polling: refresh data every 15 seconds ──
     setInterval(() => {
         loadStats(true);
+        loadAnalytics();
         loadRegistrations(true);
         loadBeneficiaries(true);
     }, 15000);
+    // ── Handle Tab Clicks for Analytics Deferred Rendering ──
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(link => {
+        link.addEventListener('click', function() {
+            if (this.getAttribute('href') === '#analytics') {
+                attemptDeferredAnalyticsRender();
+            }
+        });
+    });
 });
+
+/**
+ * Attempt to render deferred analytics with multiple retries.
+ * This ensures charts render reliably when switching to the analytics tab.
+ */
+function attemptDeferredAnalyticsRender() {
+    const retryDelays = [50, 150, 300, 600];
+    retryDelays.forEach(delay => {
+        setTimeout(() => {
+            const section = document.getElementById('analytics');
+            const isVisible = section && section.offsetParent !== null;
+            if (isVisible && window._lastMaoAnalyticsData) {
+                // Check if charts already exist and are valid
+                const hasCharts = window.maoCharts && Object.keys(window.maoCharts).length > 0;
+                if (!hasCharts) {
+                    renderCharts(window._lastMaoAnalyticsData);
+                    populateAnalyticsKPIs(window._lastMaoAnalyticsData);
+                }
+            }
+        }, delay);
+    });
+}
 
 /**
  * MAO Specific Socket Events
@@ -297,6 +328,7 @@ function loadStats() {
                 animateCount('approvedCount', data.stats.approved || 0);
                 animateCount('pendingCount', data.stats.pending || 0); // Verified but not approved
                 animateCount('pendingVerificationCount', data.stats.pending_verification || 0); // Not even verified yet
+                animateCount('rejectedCount', data.stats.rejected || 0);
                 animateCount('beneficiariesCount', data.stats.beneficiaries || 0);
 
                 if (data.trends) {
@@ -304,6 +336,7 @@ function loadStats() {
                     updateTrendBadge('approvedCountTrend', data.trends.approved);
                     updateTrendBadge('pendingCountTrend', data.trends.pending);
                     updateTrendBadge('pendingVerificationCountTrend', data.trends.pending_verification);
+                    updateTrendBadge('rejectedCountTrend', data.trends.rejected);
                     updateTrendBadge('beneficiariesCountTrend', data.trends.beneficiaries);
                 }
 
@@ -312,6 +345,7 @@ function loadStats() {
                 setRpt('rptStatTotal',    s.total    || 0);
                 setRpt('rptStatApproved', s.approved || 0);
                 setRpt('rptStatPending',  (s.pending || 0) + (s.pending_verification || 0));
+                setRpt('rptStatRejected', s.rejected || 0);
 
                 // Last Export — read from localStorage (updated when export runs)
                 const lastExportEl = document.getElementById('rptStatDate');
@@ -2231,4 +2265,324 @@ async function loadTrashCount() {
             else badge.style.display = 'none';
         }
     } catch (e) { /* silent */ }
+}
+
+// ── Analytics Module ──
+
+function loadAnalytics() {
+    fetch('/mao/api/analytics', { credentials: 'include' })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.analytics) {
+                const newDataStr = JSON.stringify(data.analytics);
+
+                if (window._lastMaoAnalyticsStr !== newDataStr) {
+                    window._lastMaoAnalyticsStr = newDataStr;
+                    window._lastMaoAnalyticsData = data.analytics;
+                    
+                    if (window.maoCharts) {
+                        try {
+                            const section = document.getElementById('analytics');
+                            if (!section || section.offsetParent === null) {
+                                Object.values(window.maoCharts).forEach(c => c.destroy());
+                                window.maoCharts = {};
+                            }
+                        } catch (e) {}
+                    }
+                    
+                    // Always use deferred rendering queue to ensure DOM painting is completely finished
+                    // Prevents Chart.js canvas from infinite-stretching on F5 hard refresh
+                    attemptDeferredAnalyticsRender();
+                }
+
+                const lastUpdatedEl = document.getElementById('maoAnalyticsLastUpdated');
+                if (lastUpdatedEl) {
+                    const now = new Date();
+                    const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    lastUpdatedEl.textContent = `Updated ${timeStr}`;
+                    lastUpdatedEl.title = `Data last fetched at ${now.toLocaleString()}`;
+                }
+            }
+        })
+        .catch(error => console.error('Error loading analytics:', error));
+}
+
+function populateAnalyticsKPIs(analytics) {
+    const statusData = analytics.status || {};
+    const approved = statusData['approved'] || 0;
+    const rejected = statusData['rejected'] || 0;
+    const pending = (statusData['pending'] || 0) + (statusData['pending_verification'] || 0) + (statusData['verified'] || 0);
+    const total = Object.values(statusData).reduce((s, v) => s + v, 0);
+
+    const kpiTotal = document.getElementById('maoKpiTotal');
+    const kpiApproved = document.getElementById('maoKpiApproved');
+    const kpiPending = document.getElementById('maoKpiPending');
+    const kpiRejected = document.getElementById('maoKpiRejected');
+    const kpiRate = document.getElementById('maoKpiRate');
+
+    if (kpiTotal) kpiTotal.textContent = total.toLocaleString();
+    if (kpiApproved) kpiApproved.textContent = approved.toLocaleString();
+    if (kpiPending) kpiPending.textContent = pending.toLocaleString();
+    if (kpiRejected) kpiRejected.textContent = rejected.toLocaleString();
+    
+    if (kpiRate) {
+        const rate = total > 0 ? Math.round((approved / total) * 100) : 0;
+        kpiRate.textContent = `${rate}%`;
+    }
+
+    const growth = analytics.growth || {};
+    const yearLabel = document.getElementById('maoAnalyticsYearLabel');
+    if (yearLabel && growth.current_year) {
+        yearLabel.textContent = `${growth.last_year} vs ${growth.current_year}`;
+    }
+}
+
+function makeTooltip(extraCallbacks) {
+    return {
+        enabled: false,
+        external: function (context) {
+            let tooltipEl = document.getElementById('mao-chart-tooltip');
+            if (!tooltipEl) {
+                tooltipEl = document.createElement('div');
+                tooltipEl.id = 'mao-chart-tooltip';
+                tooltipEl.style.cssText = [
+                    'position:absolute', 'background:rgba(15,23,42,0.93)', 'color:#f1f5f9',
+                    'border-radius:10px', 'padding:10px 14px', 'font-size:0.8rem', 'pointer-events:none',
+                    'box-shadow:0 8px 24px rgba(0,0,0,0.25)', 'z-index:9999', 'white-space:nowrap',
+                    'font-family:Inter,sans-serif', 'transition:opacity 0.15s', 'line-height:1.6'
+                ].join(';');
+                document.body.appendChild(tooltipEl);
+            }
+
+            const model = context.tooltip;
+            if (model.opacity === 0) { tooltipEl.style.opacity = '0'; return; }
+
+            let html = '';
+            if (model.title?.length) html += `<div style="font-weight:700;margin-bottom:4px;color:#e2e8f0">${model.title[0]}</div>`;
+            model.body?.forEach((b, i) => {
+                const color = model.labelColors?.[i]?.backgroundColor || '#94a3b8';
+                const colorStr = typeof color === 'string' ? color : '#94a3b8';
+                html += `<div style="display:flex;align-items:center;gap:6px">
+                    <span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:${colorStr};flex-shrink:0"></span>
+                    <span>${b.lines?.join('') || ''}</span>
+                </div>`;
+            });
+
+            if (extraCallbacks?.afterBody) html += extraCallbacks.afterBody(model);
+
+            tooltipEl.innerHTML = html;
+            tooltipEl.style.opacity = '1';
+
+            const pos = context.chart.canvas.getBoundingClientRect();
+            tooltipEl.style.left = (pos.left + window.scrollX + model.caretX + 12) + 'px';
+            tooltipEl.style.top = (pos.top + window.scrollY + model.caretY - 10) + 'px';
+        }
+    };
+}
+
+function renderCharts(analytics) {
+    if (!analytics) return;
+
+    const analyticsSection = document.getElementById('analytics');
+    if (!analyticsSection || analyticsSection.offsetParent === null) return;
+
+    Chart.defaults.font.family = "'Inter', sans-serif";
+    Chart.defaults.color = '#64748b';
+    Chart.defaults.animation = { duration: 800, easing: 'easeInOutQuart' };
+
+    if (window.maoCharts) {
+        Object.values(window.maoCharts).forEach(c => { try { c.destroy(); } catch (e) { } });
+    }
+    window.maoCharts = {};
+
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    const gridColor = isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)';
+    const tickColor = isDark ? '#94a3b8' : '#64748b';
+
+    // 1. MONTHLY YEAR-OVER-YEAR COMPARISON
+    const monthlyCtx = document.getElementById('maoMonthlyChart')?.getContext('2d');
+    if (monthlyCtx) {
+        const growth = analytics.growth || {};
+        const monthLabels = growth.month_labels || ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const currentData = growth.current_data || new Array(12).fill(0);
+        const lastData = growth.last_data || new Array(12).fill(0);
+        const currentYear = growth.current_year || String(new Date().getFullYear());
+        const lastYear = growth.last_year || String(new Date().getFullYear() - 1);
+
+        const gradCurrent = monthlyCtx.createLinearGradient(0, 0, 0, 400);
+        gradCurrent.addColorStop(0, 'rgba(59,130,246,0.25)');
+        gradCurrent.addColorStop(1, 'rgba(59,130,246,0)');
+
+        const gradLast = monthlyCtx.createLinearGradient(0, 0, 0, 400);
+        gradLast.addColorStop(0, 'rgba(148,163,184,0.18)');
+        gradLast.addColorStop(1, 'rgba(148,163,184,0)');
+
+        window.maoCharts.monthly = new Chart(monthlyCtx, {
+            type: 'line',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: currentYear, data: currentData, borderColor: '#3b82f6', backgroundColor: gradCurrent,
+                        fill: true, tension: 0.4, borderWidth: 2.5, pointBackgroundColor: '#fff',
+                        pointBorderColor: '#3b82f6', pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7, pointHoverBackgroundColor: '#3b82f6'
+                    },
+                    {
+                        label: lastYear, data: lastData, borderColor: '#94a3b8', backgroundColor: gradLast,
+                        fill: true, tension: 0.4, borderWidth: 2, borderDash: [6, 4], pointBackgroundColor: '#fff',
+                        pointBorderColor: '#94a3b8', pointBorderWidth: 2, pointRadius: 4, pointHoverRadius: 6, pointHoverBackgroundColor: '#94a3b8'
+                    }
+                ]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: makeTooltip({
+                        afterBody: items => {
+                            const a = items[0]?.parsed.y || 0;
+                            const b = items[1]?.parsed.y || 0;
+                            if (b === 0) return a > 0 ? [`\n  ↑ New this year`] : [];
+                            const diff = a - b;
+                            const pct = Math.round((diff / b) * 100);
+                            const arrow = diff >= 0 ? '↑' : '↓';
+                            return [`\n  ${arrow} ${Math.abs(pct)}% vs last year`];
+                        }
+                    })
+                },
+                scales: { y: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, stepSize: 1, precision: 0 } }, x: { grid: { display: false }, ticks: { color: tickColor } } }
+            }
+        });
+
+        const legendEl = document.getElementById('maoMonthlyLegend');
+        if (legendEl) {
+            legendEl.innerHTML = `
+                <span class="inline-legend-item"><span class="inline-legend-dot" style="background:#3b82f6"></span>${currentYear}</span>
+                <span class="inline-legend-item"><span class="inline-legend-dot" style="background:#94a3b8;border-style:dashed"></span>${lastYear}</span>`;
+        }
+    }
+
+    // 2. REGISTRATION BY FORM TYPE
+    const typeCtx = document.getElementById('maoTypeChart')?.getContext('2d');
+    if (typeCtx) {
+        const typesData = analytics.types || {};
+        const typeLabels = Object.keys(typesData).map(k => k.toUpperCase());
+        const typeValues = Object.values(typesData);
+        const typeBgColors = Object.keys(typesData).map(k => TYPE_COLOR_MAP[k.toLowerCase()] || '#6366f1');
+
+        window.maoCharts.type = new Chart(typeCtx, {
+            type: 'bar',
+            data: { labels: typeLabels, datasets: [{ label: 'Registrations', data: typeValues, backgroundColor: typeBgColors, borderRadius: 8, barThickness: 40 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: makeTooltip() },
+                scales: { y: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, precision: 0 } }, x: { grid: { display: false }, ticks: { color: tickColor } } }
+            }
+        });
+    }
+
+    // 3. STATUS DISTRIBUTION
+    const statusCtx = document.getElementById('maoStatusChart')?.getContext('2d');
+    if (statusCtx) {
+        const rawStatus = analytics.status || {};
+        const total = Object.values(rawStatus).reduce((s, v) => s + v, 0);
+        const statusKeys = Object.keys(rawStatus);
+        const statusValues = statusKeys.map(k => rawStatus[k]);
+        const statusColors = statusKeys.map(k => (STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending']).bg);
+        const statusLabels = statusKeys.map(k => (STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending']).label);
+
+        window.maoCharts.status = new Chart(statusCtx, {
+            type: 'doughnut',
+            data: { labels: statusLabels, datasets: [{ data: statusValues, backgroundColor: statusColors, borderWidth: 3, borderColor: isDark ? '#1e293b' : '#ffffff', hoverOffset: 10, hoverBorderWidth: 0 }] },
+            options: {
+                responsive: true, maintainAspectRatio: false, cutout: '72%',
+                plugins: {
+                    legend: { display: false },
+                    tooltip: makeTooltip({
+                        afterBody: model => {
+                            const val = model.dataPoints[0].raw;
+                            const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                            return `\n  Share: ${pct}%`;
+                        }
+                    })
+                }
+            }
+        });
+
+        const legendListEl = document.getElementById('maoStatusLegendList');
+        if (legendListEl) {
+            legendListEl.innerHTML = statusKeys.map((k, i) => {
+                const cfg = STATUS_COLOR_MAP[k] || STATUS_COLOR_MAP['pending'];
+                const count = rawStatus[k];
+                const pct = total > 0 ? Math.round((count / total) * 100) : 0;
+                return `<div class="status-legend-item"><span class="status-legend-dot" style="background:${cfg.bg}"></span><span class="status-legend-name">${cfg.label}</span><span class="status-legend-count">${count.toLocaleString()}</span><span class="status-legend-pct">${pct}%</span></div>`;
+            }).join('') + `<div class="status-legend-total"><span>Total</span><span>${total.toLocaleString()}</span></div>`;
+        }
+    }
+
+    // 4. BARANGAY DISTRIBUTION
+    const brgyCtx = document.getElementById('maoBarangayChart')?.getContext('2d');
+    if (brgyCtx) {
+        const brgyData = analytics.barangays || {};
+        const brgyLabels = Object.keys(brgyData).map(b => b ? b.charAt(0).toUpperCase() + b.slice(1) : '—');
+        const brgyValues = Object.values(brgyData);
+        const brgyColors = brgyLabels.map((_, i) => BRGY_PALETTE[i % BRGY_PALETTE.length]);
+
+        window.maoCharts.brgy = new Chart(brgyCtx, {
+            type: 'bar',
+            data: { labels: brgyLabels, datasets: [{ label: 'Registrations', data: brgyValues, backgroundColor: brgyColors, borderRadius: { topRight: 6, bottomRight: 6 }, borderSkipped: 'left' }] },
+            options: {
+                indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                plugins: { legend: { display: false }, tooltip: makeTooltip() },
+                scales: { x: { beginAtZero: true, grid: { color: gridColor, drawBorder: false }, ticks: { color: tickColor, precision: 0 } }, y: { grid: { display: false }, ticks: { color: tickColor, font: { weight: '600' } } } }
+            }
+        });
+    }
+
+    // 5. DEMOGRAPHIC PROFILE
+    const radarCtx = document.getElementById('maoDemographicRadarChart')?.getContext('2d');
+    if (radarCtx) {
+        const demo = analytics.demographics || {};
+        const sexData = demo.sex || {};
+        const maleCount = sexData['Male'] || sexData['male'] || sexData['M'] || 0;
+        const femaleCount = sexData['Female'] || sexData['female'] || sexData['F'] || 0;
+        const pwdCount = demo.pwd || 0;
+        const fourPsCount = demo.four_ps || 0;
+        const ipCount = demo.ip || 0;
+        const radarLabels = ['Male', 'Female', 'PWD', '4Ps Member', 'IP'];
+        const radarValues = [maleCount, femaleCount, pwdCount, fourPsCount, ipCount];
+
+        window.maoCharts.radar = new Chart(radarCtx, {
+            type: 'radar',
+            data: {
+                labels: radarLabels, datasets: [{
+                    label: 'Beneficiaries', data: radarValues, backgroundColor: 'rgba(139,92,246,0.18)', borderColor: '#8b5cf6',
+                    pointBackgroundColor: '#8b5cf6', pointBorderColor: '#fff', pointBorderWidth: 2, pointRadius: 5, pointHoverRadius: 7, borderWidth: 2.5
+                }]
+            },
+            options: {
+                responsive: true, maintainAspectRatio: false,
+                scales: { r: { angleLines: { color: gridColor }, grid: { color: gridColor }, pointLabels: { color: tickColor, font: { family: "'Inter', sans-serif", size: 12, weight: '500' } }, ticks: { display: false, stepSize: Math.max(1, Math.ceil(Math.max(...radarValues) / 5)) } } },
+                plugins: { legend: { display: false }, tooltip: makeTooltip() }
+            }
+        });
+
+        const breakdownEl = document.getElementById('maoDemographicBreakdown');
+        if (breakdownEl) {
+            const total = maleCount + femaleCount;
+            const malePct = total > 0 ? Math.round((maleCount / total) * 100) : 0;
+            const femalePct = total > 0 ? 100 - malePct : 0;
+
+            breakdownEl.innerHTML = `
+                <div class="demo-section-title">Sex Distribution</div>
+                <div class="demo-bar-row"><span class="demo-bar-label"><i class="fas fa-mars" style="color:#3b82f6"></i> Male</span><div class="demo-progress-bar"><div class="demo-progress-fill" style="width:${malePct}%;background:#3b82f6"></div></div><span class="demo-bar-count">${maleCount.toLocaleString()} <span class="demo-bar-pct">${malePct}%</span></span></div>
+                <div class="demo-bar-row"><span class="demo-bar-label"><i class="fas fa-venus" style="color:#ec4899"></i> Female</span><div class="demo-progress-bar"><div class="demo-progress-fill" style="width:${femalePct}%;background:#ec4899"></div></div><span class="demo-bar-count">${femaleCount.toLocaleString()} <span class="demo-bar-pct">${femalePct}%</span></span></div>
+                <div class="demo-section-title" style="margin-top:1.25rem">Special Categories</div>
+                <div class="demo-chip-grid">
+                    <div class="demo-chip" style="border-color:#8b5cf6;background:rgba(139,92,246,0.08)"><span class="demo-chip-icon" style="color:#8b5cf6"><i class="fas fa-wheelchair"></i></span><span class="demo-chip-value">${pwdCount.toLocaleString()}</span><span class="demo-chip-label">PWD</span></div>
+                    <div class="demo-chip" style="border-color:#f59e0b;background:rgba(245,158,11,0.08)"><span class="demo-chip-icon" style="color:#f59e0b"><i class="fas fa-hand-holding-heart"></i></span><span class="demo-chip-value">${fourPsCount.toLocaleString()}</span><span class="demo-chip-label">4Ps</span></div>
+                    <div class="demo-chip" style="border-color:#10b981;background:rgba(16,185,129,0.08)"><span class="demo-chip-icon" style="color:#10b981"><i class="fas fa-leaf"></i></span><span class="demo-chip-value">${ipCount.toLocaleString()}</span><span class="demo-chip-label">Indigenous</span></div>
+                </div>`;
+        }
+    }
 }

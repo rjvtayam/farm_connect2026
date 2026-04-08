@@ -55,7 +55,37 @@ document.addEventListener('DOMContentLoaded', function () {
         loadAnalytics();
         loadSubmissions(true); // background refresh — preserve filters & page
     }, 15000);
+    // ── Handle Tab Clicks for Analytics Deferred Rendering ──
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(link => {
+        link.addEventListener('click', function() {
+            if (this.getAttribute('href') === '#analytics') {
+                attemptDeferredAnalyticsRender();
+            }
+        });
+    });
 });
+
+/**
+ * Attempt to render deferred analytics with multiple retries.
+ * This ensures charts render reliably when switching to the analytics tab.
+ */
+function attemptDeferredAnalyticsRender() {
+    const retryDelays = [50, 150, 300, 600];
+    retryDelays.forEach(delay => {
+        setTimeout(() => {
+            const section = document.getElementById('analytics');
+            const isVisible = section && section.offsetParent !== null;
+            if (isVisible && window._lastEncoderAnalyticsData) {
+                // Check if charts already exist and are valid
+                const hasCharts = window.encoderCharts && Object.keys(window.encoderCharts).length > 0;
+                if (!hasCharts) {
+                    renderCharts(window._lastEncoderAnalyticsData);
+                    populateAnalyticsKPIs(window._lastEncoderAnalyticsData);
+                }
+            }
+        }, delay);
+    });
+}
 
 /**
  * Encoder Specific Socket Events
@@ -1163,8 +1193,18 @@ function loadAnalytics() {
                 // Prevent destroying and re-rendering charts if data hasn't changed
                 if (window._lastEncoderAnalyticsStr !== newDataStr) {
                     window._lastEncoderAnalyticsStr = newDataStr;
-                    renderCharts(data.analytics);
-                    populateAnalyticsKPIs(data.analytics);
+                    window._lastEncoderAnalyticsData = data.analytics;
+                    // Reset chart store so deferred logic can recreate them if hidden
+                    if (window.encoderCharts) {
+                        try {
+                            const section = document.getElementById('analytics');
+                            if (!section || section.offsetParent === null) {
+                                Object.values(window.encoderCharts).forEach(c => c.destroy());
+                                window.encoderCharts = {};
+                            }
+                        } catch (e) {}
+                    }
+                    attemptDeferredAnalyticsRender();
                 }
 
                 // Update "Last Updated" timestamp
@@ -1270,6 +1310,14 @@ function makeTooltip(extraCallbacks) {
 }
 
 function renderCharts(analytics) {
+    if (!analytics) return;
+
+    // Check visibility using offsetParent
+    const analyticsSection = document.getElementById('analytics');
+    if (!analyticsSection || analyticsSection.offsetParent === null) {
+        return;
+    }
+
     Chart.defaults.font.family = "'Inter', sans-serif";
     Chart.defaults.color = '#64748b';
     Chart.defaults.animation = { duration: 800, easing: 'easeInOutQuart' };
@@ -1349,27 +1397,17 @@ function renderCharts(analytics) {
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(15,23,42,0.93)',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#94a3b8',
-                        padding: 12,
-                        cornerRadius: 10,
-                        boxPadding: 5,
-                        callbacks: {
-                            label: ctx => ` ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()} registrations`,
-                            afterBody: items => {
-                                const a = items[0]?.parsed.y || 0;
-                                const b = items[1]?.parsed.y || 0;
-                                if (b === 0) return a > 0 ? [`\n  ↑ New this year`] : [];
-                                const diff = a - b;
-                                const pct = Math.round((diff / b) * 100);
-                                const arrow = diff >= 0 ? '↑' : '↓';
-                                const color = diff >= 0 ? '#10b981' : '#ef4444';
-                                return [`\n  ${arrow} ${Math.abs(pct)}% vs last year`];
-                            }
+                    tooltip: makeTooltip({
+                        afterBody: items => {
+                            const a = items[0]?.parsed.y || 0;
+                            const b = items[1]?.parsed.y || 0;
+                            if (b === 0) return a > 0 ? [`\n  ↑ New this year`] : [];
+                            const diff = a - b;
+                            const pct = Math.round((diff / b) * 100);
+                            const arrow = diff >= 0 ? '↑' : '↓';
+                            return [`\n  ${arrow} ${Math.abs(pct)}% vs last year`];
                         }
-                    }
+                    })
                 },
                 scales: {
                     y: {
@@ -1428,17 +1466,7 @@ function renderCharts(analytics) {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(15,23,42,0.93)',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#94a3b8',
-                        padding: 12,
-                        cornerRadius: 10,
-                        boxPadding: 5,
-                        callbacks: {
-                            label: ctx => ` ${ctx.parsed.y.toLocaleString()} registrations`
-                        }
-                    },
+                    tooltip: makeTooltip(),
                     datalabels: false
                 },
                 scales: {
@@ -1489,21 +1517,13 @@ function renderCharts(analytics) {
                 cutout: '72%',
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(15,23,42,0.93)',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#94a3b8',
-                        padding: 12,
-                        cornerRadius: 10,
-                        boxPadding: 5,
-                        callbacks: {
-                            label: ctx => {
-                                const val = ctx.parsed;
-                                const pct = total > 0 ? Math.round((val / total) * 100) : 0;
-                                return ` ${val.toLocaleString()} records (${pct}%)`;
-                            }
+                    tooltip: makeTooltip({
+                        afterBody: model => {
+                            const val = model.dataPoints[0].raw;
+                            const pct = total > 0 ? Math.round((val / total) * 100) : 0;
+                            return `\n  Share: ${pct}%`;
                         }
-                    }
+                    })
                 }
             }
         });
@@ -1558,17 +1578,7 @@ function renderCharts(analytics) {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: { display: false },
-                    tooltip: {
-                        backgroundColor: 'rgba(15,23,42,0.93)',
-                        titleColor: '#e2e8f0',
-                        bodyColor: '#94a3b8',
-                        padding: 12,
-                        cornerRadius: 10,
-                        boxPadding: 5,
-                        callbacks: {
-                            label: ctx => ` ${ctx.parsed.x.toLocaleString()} registrations`
-                        }
-                    }
+                    tooltip: makeTooltip()
                 },
                 scales: {
                     x: {

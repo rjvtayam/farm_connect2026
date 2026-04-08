@@ -10,7 +10,7 @@
     {
       "root": "server",
       "pythonVersion": "3.12",
-      "extraPaths": ["server"]
+      "extraPaths": ["."]
     }
   ],
   "reportMissingModuleSource": false,
