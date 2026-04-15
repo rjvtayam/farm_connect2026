@@ -4,7 +4,10 @@ from sqlalchemy import or_
 
 scanner_bp = Blueprint('scanner', __name__)
 
+from app.extensions import limiter
+
 @scanner_bp.route('/beneficiary/<uid>', methods=['GET'])
+@limiter.limit("20 per minute")
 def get_beneficiary_details(uid):
     """
     Fetch a beneficiary using either their internal ID or RSBSA ID.
@@ -44,6 +47,6 @@ def get_beneficiary_details(uid):
         return jsonify(data), 200
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        from flask import current_app
+        current_app.logger.error("Error in scanner API: ", exc_info=True)
         return jsonify({'success': False, 'message': 'An error occurred while fetching data.'}), 500

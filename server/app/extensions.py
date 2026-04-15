@@ -25,7 +25,15 @@ login_manager.refresh_view = 'auth.login'
 login_manager.needs_refresh_message = 'Please log in again to confirm your identity.'
 
 csrf = CSRFProtect()
-socketio = SocketIO(cors_allowed_origins="*", async_mode='gevent')
+import os
+_cors_origins = os.environ.get('SOCKETIO_CORS_ORIGINS', None)
+if _cors_origins and _cors_origins != '*':
+    _cors_origins = [o.strip() for o in _cors_origins.split(',')]
+elif os.environ.get('FLASK_ENV', 'development') == 'development':
+    _cors_origins = '*'
+# In production with no explicit config, cors_allowed_origins=None means same-origin only
+
+socketio = SocketIO(cors_allowed_origins=_cors_origins, async_mode='gevent')
 
 @login_manager.unauthorized_handler
 def unauthorized():

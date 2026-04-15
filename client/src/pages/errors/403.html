@@ -10,11 +10,27 @@
 <div class="error-container">
     <div class="error-content">
         <div class="error-image">
-            <img src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwww.youstable.com%2Fblog%2Fwp-content%2Fuploads%2F2023%2F02%2F403-forbidden-error-2.jpg&f=1&nofb=1&ipt=7926a886263b37ca737f5d287f3a82b95cb4424be702a0112bcb662a9e4d9fa7&ipo=images" 
-                 alt="403 Error Illustration" 
-                 loading="lazy"
-                 width="400"
-                 height="300">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+                <defs>
+                    <linearGradient id="g403" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:0.15"/>
+                        <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0.15"/>
+                    </linearGradient>
+                </defs>
+                <rect width="400" height="300" rx="20" fill="url(#g403)"/>
+                <!-- Shield icon -->
+                <path d="M200 60 L260 90 L260 160 C260 210 200 240 200 240 C200 240 140 210 140 160 L140 90 Z" fill="none" stroke="#4f46e5" stroke-width="4" opacity="0.8"/>
+                <path d="M200 80 L245 103 L245 157 C245 197 200 222 200 222 C200 222 155 197 155 157 L155 103 Z" fill="#4f46e5" opacity="0.1"/>
+                <!-- Lock icon inside shield -->
+                <rect x="185" y="140" width="30" height="24" rx="4" fill="#4f46e5" opacity="0.7"/>
+                <path d="M190 140 L190 130 C190 122 195 117 200 117 C205 117 210 122 210 130 L210 140" fill="none" stroke="#4f46e5" stroke-width="3" opacity="0.7"/>
+                <circle cx="200" cy="150" r="3" fill="white"/>
+                <!-- Decorative dots -->
+                <circle cx="80" cy="80" r="4" fill="#06b6d4" opacity="0.4"/>
+                <circle cx="320" cy="100" r="6" fill="#4f46e5" opacity="0.3"/>
+                <circle cx="100" cy="220" r="5" fill="#4f46e5" opacity="0.2"/>
+                <circle cx="300" cy="230" r="4" fill="#06b6d4" opacity="0.3"/>
+            </svg>
         </div>
         <div class="error-text">
             <h1>403</h1>
@@ -31,4 +47,4 @@
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

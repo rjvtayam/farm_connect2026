@@ -29,14 +29,12 @@ class CommunityPost(db.Model):
     def to_dict(self, current_user_id=None):
         """Serialize post for API response."""
         reaction_counts = {}
+        user_reaction = None
         for r in self.reactions:
             reaction_counts[r.type] = reaction_counts.get(r.type, 0) + 1
-
-        user_reaction = None
-        if current_user_id:
-            ur = PostReaction.query.filter_by(post_id=self.id, user_id=current_user_id).first()
-            if ur:
-                user_reaction = ur.type
+            # Find current user's reaction in-memory (avoids N+1 query)
+            if current_user_id and r.user_id == current_user_id:
+                user_reaction = r.type
 
         return {
             'id': self.id,

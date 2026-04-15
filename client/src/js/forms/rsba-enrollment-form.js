@@ -36,7 +36,7 @@ function initMessageListener() {
     window.addEventListener('message', event => {
         const { type, data, submissionId, isViewOnly } = event.data;
         if (type === 'POPULATE_FORM') {
-            console.log('Populating form with data:', data);
+            // Populating form with data
             isEditing = !isViewOnly;
             editRegistrationId = submissionId;
             populateForm(data);

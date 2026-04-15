@@ -109,26 +109,26 @@ function initCommandCenter() {
     const activeSocket = window.socket || (typeof socket !== 'undefined' ? socket : null);
     if (activeSocket) {
         activeSocket.on('new_submission', (data) => {
-            console.log("📍 Command Center: New submission received", data);
+            // 📍 Command Center: New submission received
             showFlashMessage(`New enrollment from ${data.barangay}`, 'info');
             loadCommandCenterData(); // Full refresh for accuracy
             loadHeatmapData();
         });
 
         activeSocket.on('staff_update', (data) => {
-            console.log("👥 Command Center: Staff update received", data);
+            // 👥 Command Center: Staff update received
             loadCommandCenterData(); // Refresh staff list
         });
         
         activeSocket.on('status_updated', (data) => {
-            console.log("🔄 Command Center: Status update received", data);
+            // 🔄 Command Center: Status update received
             loadCommandCenterData();
         });
     }
 
     // Auto-refresh map every 60 seconds to update Online/Offline status
     setInterval(() => {
-        console.log("⏱️ Command Center: Periodic status refresh");
+        // ⏱️ Command Center: Periodic status refresh
         loadCommandCenterData();
     }, 60000);
 }

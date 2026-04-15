@@ -10,32 +10,41 @@
 <div class="error-container">
     <div class="error-content">
         <div class="error-image">
-            <img
-                src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fimg.freepik.com%2Ffree-vector%2Ferror-429-concept-illustration_114360-4108.jpg%3Fw%3D1380%26t%3Dst%3D1708385998~exp%3D1708386598~hmac%3Dca0616b3755028152b71631f21930fa24162da73b1de1998e37965761c65b2cb&f=1&nofb=1&ipt=9f6ae007a20b27e1456997c03cdca2ad0612622e754aeb7dfab580514e8a0b23&ipo=images"
-                alt="429 Error Illustration"
-                loading="lazy"
-                width="400"
-                height="300">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+                <defs>
+                    <linearGradient id="g429" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#8b5cf6;stop-opacity:0.15"/>
+                        <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0.12"/>
+                    </linearGradient>
+                </defs>
+                <rect width="400" height="300" rx="20" fill="url(#g429)"/>
+                <!-- Clock -->
+                <circle cx="200" cy="130" r="55" fill="none" stroke="#8b5cf6" stroke-width="4" opacity="0.6"/>
+                <circle cx="200" cy="130" r="48" fill="#8b5cf6" opacity="0.06"/>
+                <line x1="200" y1="130" x2="200" y2="95" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+                <line x1="200" y1="130" x2="225" y2="140" stroke="#8b5cf6" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+                <circle cx="200" cy="130" r="4" fill="#8b5cf6" opacity="0.7"/>
+                <!-- Speed lines -->
+                <line x1="90" y1="210" x2="140" y2="210" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+                <line x1="110" y1="225" x2="170" y2="225" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+                <line x1="230" y1="210" x2="310" y2="210" stroke="#06b6d4" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+                <line x1="240" y1="225" x2="300" y2="225" stroke="#8b5cf6" stroke-width="2" stroke-linecap="round" opacity="0.3"/>
+                <!-- Decorative dots -->
+                <circle cx="80" cy="80" r="4" fill="#06b6d4" opacity="0.4"/>
+                <circle cx="320" cy="90" r="6" fill="#8b5cf6" opacity="0.3"/>
+            </svg>
         </div>
         <div class="error-text">
             <h1>429</h1>
             <h2>Too Many Requests</h2>
-            <p>You've made too many requests. Please wait a while before trying
-                again.</p>
-            <div class="error-timer">
-                <i class="fas fa-clock"></i>
-                <span>Please try again in {{ retry_after }} seconds</span>
-            </div>
+            <p>You've made too many requests in a short period. Please wait a moment and try again.</p>
             <div class="error-actions">
                 <a href="{{ url_for('main.index') }}" class="btn btn-primary">
                     <i class="fas fa-home"></i> Go Home
                 </a>
-            </div>
-            <div class="error-help">
-                <p>If you believe this is a mistake, please contact support:</p>
-                <a href="mailto:support@farmconnect.com" class="support-link">
-                    <i class="fas fa-envelope"></i> support@farmconnect.com
-                </a>
+                <button onclick="setTimeout(() => location.reload(), 1000)" class="btn btn-outline">
+                    <i class="fas fa-clock"></i> Retry
+                </button>
             </div>
         </div>
     </div>

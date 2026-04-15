@@ -582,23 +582,40 @@ body[data-layout="horizontal"] .qr-caption { display: none; }
     @page { margin: 0; size: auto; }
     
     body {
-        background: transparent;
+        background: transparent !important;
         align-items: flex-start;
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
     }
 
-    .no-print { display: none !important; }
+    /* Hide non-print UI elements */
+    .no-print, .print-controls { display: none !important; }
     
     .id-print-area {
         padding: 0;
         margin: 0;
+        display: block;
     }
 
     .id-card {
-        box-shadow: none;
-        border-radius: 0; /* Important for exact physical printing edges */
-        border: none;
+        box-shadow: none !important;
+        border-radius: 0 !important; /* Critical for ID card cutting */
+        border: none !important;
         page-break-inside: avoid;
+        margin: 0 !important;
+        /* Force explicit sizing so printer scales it identically to preview */
+        width: var(--card-width-v);
+        height: var(--card-height-v);
+    }
+    
+    body[data-layout="horizontal"] .id-card {
+        width: var(--card-width-h);
+        height: var(--card-height-h);
+    }
+
+    /* Print color accuracy hacks for browsers */
+    * {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
 }

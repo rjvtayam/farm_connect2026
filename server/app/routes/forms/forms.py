@@ -81,7 +81,7 @@ def _save_base64_image(base64_string, subfolder):
             
         return f'uploads/{subfolder}/{filename}'
     except Exception as e:
-        print(f"Error saving base64 image: {e}")
+        current_app.logger.error(f"Error saving base64 image: {e}", exc_info=True)
         return None
 
 
@@ -131,7 +131,7 @@ def _notify_roles(roles, municipality, message, notif_type, ref_id):
         for u in users:
             broadcast_new_notification(u.id)
     except Exception as e:
-        print(f"Notification Error: {e}")
+        current_app.logger.error(f"Notification Error: {e}", exc_info=True)
         db.session.rollback()
 
 
@@ -217,8 +217,7 @@ def download_rsba():
             download_name='RSBSA_Enrollment_Form.pdf'
         )
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        current_app.logger.error("Error in fish registration: ", exc_info=True)
         return jsonify({'error': str(e)}), 500
 
 
@@ -352,8 +351,7 @@ def submit_rsbsa():
 
     except Exception as e:
         db.session.rollback()
-        import traceback
-        traceback.print_exc()
+        current_app.logger.error("Error in RSBSA registration: ", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

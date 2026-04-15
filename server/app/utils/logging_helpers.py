@@ -43,6 +43,8 @@ def log_activity(action, details=None, user=None):
         broadcast_activity(activity_data)
         return True
     except Exception as e:
-        print(f"Error logging activity: {e}")
+        from flask import current_app
+        if current_app:
+            current_app.logger.error(f"Error logging activity: {e}", exc_info=True)
         db.session.rollback()
         return False

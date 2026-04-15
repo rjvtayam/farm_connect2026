@@ -18,6 +18,24 @@ dist/
 downloads/
 eggs/
 .eggs/
+
+# Logs and databases
+*.log
+logs/
+server.log
+app.log
+farmconnect.log
+*.sqlite
+*.sqlite3
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 lib/
 lib64/
 parts/

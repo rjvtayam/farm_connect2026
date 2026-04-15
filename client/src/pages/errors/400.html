@@ -10,25 +10,36 @@
 <div class="error-container">
     <div class="error-content">
         <div class="error-image">
-            <img
-                src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn3d.iconscout.com%2F3d%2Fpremium%2Fthumb%2Fblue-screen-error-6343159-5231333.png&f=1&nofb=1&ipt=9d2e31704b672d78c0e0b81afe5867a08cb799433c9939428a21f0ec71aa20c7&ipo=images"
-                alt="400 Error Illustration"
-                loading="lazy"
-                width="400"
-                height="300">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+                <defs>
+                    <linearGradient id="g400" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0.15"/>
+                        <stop offset="100%" style="stop-color:#ef4444;stop-opacity:0.12"/>
+                    </linearGradient>
+                </defs>
+                <rect width="400" height="300" rx="20" fill="url(#g400)"/>
+                <rect x="145" y="60" width="110" height="140" rx="8" fill="none" stroke="#f59e0b" stroke-width="4" opacity="0.6"/>
+                <line x1="165" y1="95" x2="235" y2="95" stroke="#f59e0b" stroke-width="3" opacity="0.3"/>
+                <line x1="165" y1="115" x2="220" y2="115" stroke="#f59e0b" stroke-width="3" opacity="0.3"/>
+                <line x1="165" y1="135" x2="230" y2="135" stroke="#f59e0b" stroke-width="3" opacity="0.3"/>
+                <circle cx="200" cy="160" r="20" fill="#ef4444" opacity="0.15"/>
+                <line x1="190" y1="150" x2="210" y2="170" stroke="#ef4444" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+                <line x1="210" y1="150" x2="190" y2="170" stroke="#ef4444" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+                <circle cx="80" cy="80" r="4" fill="#f59e0b" opacity="0.4"/>
+                <circle cx="320" cy="100" r="6" fill="#ef4444" opacity="0.3"/>
+            </svg>
         </div>
         <div class="error-text">
             <h1>400</h1>
             <h2>Bad Request</h2>
-            <p>Sorry, we couldn't process your request. Please check your input
-                and try again.</p>
+            <p>The server couldn't understand the request. Please check your input and try again.</p>
             <div class="error-actions">
-                <button onclick="history.back()" class="btn btn-primary">
-                    <i class="fas fa-arrow-left"></i> Go Back
-                </button>
-                <a href="{{ url_for('main.index') }}" class="btn btn-outline">
+                <a href="{{ url_for('main.index') }}" class="btn btn-primary">
                     <i class="fas fa-home"></i> Go Home
                 </a>
+                <button onclick="history.back()" class="btn btn-outline">
+                    <i class="fas fa-arrow-left"></i> Go Back
+                </button>
             </div>
         </div>
     </div>

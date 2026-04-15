@@ -579,7 +579,7 @@ function initSocket() {
     socket = window.socket; // Synchronize local reference
     
     socket.on('connect', () => {
-        console.log('Connected to real-time server');
+        // Connected to real-time server
     });
     
     socket.on('new_submission', (data) => {
@@ -605,7 +605,7 @@ function initSocket() {
     });
 
     socket.on('new_activity', (data) => {
-        console.log('New activity received:', data);
+        // New activity received
         if (typeof loadActivityFeed === 'function') loadActivityFeed();
         
         // Show a subtle notification for admins, but skip login/logout events

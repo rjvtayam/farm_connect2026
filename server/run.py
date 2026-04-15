@@ -10,8 +10,9 @@ load_dotenv()
 from app import create_app
 from app.extensions import db
 
-# Allow HTTP for OAuthlib (local development only)
-os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
+# Allow HTTP for OAuthlib in development only — production MUST use HTTPS
+if os.getenv('FLASK_ENV', 'development') == 'development':
+    os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
 # Create app instance
 flask_app = create_app(os.getenv('FLASK_ENV', 'development'))

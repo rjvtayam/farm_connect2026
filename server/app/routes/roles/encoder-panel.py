@@ -9,19 +9,14 @@ from app.routes.auth import encoder_required
 
 encoder_bp = Blueprint('encoder', __name__)
 
-@encoder_bp.route('/dashboard')
-@encoder_required
-def dashboard():
-    """Encoder dashboard"""
-    return render_template('roles/encoder-panel.html')
-
-# API Routes
+# ── Imports ───────────────────────────────────────────────────────────
 from app.models.registration import Registration, Beneficiary
 from app.models.notification import Notification
 from app.extensions import db, cache
 from datetime import datetime
 from flask import jsonify, request, current_app
 from flask_login import current_user
+from sqlalchemy.orm import joinedload
 
 @encoder_bp.route('/api/stats', methods=['GET'])
 @encoder_required
@@ -206,18 +201,38 @@ def get_analytics():
     cache.set(cache_key, result, timeout=600)
     return jsonify(result)
 
+@encoder_bp.route('/dashboard')
+@encoder_required
+def dashboard():
+    """Encoder dashboard"""
+    return render_template('roles/encoder-panel.html')
+
 @encoder_bp.route('/api/submissions', methods=['GET'])
 @encoder_required
 def get_my_submissions():
-    """Get current encoder's submissions (exclude soft-deleted)"""
-    submissions = Registration.query.filter(
+    """Get current encoder's submissions with pagination (exclude soft-deleted)"""
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 50, type=int)
+    per_page = min(per_page, 200)  # Cap at 200
+
+    query = Registration.query.options(
+        joinedload(Registration.beneficiary)
+    ).filter(
         Registration.encoded_by == current_user.id,
         Registration.is_deleted == False
-    ).order_by(Registration.submission_date.desc()).all()
-        
+    ).order_by(Registration.submission_date.desc())
+
+    pagination = query.paginate(page=page, per_page=per_page, error_out=False)
+
     return jsonify({
         'success': True,
-        'submissions': [s.to_dict() for s in submissions]
+        'submissions': [s.to_dict() for s in pagination.items],
+        'pagination': {
+            'page': pagination.page,
+            'per_page': pagination.per_page,
+            'total': pagination.total,
+            'pages': pagination.pages
+        }
     })
 
 @encoder_bp.route('/api/submissions/<int:rid>', methods=['GET'])
@@ -472,13 +487,15 @@ def activity_feed():
     activities = []
     
     try:
-        recent = Registration.query.filter(
+        recent = Registration.query.options(
+            joinedload(Registration.beneficiary)
+        ).filter(
             Registration.encoded_by == current_user.id,
             Registration.is_deleted == False
         ).order_by(desc(Registration.updated_at)).limit(10).all()
         
         for r in recent:
-            ben = Beneficiary.query.get(r.beneficiary_id)
+            ben = r.beneficiary
             name = f"{ben.first_name} {ben.last_name}" if ben else "Unknown"
             status_label = r.status
             if status_label == 'pending_verification':
@@ -515,7 +532,9 @@ def export_submissions_csv():
     barangay = request.args.get('barangay')
     
     # ── Query Submissions (exclude soft-deleted) ──────────
-    query = Registration.query.filter(Registration.encoded_by == current_user.id, Registration.is_deleted == False)
+    query = Registration.query.options(
+        joinedload(Registration.beneficiary)
+    ).filter(Registration.encoded_by == current_user.id, Registration.is_deleted == False)
     
     if status and status != 'All Status':
         # Handle 'pending' vs 'pending_verification' internally
@@ -533,7 +552,7 @@ def export_submissions_csv():
     if search or barangay:
         filtered = []
         for s in submissions:
-            ben = Beneficiary.query.get(s.beneficiary_id)
+            ben = s.beneficiary
             name = f"{ben.first_name} {ben.last_name}".lower() if ben else ""
             b_brgy = (ben.barangay or "").lower() if ben else ""
             
@@ -550,7 +569,7 @@ def export_submissions_csv():
     writer.writerow(['ID', 'Beneficiary', 'Form Type', 'Barangay', 'Status', 'Date Submitted'])
     
     for s in submissions:
-        ben = Beneficiary.query.get(s.beneficiary_id)
+        ben = s.beneficiary
         # Standardize status for CSV as well
         display_status = s.status
         if display_status == 'pending_verification':
@@ -576,41 +595,31 @@ def export_submissions_csv():
     )
 
 
-# ── Notification API Endpoints ───────────────────────────────────────────────
+# ── Notification API Endpoints (Consolidated) ──────────────────────────────────
+from app.utils.notification_helpers import (
+    get_user_notifications, get_unread_count,
+    mark_notification_read, mark_all_notifications_read
+)
 
 @encoder_bp.route('/api/notifications', methods=['GET'])
 @encoder_required
 def get_notifications():
-    """Get recent notifications for current user"""
-    notifs = Notification.query.filter_by(user_id=current_user.id)\
-        .order_by(Notification.created_at.desc()).limit(20).all()
-    return jsonify({'success': True, 'notifications': [n.to_dict() for n in notifs]})
+    return get_user_notifications(current_user.id)
 
 @encoder_bp.route('/api/notifications/unread-count', methods=['GET'])
 @encoder_required
 def unread_count():
-    """Get count of unread notifications"""
-    count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-    return jsonify({'success': True, 'count': count})
+    return get_unread_count(current_user.id)
 
 @encoder_bp.route('/api/notifications/<int:nid>/read', methods=['POST'])
 @encoder_required
 def mark_read(nid):
-    """Mark a single notification as read"""
-    notif = Notification.query.filter_by(id=nid, user_id=current_user.id).first()
-    if notif:
-        notif.is_read = True
-        db.session.commit()
-    return jsonify({'success': True})
+    return mark_notification_read(nid, current_user.id)
 
 @encoder_bp.route('/api/notifications/read-all', methods=['POST'])
 @encoder_required
 def mark_all_read():
-    """Mark all notifications as read"""
-    Notification.query.filter_by(user_id=current_user.id, is_read=False)\
-        .update({'is_read': True})
-    db.session.commit()
-    return jsonify({'success': True})
+    return mark_all_notifications_read(current_user.id)
 
 
 # ── Trash Bin API Endpoints ──────────────────────────────────────────────────

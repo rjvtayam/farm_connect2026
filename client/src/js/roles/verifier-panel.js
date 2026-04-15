@@ -90,7 +90,7 @@ function attemptDeferredAnalyticsRender() {
                 // Check if charts already exist and are valid
                 const hasCharts = window.verifierCharts && Object.keys(window.verifierCharts).length > 0;
                 if (!hasCharts) {
-                    console.log(`[Analytics] Rendering deferred charts (delay: ${delay}ms)`);
+                    // Rendering deferred charts
                     renderVerifierCharts(window._lastVerifierAnalyticsData);
                     populateVerifierKPIs(window._lastVerifierAnalyticsData);
                 }

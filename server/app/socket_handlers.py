@@ -16,15 +16,18 @@ def handle_connect():
         # User also joins a municipality-specific room
         muni = getattr(current_user, 'municipality', 'unknown')
         if muni:
-            # Normalize muni room name: lowercase and replace spaces with underscores
             muni_room = f"muni_{str(muni).lower().strip().replace(' ', '_')}"
             join_room(muni_room)
-            print(f"Socket connected: User {current_user.id} ({role}) joined rooms: {role}, user_{current_user.id}, {muni_room}")
+            from flask import current_app
+            if current_app:
+                current_app.logger.info(f"Socket connected: User {current_user.id} ({role}) joined rooms: {role}, user_{current_user.id}, {muni_room}")
 
 @socketio.on('disconnect')
 def handle_disconnect():
     if current_user.is_authenticated:
-        print(f"Socket disconnected: User {current_user.id}")
+        from flask import current_app
+        if current_app:
+            current_app.logger.info(f"Socket disconnected: User {current_user.id}")
 
 @socketio.on('join_submission')
 def on_join_submission(data):

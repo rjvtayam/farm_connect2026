@@ -9,12 +9,12 @@ import csv
 from datetime import datetime, timedelta
 from sqlalchemy import desc, func
 import calendar as _cal
+from sqlalchemy.orm import joinedload
 
 from app.extensions import db, cache
 from app.models.registration import Registration, Beneficiary
 from app.models.user import User
 from app.models.notification import Notification
-from app.models.user import User
 from app.routes.auth import verifier_required
 from app.utils.logging_helpers import log_activity
 
@@ -288,7 +288,7 @@ def get_submissions():
     data = []
 
     for s in submissions:
-        ben = Beneficiary.query.get(s.beneficiary_id)
+        ben = s.beneficiary
         encoder = User.query.get(s.encoded_by)
         
         ben_dict = ben.to_dict() if ben else {}
@@ -457,7 +457,7 @@ def review_submission(id):
                          form_data['gis'] = gis_data
                          submission.data = form_data
                  except Exception as e:
-                     print(f"Error saving GIS data: {e}")
+                     current_app.logger.error(f"Error saving GIS data: {e}", exc_info=True)
         
         db.session.commit()
         
@@ -638,7 +638,7 @@ def export_submissions_csv():
     if search:
         filtered = []
         for s in submissions:
-            ben = Beneficiary.query.get(s.beneficiary_id)
+            ben = s.beneficiary
             ben_name = ben.to_dict().get('full_name', '').lower() if ben else ""
             if search in ben_name or search in s.form_type.lower() or search in (ben.barangay or '').lower():
                 filtered.append(s)
@@ -650,7 +650,7 @@ def export_submissions_csv():
     writer.writerow(['ID', 'Beneficiary', 'Form Type', 'Encoder', 'Barangay', 'Status', 'Date Submitted'])
     
     for s in submissions:
-        ben = Beneficiary.query.get(s.beneficiary_id)
+        ben = s.beneficiary
         enc = User.query.get(s.encoded_by)
         ben_dict = ben.to_dict() if ben else {}
         
@@ -690,7 +690,7 @@ def get_global_gis():
     
     results = []
     for item in items:
-        ben = Beneficiary.query.get(item.beneficiary_id)
+        ben = item.beneficiary
         results.append({
             'id': item.id,
             'beneficiary_name': f"{ben.first_name} {ben.last_name}" if ben else "Unknown",
@@ -726,7 +726,7 @@ def activity_feed():
         ).order_by(desc(Registration.updated_at)).limit(10).all()
         
         for r in recent:
-            ben = Beneficiary.query.get(r.beneficiary_id)
+            ben = r.beneficiary
             ben_dict = ben.to_dict() if ben else {}
             name = ben_dict.get('full_name', 'Unknown')
             act_type = 'success' if r.status == 'approved' else ('warning' if r.status == 'pending' else 'danger')
@@ -743,41 +743,31 @@ def activity_feed():
     return jsonify(result)
 
 
-# ── Notification API Endpoints ───────────────────────────────────────────────
+# ── Notification API Endpoints (Consolidated) ──────────────────────────────────
+from app.utils.notification_helpers import (
+    get_user_notifications, get_unread_count,
+    mark_notification_read, mark_all_notifications_read
+)
 
 @verifier_bp.route('/api/notifications', methods=['GET'])
 @verifier_required
 def get_notifications():
-    """Get recent notifications for current user"""
-    notifs = Notification.query.filter_by(user_id=current_user.id)\
-        .order_by(Notification.created_at.desc()).limit(20).all()
-    return jsonify({'success': True, 'notifications': [n.to_dict() for n in notifs]})
+    return get_user_notifications(current_user.id)
 
 @verifier_bp.route('/api/notifications/unread-count', methods=['GET'])
 @verifier_required
 def unread_count():
-    """Get count of unread notifications"""
-    count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-    return jsonify({'success': True, 'count': count})
+    return get_unread_count(current_user.id)
 
 @verifier_bp.route('/api/notifications/<int:nid>/read', methods=['POST'])
 @verifier_required
 def mark_read(nid):
-    """Mark a single notification as read"""
-    notif = Notification.query.filter_by(id=nid, user_id=current_user.id).first()
-    if notif:
-        notif.is_read = True
-        db.session.commit()
-    return jsonify({'success': True})
+    return mark_notification_read(nid, current_user.id)
 
 @verifier_bp.route('/api/notifications/read-all', methods=['POST'])
 @verifier_required
 def mark_all_read():
-    """Mark all notifications as read"""
-    Notification.query.filter_by(user_id=current_user.id, is_read=False)\
-        .update({'is_read': True})
-    db.session.commit()
-    return jsonify({'success': True})
+    return mark_all_notifications_read(current_user.id)
 
 
 # ── Trash Bin API Endpoints ──────────────────────────────────────────────────

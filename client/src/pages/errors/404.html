@@ -10,12 +10,27 @@
 <div class="error-container">
     <div class="error-content">
         <div class="error-image">
-            <img
-                src="https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fcdn3d.iconscout.com%2F3d%2Fpremium%2Fthumb%2F404-error-7743230-6786251.png&f=1&nofb=1&ipt=8b2e7c51a9f0498aba13f43886a7b6ff428299310ec131b5f833db0dede4aa33&ipo=images"
-                alt="404 Error Illustration"
-                loading="lazy"
-                width="400"
-                height="300">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="400" height="300">
+                <defs>
+                    <linearGradient id="g404" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color:#4f46e5;stop-opacity:0.15"/>
+                        <stop offset="100%" style="stop-color:#06b6d4;stop-opacity:0.15"/>
+                    </linearGradient>
+                </defs>
+                <rect width="400" height="300" rx="20" fill="url(#g404)"/>
+                <!-- Magnifying glass -->
+                <circle cx="190" cy="130" r="50" fill="none" stroke="#4f46e5" stroke-width="5" opacity="0.7"/>
+                <line x1="225" y1="165" x2="270" y2="210" stroke="#4f46e5" stroke-width="5" stroke-linecap="round" opacity="0.7"/>
+                <!-- Question mark inside glass -->
+                <text x="190" y="145" text-anchor="middle" font-size="40" font-weight="700" fill="#4f46e5" opacity="0.5" font-family="Inter, sans-serif">?</text>
+                <!-- Broken path -->
+                <path d="M60 200 L120 200 L135 185 M155 185 L170 200 L340 200" fill="none" stroke="#06b6d4" stroke-width="3" stroke-dasharray="8,4" opacity="0.5"/>
+                <!-- Decorative dots -->
+                <circle cx="80" cy="80" r="4" fill="#06b6d4" opacity="0.4"/>
+                <circle cx="320" cy="90" r="6" fill="#4f46e5" opacity="0.3"/>
+                <circle cx="70" cy="250" r="5" fill="#4f46e5" opacity="0.2"/>
+                <circle cx="330" cy="250" r="4" fill="#06b6d4" opacity="0.3"/>
+            </svg>
         </div>
         <div class="error-text">
             <h1>404</h1>

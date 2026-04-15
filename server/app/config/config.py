@@ -3,17 +3,25 @@ Farm Connect - Application Configuration
 """
 
 import os
+import secrets
+import logging
 from datetime import timedelta
 
 class Config:
     """Base configuration"""
     
     # Secret key for session management
-    SECRET_KEY = os.environ.get('SECRET_KEY') or 'dev-secret-key-change-in-production'
+    # Falls back to a random key if not set — safe but forces re-login on restarts
+    SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
+    if not os.environ.get('SECRET_KEY'):
+        logging.getLogger(__name__).warning(
+            'SECRET_KEY not set in environment — using auto-generated key. '
+            'Sessions will not persist across restarts. Set SECRET_KEY in .env for production.'
+        )
     
-    # Database configuration for PostgreSQL
+    # Database configuration for PostgreSQL (synchronous psycopg2 driver)
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'postgresql+asyncpg://postgres:postgre021600@localhost:5432/farm_connect_project2026'
+        'postgresql://postgres:postgre021600@localhost:5432/farm_connect_project2026'
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False  # Set to True for SQL debugging
     SQLALCHEMY_POOL_PRE_PING = True  # Test connections before using them
@@ -47,6 +55,9 @@ class Config:
     # Rate Limiting
     RATELIMIT_STORAGE_URI = 'memory://'
 
+    # OTP Configuration
+    OTP_EXPIRATION_SECONDS = 300  # 5 minutes — OTPs expire instead of living until session dies
+
     # Flask-Caching Configuration
     # SimpleCache: in-process memory cache, ideal for single-server production
     # Switch to 'RedisCache' and add CACHE_REDIS_URL for multi-server scaling
@@ -70,6 +81,7 @@ class ProductionConfig(Config):
     DEBUG = False
     TESTING = False
     SESSION_COOKIE_SECURE = True  # Require HTTPS
+    SESSION_COOKIE_SAMESITE = 'Lax'
     
 class TestingConfig(Config):
     """Testing configuration"""

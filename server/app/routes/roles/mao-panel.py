@@ -242,10 +242,9 @@ def get_registrations():
     # Join with Beneficiary to filter by municipality
     registrations = Registration.query.join(Beneficiary).outerjoin(User, Registration.encoded_by == User.id).filter(muni_filter, Registration.is_deleted == False).order_by(Registration.created_at.desc()).limit(50).all()
     
-    # We need to join with beneficiary to get names
     data = []
     for r in registrations:
-        ben = Beneficiary.query.get(r.beneficiary_id)
+        ben = r.beneficiary
         ben_dict = ben.to_dict() if ben else {}
         
         data.append({
@@ -514,7 +513,7 @@ def export_registrations_csv():
     if search:
         filtered = []
         for r in registrations:
-            ben = Beneficiary.query.get(r.beneficiary_id)
+            ben = r.beneficiary
             ben_name = ben.to_dict().get('full_name', '').lower() if ben else ""
             if search in ben_name or search in (ben.barangay or '').lower():
                 filtered.append(r)
@@ -525,7 +524,7 @@ def export_registrations_csv():
     writer.writerow(['ID', 'Beneficiary', 'Form Type', 'Barangay', 'Status', 'Date Submitted'])
 
     for r in registrations:
-        ben = Beneficiary.query.get(r.beneficiary_id)
+        ben = r.beneficiary
         ben_dict = ben.to_dict() if ben else {}
         writer.writerow([
             r.id,
@@ -571,7 +570,7 @@ def activity_feed():
         ).order_by(desc(Registration.updated_at)).limit(10).all()
         
         for r in recent_regs:
-            ben = Beneficiary.query.get(r.beneficiary_id)
+            ben = r.beneficiary
             ben_dict = ben.to_dict() if ben else {}
             ben_name = ben_dict.get('full_name', 'Unknown')
             status_label = 'Approved ✓' if r.status == 'approved' else ('Pending Review' if r.status == 'verified' else r.status.capitalize())
@@ -594,41 +593,31 @@ def activity_feed():
     return jsonify(result)
 
 
-# ── Notification API Endpoints ───────────────────────────────────────────────
+# ── Notification API Endpoints (Consolidated) ──────────────────────────────────
+from app.utils.notification_helpers import (
+    get_user_notifications, get_unread_count,
+    mark_notification_read, mark_all_notifications_read
+)
 
 @mao_bp.route('/api/notifications', methods=['GET'])
 @mao_required
 def get_notifications():
-    """Get recent notifications for current user"""
-    notifs = Notification.query.filter_by(user_id=current_user.id)\
-        .order_by(Notification.created_at.desc()).limit(20).all()
-    return jsonify({'success': True, 'notifications': [n.to_dict() for n in notifs]})
+    return get_user_notifications(current_user.id)
 
 @mao_bp.route('/api/notifications/unread-count', methods=['GET'])
 @mao_required
 def unread_count():
-    """Get count of unread notifications"""
-    count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-    return jsonify({'success': True, 'count': count})
+    return get_unread_count(current_user.id)
 
 @mao_bp.route('/api/notifications/<int:nid>/read', methods=['POST'])
 @mao_required
 def mark_read(nid):
-    """Mark a single notification as read"""
-    notif = Notification.query.filter_by(id=nid, user_id=current_user.id).first()
-    if notif:
-        notif.is_read = True
-        db.session.commit()
-    return jsonify({'success': True})
+    return mark_notification_read(nid, current_user.id)
 
 @mao_bp.route('/api/notifications/read-all', methods=['POST'])
 @mao_required
 def mark_all_read():
-    """Mark all notifications as read"""
-    Notification.query.filter_by(user_id=current_user.id, is_read=False)\
-        .update({'is_read': True})
-    db.session.commit()
-    return jsonify({'success': True})
+    return mark_all_notifications_read(current_user.id)
 
 
 # ── Trash Bin API Endpoints ──────────────────────────────────────────────────
@@ -678,7 +667,7 @@ def get_trash():
     
     data = []
     for s in items:
-        ben = Beneficiary.query.get(s.beneficiary_id)
+        ben = s.beneficiary
         encoder = User.query.get(s.encoded_by)
         data.append({
             'id': s.id,

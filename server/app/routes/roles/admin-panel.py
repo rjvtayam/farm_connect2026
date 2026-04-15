@@ -441,46 +441,38 @@ def activity_feed():
             })
             
     except Exception as e:
-        traceback.print_exc()
+        current_app.logger.error("Error fetching admin activity feed: ", exc_info=True)
         activities = []
     
     result = {'success': True, 'activities': activities}
     cache.set(cache_key, result, timeout=120)
     return jsonify(result)
 
+# ── Notification API Endpoints (Consolidated) ──────────────────────────────────
+from app.utils.notification_helpers import (
+    get_user_notifications, get_unread_count,
+    mark_notification_read, mark_all_notifications_read
+)
+
 @admin_bp.route('/api/notifications', methods=['GET'])
 @admin_required
 def get_notifications():
-    """Get recent notifications for admin (e.g., community logins)"""
-    notifs = Notification.query.filter_by(user_id=current_user.id)\
-        .order_by(Notification.created_at.desc()).limit(20).all()
-    return jsonify({'success': True, 'notifications': [n.to_dict() for n in notifs]})
+    return get_user_notifications(current_user.id)
 
 @admin_bp.route('/api/notifications/unread-count', methods=['GET'])
 @admin_required
 def unread_count():
-    """Get count of unread notifications"""
-    count = Notification.query.filter_by(user_id=current_user.id, is_read=False).count()
-    return jsonify({'success': True, 'count': count})
+    return get_unread_count(current_user.id)
 
 @admin_bp.route('/api/notifications/<int:nid>/read', methods=['POST'])
 @admin_required
 def mark_read(nid):
-    """Mark a single notification as read"""
-    notif = Notification.query.filter_by(id=nid, user_id=current_user.id).first()
-    if notif:
-        notif.is_read = True
-        db.session.commit()
-    return jsonify({'success': True})
+    return mark_notification_read(nid, current_user.id)
 
 @admin_bp.route('/api/notifications/read-all', methods=['POST'])
 @admin_required
 def mark_all_read():
-    """Mark all notifications as read"""
-    Notification.query.filter_by(user_id=current_user.id, is_read=False)\
-        .update({'is_read': True})
-    db.session.commit()
-    return jsonify({'success': True})
+    return mark_all_notifications_read(current_user.id)
 
 @admin_bp.route('/api/online-users', methods=['GET'])
 @admin_required
@@ -663,7 +655,7 @@ def get_trash():
     
     data = []
     for s in items:
-        ben = Beneficiary.query.get(s.beneficiary_id)
+        ben = s.beneficiary
         encoder = User.query.get(s.encoded_by)
         deleted_by_user = User.query.get(s.deleted_by) if s.deleted_by else None
         data.append({

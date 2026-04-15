@@ -1262,3 +1262,34 @@ section {
 .swal2-icon .swal2-icon-content {
     font-size: 2.5rem !important;
 }
+
+/* =========================================================================
+   Offline Banner
+   ========================================================================= */
+.offline-banner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background-color: var(--danger);
+    color: white;
+    text-align: center;
+    padding: 0.75rem;
+    font-size: 0.95rem;
+    font-weight: 500;
+    z-index: 9999;
+    transform: translateY(-100%);
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.offline-banner.show {
+    transform: translateY(0);
+}
+
+.offline-banner.hide {
+    transform: translateY(-100%);
+}
