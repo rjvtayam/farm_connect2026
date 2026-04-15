@@ -241,6 +241,7 @@ body[data-layout="vertical"] .id-header-text h3 {
     letter-spacing: 1px;
     background: var(--id-accent-gradient);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -281,6 +282,7 @@ body[data-layout="vertical"] .id-photo-wrapper::before {
     padding: 3px;
     background: var(--id-accent-gradient);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
 }
@@ -419,6 +421,7 @@ body[data-layout="horizontal"] .id-header-text h3 {
     font-weight: 800;
     background: var(--id-accent-gradient);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
     letter-spacing: 0.5px;
 }
@@ -455,6 +458,7 @@ body[data-layout="horizontal"] .id-photo-wrapper::before {
     padding: 2px;
     background: var(--id-accent-gradient);
     -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
 }

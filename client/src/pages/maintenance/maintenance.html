@@ -3,143 +3,379 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Maintenance - Farm Connect</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <title>System Maintenance — Farm Connect</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
-            font-family: 'Inter', sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            background: #0a0e1a;
             color: #e2e8f0;
             overflow: hidden;
+            position: relative;
         }
-        .maintenance-container {
-            text-align: center;
-            max-width: 560px;
-            padding: 3rem 2rem;
+
+        /* ── Animated background ── */
+        .bg-grid {
+            position: fixed; inset: 0; z-index: 0;
+            background-image:
+                linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        .bg-orb {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(80px);
+            z-index: 0;
+            animation: float 8s ease-in-out infinite;
+        }
+        .orb-1 { width: 400px; height: 400px; background: rgba(79, 70, 229, 0.12); top: -5%; left: -5%; animation-delay: 0s; }
+        .orb-2 { width: 350px; height: 350px; background: rgba(251, 191, 36, 0.08); bottom: -8%; right: -3%; animation-delay: -3s; }
+        .orb-3 { width: 200px; height: 200px; background: rgba(16, 185, 129, 0.06); top: 40%; right: 20%; animation-delay: -5s; }
+
+        @keyframes float {
+            0%, 100% { transform: translate(0, 0) scale(1); }
+            33% { transform: translate(15px, -20px) scale(1.05); }
+            66% { transform: translate(-10px, 10px) scale(0.95); }
+        }
+
+        /* ── Card Container ── */
+        .maintenance-card {
             position: relative;
             z-index: 2;
+            max-width: 520px;
+            width: 90%;
+            padding: 3rem 2.5rem;
+            background: linear-gradient(145deg, rgba(15, 23, 42, 0.85), rgba(30, 41, 59, 0.65));
+            border: 1px solid rgba(99, 102, 241, 0.15);
+            border-radius: 24px;
+            backdrop-filter: blur(20px);
+            box-shadow:
+                0 25px 60px rgba(0, 0, 0, 0.4),
+                0 0 80px rgba(79, 70, 229, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            text-align: center;
         }
-        .maintenance-icon {
-            width: 120px;
-            height: 120px;
+
+        /* ── Animated Wrench Icon ── */
+        .icon-container {
+            width: 100px;
+            height: 100px;
             margin: 0 auto 2rem;
-            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08));
-            border-radius: 50%;
+            position: relative;
             display: flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .icon-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
             border: 2px solid rgba(251, 191, 36, 0.2);
-            animation: pulse-glow 2s ease-in-out infinite;
+            animation: ring-pulse 3s ease-in-out infinite;
         }
-        .maintenance-icon svg { width: 56px; height: 56px; }
-        @keyframes pulse-glow {
-            0%, 100% { box-shadow: 0 0 20px rgba(251, 191, 36, 0.1); }
-            50% { box-shadow: 0 0 40px rgba(251, 191, 36, 0.25); }
+        .icon-ring:nth-child(2) { inset: -8px; border-color: rgba(251, 191, 36, 0.1); animation-delay: -1s; }
+        .icon-ring:nth-child(3) { inset: -16px; border-color: rgba(251, 191, 36, 0.05); animation-delay: -2s; }
+
+        @keyframes ring-pulse {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.08); opacity: 0.6; }
         }
+
+        .icon-inner {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, rgba(251, 191, 36, 0.15), rgba(245, 158, 11, 0.08));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            z-index: 2;
+        }
+
+        .icon-inner svg {
+            width: 40px;
+            height: 40px;
+            color: #fbbf24;
+            animation: wrench-swing 4s ease-in-out infinite;
+        }
+
+        @keyframes wrench-swing {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(15deg); }
+            75% { transform: rotate(-15deg); }
+        }
+
+        /* ── Typography ── */
         h1 {
-            font-size: 2rem;
-            font-weight: 800;
-            margin-bottom: 0.75rem;
-            background: linear-gradient(135deg, #fbbf24, #f59e0b);
+            font-size: 1.85rem;
+            font-weight: 900;
+            letter-spacing: -0.02em;
+            margin-bottom: 0.6rem;
+            background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 40%, #fcd34d 100%);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
+
         .subtitle {
-            font-size: 1.1rem;
+            font-size: 0.95rem;
             color: #94a3b8;
-            line-height: 1.7;
+            line-height: 1.8;
             margin-bottom: 2rem;
+            max-width: 380px;
+            margin-left: auto;
+            margin-right: auto;
         }
+
+        /* ── Status Badge ── */
         .status-badge {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 0.6rem 1.2rem;
-            background: rgba(251, 191, 36, 0.1);
-            border: 1px solid rgba(251, 191, 36, 0.2);
+            gap: 10px;
+            padding: 0.65rem 1.4rem;
+            background: rgba(251, 191, 36, 0.08);
+            border: 1px solid rgba(251, 191, 36, 0.18);
             border-radius: 50px;
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.82rem;
+            font-weight: 700;
             color: #fbbf24;
-            margin-bottom: 2.5rem;
+            letter-spacing: 0.03em;
+            margin-bottom: 2rem;
         }
+
         .status-dot {
             width: 8px; height: 8px;
             border-radius: 50%;
             background: #fbbf24;
+            box-shadow: 0 0 12px rgba(251, 191, 36, 0.5);
             animation: blink 1.5s ease-in-out infinite;
         }
+
         @keyframes blink {
             0%, 100% { opacity: 1; }
-            50% { opacity: 0.3; }
+            50% { opacity: 0.25; }
         }
+
+        /* ── Progress Dots ── */
+        .progress-dots {
+            display: flex;
+            justify-content: center;
+            gap: 6px;
+            margin-bottom: 2rem;
+        }
+
+        .progress-dot {
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: rgba(99, 102, 241, 0.3);
+            animation: dot-wave 1.8s ease-in-out infinite;
+        }
+        .progress-dot:nth-child(1) { animation-delay: 0s; }
+        .progress-dot:nth-child(2) { animation-delay: 0.2s; }
+        .progress-dot:nth-child(3) { animation-delay: 0.4s; }
+        .progress-dot:nth-child(4) { animation-delay: 0.6s; }
+        .progress-dot:nth-child(5) { animation-delay: 0.8s; }
+
+        @keyframes dot-wave {
+            0%, 100% { background: rgba(99, 102, 241, 0.3); transform: scale(1); }
+            50% { background: rgba(251, 191, 36, 0.8); transform: scale(1.5); }
+        }
+
+        /* ── Info Cards Row ── */
+        .info-row {
+            display: flex;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+        }
+
+        .info-chip {
+            flex: 1;
+            padding: 0.8rem 0.6rem;
+            background: rgba(30, 41, 59, 0.6);
+            border: 1px solid rgba(99, 102, 241, 0.1);
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .info-chip-icon {
+            font-size: 1.2rem;
+            margin-bottom: 0.3rem;
+        }
+
+        .info-chip-label {
+            font-size: 0.68rem;
+            font-weight: 600;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .info-chip-value {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #cbd5e1;
+            margin-top: 0.15rem;
+        }
+
+        /* ── Button ── */
         .btn-home {
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            padding: 0.75rem 2rem;
+            gap: 10px;
+            padding: 0.8rem 2rem;
             background: linear-gradient(135deg, #4f46e5, #6366f1);
             color: white;
             text-decoration: none;
-            border-radius: 12px;
-            font-weight: 600;
-            font-size: 0.95rem;
-            transition: all 0.3s;
+            border-radius: 14px;
+            font-weight: 700;
+            font-size: 0.9rem;
+            letter-spacing: 0.02em;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
             border: none;
             cursor: pointer;
+            box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3);
         }
+
         .btn-home:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 25px rgba(79, 70, 229, 0.35);
+            transform: translateY(-3px);
+            box-shadow: 0 12px 30px rgba(79, 70, 229, 0.4);
         }
-        /* Floating background particles */
-        .bg-grid {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background-image: radial-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px);
-            background-size: 40px 40px;
+
+        .btn-home:active { transform: translateY(-1px); }
+
+        .btn-home svg { width: 18px; height: 18px; }
+
+        /* ── Footer ── */
+        .card-footer {
+            margin-top: 2rem;
+            padding-top: 1.25rem;
+            border-top: 1px solid rgba(100, 116, 139, 0.15);
+            font-size: 0.75rem;
+            color: #475569;
         }
-        .bg-orb {
-            position: fixed;
-            border-radius: 50%;
-            filter: blur(60px);
-            z-index: 0;
+
+        .card-footer a {
+            color: #6366f1;
+            text-decoration: none;
+            font-weight: 600;
         }
-        .orb-1 { width: 300px; height: 300px; background: rgba(79, 70, 229, 0.08); top: 10%; left: 10%; }
-        .orb-2 { width: 400px; height: 400px; background: rgba(251, 191, 36, 0.06); bottom: 5%; right: 5%; }
+        .card-footer a:hover { color: #818cf8; text-decoration: underline; }
+
+        /* ── Farm Connect branding ── */
+        .brand {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 1.5rem;
+            font-size: 0.78rem;
+            font-weight: 800;
+            color: #475569;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+
+        .brand svg { width: 20px; height: 20px; color: #4f46e5; }
+
+        /* ── Responsive ── */
+        @media (max-width: 480px) {
+            .maintenance-card { padding: 2rem 1.5rem; }
+            h1 { font-size: 1.5rem; }
+            .info-row { flex-direction: column; }
+        }
     </style>
 </head>
 <body>
     <div class="bg-grid"></div>
     <div class="bg-orb orb-1"></div>
     <div class="bg-orb orb-2"></div>
+    <div class="bg-orb orb-3"></div>
 
-    <div class="maintenance-container">
-        <div class="maintenance-icon">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+    <div class="maintenance-card">
+        <!-- Brand -->
+        <div class="brand">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
             </svg>
+            Farm Connect
         </div>
+
+        <!-- Animated Icon -->
+        <div class="icon-container">
+            <div class="icon-ring"></div>
+            <div class="icon-ring"></div>
+            <div class="icon-ring"></div>
+            <div class="icon-inner">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
+                </svg>
+            </div>
+        </div>
+
         <h1>System Under Maintenance</h1>
         <p class="subtitle">
-            Our team is performing scheduled maintenance to improve your experience.
-            We'll be back shortly. Thank you for your patience.
+            Our engineering team is performing upgrades to improve
+            your Farm Connect experience. We'll be back online shortly.
         </p>
+
+        <!-- Status Badge -->
         <div class="status-badge">
             <span class="status-dot"></span>
             Maintenance in Progress
         </div>
-        <br><br>
+
+        <!-- Animated progress dots -->
+        <div class="progress-dots">
+            <div class="progress-dot"></div>
+            <div class="progress-dot"></div>
+            <div class="progress-dot"></div>
+            <div class="progress-dot"></div>
+            <div class="progress-dot"></div>
+        </div>
+
+        <!-- Info chips -->
+        <div class="info-row">
+            <div class="info-chip">
+                <div class="info-chip-icon">🔧</div>
+                <div class="info-chip-label">Type</div>
+                <div class="info-chip-value">Scheduled</div>
+            </div>
+            <div class="info-chip">
+                <div class="info-chip-icon">⏱️</div>
+                <div class="info-chip-label">Duration</div>
+                <div class="info-chip-value">~30 min</div>
+            </div>
+            <div class="info-chip">
+                <div class="info-chip-icon">🛡️</div>
+                <div class="info-chip-label">Data</div>
+                <div class="info-chip-value">Safe</div>
+            </div>
+        </div>
+
+        <!-- Return Button -->
         <a href="/" class="btn-home">
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-            Return Home
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+            Try Again
         </a>
+
+        <!-- Footer -->
+        <div class="card-footer">
+            Need urgent help? <a href="mailto:support@farmconnect.com">Contact Support</a>
+        </div>
     </div>
 </body>
 </html>
