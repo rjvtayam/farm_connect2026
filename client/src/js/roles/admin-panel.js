@@ -1068,3 +1068,289 @@ window.exportAdminCommunityMembers = function() {
     const btn = document.querySelector('button[onclick="exportAdminCommunityMembers()"]');
     _adminCsvDownload('/admin/api/reports/community-export', 'admin_community_members.csv', btn);
 };
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SYSTEM HEALTH & ADMIN CONTROLS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+let _healthInterval = null;
+
+window.loadSystemHealth = function () {
+    fetch('/admin/api/system-health', {
+        headers: { 'X-CSRFToken': getCSRFToken() }
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const h = data.health;
+
+            // ── Vitals ──
+            const serverEl = document.getElementById('vitalServerStatus');
+            if (serverEl) {
+                serverEl.textContent = h.server_status === 'ok' ? '● Online' : '⚠ Degraded';
+                serverEl.style.color = h.server_status === 'ok' ? '#10b981' : '#f59e0b';
+            }
+
+            const dbEl = document.getElementById('vitalDbStatus');
+            if (dbEl) {
+                dbEl.textContent = h.database.status === 'connected'
+                    ? `● ${h.database.latency_ms}ms`
+                    : '✕ Error';
+                dbEl.style.color = h.database.status === 'connected' ? '#10b981' : '#ef4444';
+            }
+
+            const cpuEl = document.getElementById('vitalCpuRam');
+            if (cpuEl) {
+                cpuEl.textContent = `${h.system.cpu_percent}% / ${h.system.memory_percent}%`;
+                cpuEl.style.color = h.system.cpu_percent > 80 || h.system.memory_percent > 85 ? '#ef4444' : '#e2e8f0';
+            }
+
+            const upEl = document.getElementById('vitalUptime');
+            if (upEl) upEl.textContent = h.uptime;
+
+            const sessEl = document.getElementById('vitalSessions');
+            if (sessEl) sessEl.textContent = `${h.sessions.total_online} users`;
+
+            const errEl = document.getElementById('vitalErrors');
+            if (errEl) {
+                errEl.textContent = h.errors_24h;
+                errEl.style.color = h.errors_24h > 0 ? '#ef4444' : '#10b981';
+            }
+
+            // ── Overall Badge ──
+            const badge = document.getElementById('healthOverallBadge');
+            if (badge) {
+                if (h.server_status !== 'ok' || h.database.status !== 'connected') {
+                    badge.innerHTML = '<i class="fas fa-exclamation-triangle" style="color:#ef4444"></i> System Degraded';
+                } else if (h.system.cpu_percent > 80) {
+                    badge.innerHTML = '<i class="fas fa-exclamation-circle" style="color:#f59e0b"></i> High Load';
+                } else {
+                    badge.innerHTML = '<i class="fas fa-circle" style="color:#10b981"></i> System OK';
+                }
+            }
+
+            // ── Panel active users ──
+            const pe = document.getElementById('panelEncoderUsers');
+            if (pe) pe.textContent = h.panels.encoder.active_users;
+            const pv = document.getElementById('panelVerifierUsers');
+            if (pv) pv.textContent = h.panels.verifier.active_users;
+            const pm = document.getElementById('panelMaoUsers');
+            if (pm) pm.textContent = h.panels.mao.active_users;
+
+            // ── Maintenance toggle sync ──
+            const toggle = document.getElementById('maintenanceToggle');
+            if (toggle) toggle.checked = h.maintenance_mode;
+        })
+        .catch(() => {
+            const badge = document.getElementById('healthOverallBadge');
+            if (badge) badge.innerHTML = '<i class="fas fa-times-circle" style="color:#ef4444"></i> Unreachable';
+        });
+};
+
+// Auto-refresh health every 30s when the section is visible
+function startHealthPolling() {
+    if (_healthInterval) return;
+    loadSystemHealth();
+    _healthInterval = setInterval(loadSystemHealth, 30000);
+}
+function stopHealthPolling() {
+    if (_healthInterval) { clearInterval(_healthInterval); _healthInterval = null; }
+}
+
+// Hook into the existing section switching logic
+const _origSectionSwitch = window.switchSection || null;
+document.querySelectorAll('.sidebar-nav .nav-item').forEach(link => {
+    link.addEventListener('click', () => {
+        const href = link.getAttribute('href') || '';
+        if (href === '#system-health') {
+            startHealthPolling();
+        } else {
+            stopHealthPolling();
+        }
+    });
+});
+
+
+window.pingPanel = function (role) {
+    const latencyEl = document.getElementById(`panel${role.charAt(0).toUpperCase() + role.slice(1)}Latency`);
+    const badgeEl = document.getElementById(`panel${role.charAt(0).toUpperCase() + role.slice(1)}Badge`);
+    if (latencyEl) latencyEl.textContent = '...';
+
+    const t0 = performance.now();
+    fetch(`/${role}/api/stats`, { headers: { 'X-CSRFToken': getCSRFToken() } })
+        .then(r => {
+            const ms = Math.round(performance.now() - t0);
+            if (latencyEl) latencyEl.textContent = `${ms}ms`;
+            if (badgeEl) {
+                if (ms < 500) {
+                    badgeEl.textContent = 'Healthy'; badgeEl.className = 'health-badge healthy';
+                } else if (ms < 2000) {
+                    badgeEl.textContent = 'Slow'; badgeEl.className = 'health-badge warning';
+                } else {
+                    badgeEl.textContent = 'Critical'; badgeEl.className = 'health-badge critical';
+                }
+            }
+        })
+        .catch(() => {
+            if (latencyEl) latencyEl.textContent = 'Error';
+            if (badgeEl) { badgeEl.textContent = 'Down'; badgeEl.className = 'health-badge critical'; }
+        });
+};
+
+
+window.toggleMaintenanceMode = function (enabled) {
+    const action = enabled ? 'ENABLE' : 'DISABLE';
+    Swal.fire({
+        title: `${action} Maintenance Mode?`,
+        text: enabled
+            ? 'All Encoder, Verifier & MAO panels will be redirected to a maintenance page.'
+            : 'All panels will be restored to normal operation.',
+        icon: enabled ? 'warning' : 'question',
+        showCancelButton: true,
+        confirmButtonColor: enabled ? '#f59e0b' : '#10b981',
+        confirmButtonText: `Yes, ${action}`
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch('/admin/api/maintenance-mode', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+                body: JSON.stringify({ enabled })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showFlashMessage(`Maintenance mode ${enabled ? 'enabled' : 'disabled'}`, 'success');
+                    }
+                })
+                .catch(() => showFlashMessage('Failed to toggle maintenance mode', 'error'));
+        } else {
+            // User cancelled — revert toggle
+            const toggle = document.getElementById('maintenanceToggle');
+            if (toggle) toggle.checked = !enabled;
+        }
+    });
+};
+
+
+window.clearServerCache = function () {
+    Swal.fire({
+        title: 'Clear Server Cache?',
+        text: 'All cached API responses will be flushed. Dashboard stats will recalculate on next request.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#06b6d4',
+        confirmButtonText: 'Yes, clear cache'
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch('/admin/api/clear-cache', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) showFlashMessage('Server cache cleared!', 'success');
+                    else showFlashMessage(data.message, 'error');
+                })
+                .catch(() => showFlashMessage('Failed to clear cache', 'error'));
+        }
+    });
+};
+
+
+window.broadcastSystemAlert = function () {
+    const message = document.getElementById('broadcastMessage')?.value?.trim();
+    const type = document.getElementById('broadcastType')?.value || 'warning';
+
+    if (!message) {
+        showFlashMessage('Please enter an alert message', 'error');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Send System Alert?',
+        text: `This will show a "${type}" banner to ALL connected users.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#8b5cf6',
+        confirmButtonText: 'Broadcast Now'
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch('/admin/api/broadcast-alert', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': getCSRFToken() },
+                body: JSON.stringify({ message, type })
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showFlashMessage('Alert broadcast sent!', 'success');
+                        document.getElementById('broadcastMessage').value = '';
+                    } else {
+                        showFlashMessage(data.message, 'error');
+                    }
+                })
+                .catch(() => showFlashMessage('Failed to broadcast alert', 'error'));
+        }
+    });
+};
+
+
+window.forceLogoutAll = function () {
+    Swal.fire({
+        title: 'Force Logout All Users?',
+        html: '<strong style="color:#ef4444;">This will immediately reset ALL non-admin sessions.</strong><br>Every encoder, verifier, and MAO user will need to log in again.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#ef4444',
+        confirmButtonText: 'Yes, force logout all',
+        cancelButtonText: 'Cancel'
+    }).then(result => {
+        if (result.isConfirmed) {
+            fetch('/admin/api/force-logout', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCSRFToken() }
+            })
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) showFlashMessage('All non-admin sessions have been reset', 'success');
+                    else showFlashMessage(data.message, 'error');
+                })
+                .catch(() => showFlashMessage('Failed to force logout', 'error'));
+        }
+    });
+};
+
+
+window.loadErrorLog = function () {
+    const container = document.getElementById('errorLogContainer');
+    if (!container) return;
+    container.innerHTML = '<div class="activity-empty"><i class="fas fa-spinner fa-spin"></i><p>Loading...</p></div>';
+
+    fetch('/admin/api/error-log', {
+        headers: { 'X-CSRFToken': getCSRFToken() }
+    })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success || !data.entries.length) {
+                container.innerHTML = `
+                    <div class="activity-empty">
+                        <i class="fas fa-check-circle" style="color:#10b981; font-size:2rem;"></i>
+                        <p style="color:#64748b;">No errors or failures in the audit log</p>
+                    </div>`;
+                return;
+            }
+            container.innerHTML = data.entries.map(e => `
+                <div class="error-log-entry">
+                    <div class="error-log-icon"><i class="fas fa-exclamation-circle"></i></div>
+                    <div class="error-log-content">
+                        <span class="error-log-action">${e.action}</span>
+                        <span class="error-log-time">${e.created_at ? new Date(e.created_at).toLocaleString() : '—'}</span>
+                    </div>
+                </div>
+            `).join('');
+        })
+        .catch(() => {
+            container.innerHTML = '<div class="activity-empty"><p style="color:#ef4444;">Failed to load error log</p></div>';
+        });
+};

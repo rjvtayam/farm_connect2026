@@ -722,3 +722,217 @@ def permanent_delete(rid):
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SYSTEM HEALTH & ADMIN CONTROLS
+# ═══════════════════════════════════════════════════════════════════════════════
+
+import time
+import psutil
+import logging
+
+_app_start_time = time.time()
+
+@admin_bp.route('/api/system-health', methods=['GET'])
+@admin_required
+def system_health():
+    """Return comprehensive system health metrics."""
+    # ── Server & Uptime ──
+    uptime_secs = int(time.time() - _app_start_time)
+    hours, remainder = divmod(uptime_secs, 3600)
+    minutes, secs = divmod(remainder, 60)
+    uptime_str = f"{hours}h {minutes}m {secs}s"
+
+    # ── Database check ──
+    db_status = 'connected'
+    db_latency_ms = 0
+    try:
+        t0 = time.time()
+        db.session.execute(db.text('SELECT 1'))
+        db_latency_ms = round((time.time() - t0) * 1000, 1)
+    except Exception:
+        db_status = 'error'
+
+    # ── Cache status ──
+    cache_enabled = cache is not None
+    try:
+        cache.set('_health_check', 1, timeout=5)
+        cache_ok = cache.get('_health_check') == 1
+    except Exception:
+        cache_ok = False
+
+    # ── System resources (CPU, RAM) ──
+    try:
+        cpu_percent = psutil.cpu_percent(interval=0.3)
+        mem = psutil.virtual_memory()
+        mem_percent = mem.percent
+        mem_used_gb = round(mem.used / (1024 ** 3), 1)
+        mem_total_gb = round(mem.total / (1024 ** 3), 1)
+    except Exception:
+        cpu_percent = 0
+        mem_percent = 0
+        mem_used_gb = 0
+        mem_total_gb = 0
+
+    # ── Active sessions (online in last 5 min) ──
+    five_min_ago = datetime.utcnow() - timedelta(minutes=5)
+    online_staff = User.query.filter(
+        User.last_activity >= five_min_ago,
+        User.username != 'admin'
+    ).count()
+    online_community = CommunityMember.query.filter(
+        CommunityMember.last_activity >= five_min_ago
+    ).count()
+
+    # ── Per-role active counts ──
+    encoder_active = User.query.filter(
+        User.role == 'encoder', User.last_activity >= five_min_ago
+    ).count()
+    verifier_active = User.query.filter(
+        User.role == 'verifier', User.last_activity >= five_min_ago
+    ).count()
+    mao_active = User.query.filter(
+        User.role == 'mao', User.last_activity >= five_min_ago
+    ).count()
+
+    # ── Recent errors (last 24h from AuditLog) ──
+    one_day_ago = datetime.utcnow() - timedelta(hours=24)
+    error_count = AuditLog.query.filter(
+        AuditLog.timestamp >= one_day_ago,
+        AuditLog.action.ilike('%error%')
+    ).count()
+
+    # ── Maintenance mode ──
+    maintenance = current_app.config.get('MAINTENANCE_MODE', False)
+
+    return jsonify({
+        'success': True,
+        'health': {
+            'server_status': 'ok' if db_status == 'connected' else 'degraded',
+            'uptime': uptime_str,
+            'uptime_seconds': uptime_secs,
+            'database': {
+                'status': db_status,
+                'latency_ms': db_latency_ms
+            },
+            'cache': {
+                'enabled': cache_enabled,
+                'operational': cache_ok
+            },
+            'system': {
+                'cpu_percent': cpu_percent,
+                'memory_percent': mem_percent,
+                'memory_used_gb': mem_used_gb,
+                'memory_total_gb': mem_total_gb
+            },
+            'sessions': {
+                'staff_online': online_staff,
+                'community_online': online_community,
+                'total_online': online_staff + online_community
+            },
+            'panels': {
+                'encoder': {'active_users': encoder_active},
+                'verifier': {'active_users': verifier_active},
+                'mao': {'active_users': mao_active}
+            },
+            'errors_24h': error_count,
+            'maintenance_mode': maintenance
+        }
+    })
+
+
+@admin_bp.route('/api/maintenance-mode', methods=['POST'])
+@admin_required
+def toggle_maintenance():
+    """Toggle maintenance mode on/off for all non-admin panels."""
+    data = request.get_json() or {}
+    enabled = data.get('enabled', False)
+    current_app.config['MAINTENANCE_MODE'] = bool(enabled)
+
+    # Broadcast to all connected clients
+    from app.socket_handlers import broadcast_maintenance_toggle
+    broadcast_maintenance_toggle(enabled)
+
+    log_activity(
+        current_user.id,
+        f"Maintenance mode {'ENABLED' if enabled else 'DISABLED'}",
+        'system_config'
+    )
+    return jsonify({'success': True, 'maintenance_mode': bool(enabled)})
+
+
+@admin_bp.route('/api/clear-cache', methods=['POST'])
+@admin_required
+def clear_cache():
+    """Flush all server-side caches."""
+    try:
+        cache.clear()
+        log_activity(current_user.id, 'Server cache cleared', 'system_config')
+        return jsonify({'success': True, 'message': 'Cache cleared successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/api/broadcast-alert', methods=['POST'])
+@admin_required
+def broadcast_alert():
+    """Send a real-time alert to all connected panel users."""
+    data = request.get_json() or {}
+    message = data.get('message', '').strip()
+    alert_type = data.get('type', 'warning')  # info, warning, danger
+
+    if not message:
+        return jsonify({'success': False, 'message': 'Alert message is required'}), 400
+
+    from app.socket_handlers import broadcast_system_alert
+    broadcast_system_alert(message, alert_type)
+
+    log_activity(current_user.id, f'System broadcast: {message[:100]}', 'system_alert')
+    return jsonify({'success': True, 'message': 'Alert broadcast sent'})
+
+
+@admin_bp.route('/api/force-logout', methods=['POST'])
+@admin_required
+def force_logout_all():
+    """Reset all non-admin user sessions by bumping their last_activity far back.
+    This forces re-authentication on next request."""
+    try:
+        past = datetime.utcnow() - timedelta(days=1)
+        User.query.filter(User.role != 'admin').update({'last_activity': past})
+        db.session.commit()
+
+        from app.socket_handlers import broadcast_system_alert
+        broadcast_system_alert('Your session has been reset by the administrator. Please log in again.', 'danger')
+
+        log_activity(current_user.id, 'Force logout all non-admin users', 'system_config')
+        return jsonify({'success': True, 'message': 'All non-admin sessions have been reset'})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/api/error-log', methods=['GET'])
+@admin_required
+def get_error_log():
+    """Return the last 50 error/warning entries from the audit log."""
+    logs = AuditLog.query.filter(
+        db.or_(
+            AuditLog.action.ilike('%error%'),
+            AuditLog.action.ilike('%fail%'),
+            AuditLog.action.ilike('%denied%')
+        )
+    ).order_by(AuditLog.timestamp.desc()).limit(50).all()
+
+    entries = []
+    for log in logs:
+        entries.append({
+            'id': log.id,
+            'user_id': log.user_id,
+            'action': log.action,
+            'details': log.details if hasattr(log, 'details') else '',
+            'created_at': log.timestamp.isoformat() if log.timestamp else None
+        })
+
+    return jsonify({'success': True, 'entries': entries})
+

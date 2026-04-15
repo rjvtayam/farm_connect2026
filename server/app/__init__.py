@@ -74,6 +74,22 @@ def create_app(config_name='development'):
     def _assign_request_id():
         assign_request_id()
 
+    # ── Maintenance Mode Gate ────────────────────────────────────────────
+    @app.before_request
+    def check_maintenance_mode():
+        from flask_login import current_user
+        from flask import request as req
+        if app.config.get('MAINTENANCE_MODE', False):
+            # Allow admin panel, static files, auth routes, and the maintenance page itself
+            allowed_prefixes = ('/admin', '/auth', '/static', '/public', '/health', '/maintenance')
+            if not any(req.path.startswith(p) for p in allowed_prefixes):
+                if not (current_user.is_authenticated and getattr(current_user, 'role', '') == 'admin'):
+                    if req.accept_mimetypes.accept_json and not req.accept_mimetypes.accept_html:
+                        from flask import jsonify
+                        return jsonify({'success': False, 'message': 'System is under maintenance'}), 503
+                    return render_template('maintenance/maintenance.html'), 503
+
+
     @app.before_request
     def update_last_activity():
         from flask_login import current_user

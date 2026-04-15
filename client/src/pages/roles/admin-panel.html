@@ -76,6 +76,10 @@
                 <i class="fas fa-sliders-h"></i>
                 <span>System Settings</span>
             </a>
+            <a href="#system-health" class="nav-item">
+                <i class="fas fa-heartbeat"></i>
+                <span>System Health</span>
+            </a>
             <div class="nav-divider"></div>
             <a href="{{ url_for('auth.logout') }}" class="nav-item logout">
                 <i class="fas fa-sign-out-alt"></i>
@@ -783,6 +787,219 @@
                 </div>
 
             </div>
+
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!-- SYSTEM HEALTH & ADMIN CONTROLS                                 -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <div id="system-health" class="content-section">
+
+                <!-- Page Header -->
+                <div class="rpt-page-header">
+                    <div class="rpt-page-header-left">
+                        <div class="rpt-page-icon" style="background: linear-gradient(135deg, #ef4444, #f97316);">
+                            <i class="fas fa-heartbeat"></i>
+                        </div>
+                        <div>
+                            <h2 class="rpt-page-title">System Health & Controls</h2>
+                            <p class="rpt-page-sub">Monitor live system vitals, panel health, and take administrative actions.</p>
+                        </div>
+                    </div>
+                    <div class="rpt-page-header-right">
+                        <span class="rpt-page-badge" id="healthOverallBadge"><i class="fas fa-circle" style="color:#10b981"></i> System OK</span>
+                        <button class="btn btn-secondary btn-sm" onclick="loadSystemHealth()" title="Refresh"><i class="fas fa-sync-alt"></i></button>
+                    </div>
+                </div>
+
+                <!-- ── System Vitals Strip ────────────────────────────────── -->
+                <div class="health-vitals-strip">
+                    <div class="vital-card">
+                        <div class="vital-icon" style="background: linear-gradient(135deg,#10b981,#059669);">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="vital-info">
+                            <span class="vital-label">Server Status</span>
+                            <span class="vital-value" id="vitalServerStatus">—</span>
+                        </div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-icon" style="background: linear-gradient(135deg,#3b82f6,#2563eb);">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <div class="vital-info">
+                            <span class="vital-label">Database</span>
+                            <span class="vital-value" id="vitalDbStatus">—</span>
+                        </div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-icon" style="background: linear-gradient(135deg,#8b5cf6,#7c3aed);">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        <div class="vital-info">
+                            <span class="vital-label">CPU / RAM</span>
+                            <span class="vital-value" id="vitalCpuRam">—</span>
+                        </div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="vital-info">
+                            <span class="vital-label">Uptime</span>
+                            <span class="vital-value" id="vitalUptime">—</span>
+                        </div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-icon" style="background: linear-gradient(135deg,#06b6d4,#0891b2);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="vital-info">
+                            <span class="vital-label">Online Sessions</span>
+                            <span class="vital-value" id="vitalSessions">—</span>
+                        </div>
+                    </div>
+                    <div class="vital-card">
+                        <div class="vital-icon" style="background: linear-gradient(135deg,#ef4444,#dc2626);">
+                            <i class="fas fa-exclamation-triangle"></i>
+                        </div>
+                        <div class="vital-info">
+                            <span class="vital-label">Errors (24h)</span>
+                            <span class="vital-value" id="vitalErrors">—</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Panel Health Cards ─────────────────────────────────── -->
+                <div class="panel-health-grid">
+                    <div class="panel-health-card">
+                        <div class="phc-header">
+                            <div class="phc-icon" style="background: linear-gradient(135deg,#4f46e5,#6366f1);"><i class="fas fa-keyboard"></i></div>
+                            <h3>Encoder Panel</h3>
+                            <span class="health-badge healthy" id="panelEncoderBadge">Healthy</span>
+                        </div>
+                        <div class="phc-stats">
+                            <div class="phc-stat"><span class="phc-stat-label">Active Users</span><span class="phc-stat-value" id="panelEncoderUsers">0</span></div>
+                            <div class="phc-stat"><span class="phc-stat-label">Response</span><span class="phc-stat-value" id="panelEncoderLatency">—</span></div>
+                        </div>
+                        <button class="phc-ping-btn" onclick="pingPanel('encoder')"><i class="fas fa-satellite-dish"></i> Ping</button>
+                    </div>
+
+                    <div class="panel-health-card">
+                        <div class="phc-header">
+                            <div class="phc-icon" style="background: linear-gradient(135deg,#10b981,#059669);"><i class="fas fa-user-check"></i></div>
+                            <h3>Verifier Panel</h3>
+                            <span class="health-badge healthy" id="panelVerifierBadge">Healthy</span>
+                        </div>
+                        <div class="phc-stats">
+                            <div class="phc-stat"><span class="phc-stat-label">Active Users</span><span class="phc-stat-value" id="panelVerifierUsers">0</span></div>
+                            <div class="phc-stat"><span class="phc-stat-label">Response</span><span class="phc-stat-value" id="panelVerifierLatency">—</span></div>
+                        </div>
+                        <button class="phc-ping-btn" onclick="pingPanel('verifier')"><i class="fas fa-satellite-dish"></i> Ping</button>
+                    </div>
+
+                    <div class="panel-health-card">
+                        <div class="phc-header">
+                            <div class="phc-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706);"><i class="fas fa-user-tie"></i></div>
+                            <h3>MAO Panel</h3>
+                            <span class="health-badge healthy" id="panelMaoBadge">Healthy</span>
+                        </div>
+                        <div class="phc-stats">
+                            <div class="phc-stat"><span class="phc-stat-label">Active Users</span><span class="phc-stat-value" id="panelMaoUsers">0</span></div>
+                            <div class="phc-stat"><span class="phc-stat-label">Response</span><span class="phc-stat-value" id="panelMaoLatency">—</span></div>
+                        </div>
+                        <button class="phc-ping-btn" onclick="pingPanel('mao')"><i class="fas fa-satellite-dish"></i> Ping</button>
+                    </div>
+                </div>
+
+                <!-- ── Admin Action Controls ──────────────────────────────── -->
+                <div class="content-card" style="margin-top:1.5rem;">
+                    <div class="card-header">
+                        <h2><i class="fas fa-tools" style="color:#f59e0b;"></i> Admin Controls</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="admin-controls-grid">
+
+                            <!-- Maintenance Mode Toggle -->
+                            <div class="admin-control-card">
+                                <div class="ac-left">
+                                    <div class="ac-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);"><i class="fas fa-wrench"></i></div>
+                                    <div>
+                                        <h4>Maintenance Mode</h4>
+                                        <p>Redirect all Encoder, Verifier & MAO panels to a maintenance page.</p>
+                                    </div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="maintenanceToggle" onchange="toggleMaintenanceMode(this.checked)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+
+                            <!-- Clear Cache -->
+                            <div class="admin-control-card">
+                                <div class="ac-left">
+                                    <div class="ac-icon" style="background:linear-gradient(135deg,#06b6d4,#0891b2);"><i class="fas fa-broom"></i></div>
+                                    <div>
+                                        <h4>Clear Server Cache</h4>
+                                        <p>Flush all cached API responses. Stats and analytics will recalculate.</p>
+                                    </div>
+                                </div>
+                                <button class="btn btn-secondary btn-sm" onclick="clearServerCache()"><i class="fas fa-trash-alt"></i> Clear</button>
+                            </div>
+
+                            <!-- System Broadcast -->
+                            <div class="admin-control-card broadcast-card">
+                                <div class="ac-left">
+                                    <div class="ac-icon" style="background:linear-gradient(135deg,#8b5cf6,#7c3aed);"><i class="fas fa-bullhorn"></i></div>
+                                    <div>
+                                        <h4>Broadcast Alert</h4>
+                                        <p>Send a real-time banner alert to all connected panel users.</p>
+                                    </div>
+                                </div>
+                                <div class="broadcast-input-row">
+                                    <input type="text" id="broadcastMessage" placeholder="Type your alert message..." class="broadcast-input">
+                                    <select id="broadcastType" class="broadcast-select">
+                                        <option value="info">ℹ️ Info</option>
+                                        <option value="warning" selected>⚠️ Warning</option>
+                                        <option value="danger">🚨 Critical</option>
+                                    </select>
+                                    <button class="btn btn-primary btn-sm" onclick="broadcastSystemAlert()"><i class="fas fa-paper-plane"></i> Send</button>
+                                </div>
+                            </div>
+
+                            <!-- Force Logout -->
+                            <div class="admin-control-card">
+                                <div class="ac-left">
+                                    <div class="ac-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);"><i class="fas fa-power-off"></i></div>
+                                    <div>
+                                        <h4>Force Logout All Users</h4>
+                                        <p>Reset all non-admin sessions. Users will need to log in again.</p>
+                                    </div>
+                                </div>
+                                <button class="btn btn-danger btn-sm" onclick="forceLogoutAll()"><i class="fas fa-sign-out-alt"></i> Force Logout</button>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ── Error Log ──────────────────────────────────────────── -->
+                <div class="content-card" style="margin-top:1.5rem;">
+                    <div class="card-header">
+                        <h2><i class="fas fa-clipboard-list" style="color:#ef4444;"></i> Recent Error Log</h2>
+                        <button class="btn btn-secondary btn-sm" onclick="loadErrorLog()"><i class="fas fa-sync-alt"></i> Refresh</button>
+                    </div>
+                    <div class="card-body">
+                        <div class="error-log-container" id="errorLogContainer">
+                            <div class="activity-empty">
+                                <i class="fas fa-check-circle" style="color:#10b981; font-size:2rem;"></i>
+                                <p style="color:#64748b;">Click refresh to load error entries</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <!-- End System Health Section -->
+
         </div>
     </main>
 </div>

@@ -81,3 +81,20 @@ def broadcast_activity(activity_data):
     if muni:
         muni_room = f"muni_{muni.lower().replace(' ', '_')}"
         socketio.emit('new_activity', activity_data, room=muni_room)
+
+
+def broadcast_system_alert(message, alert_type='warning'):
+    """Broadcast a system alert to ALL connected users (all roles).
+    Used by admin to send real-time maintenance notices, outage alerts, etc."""
+    payload = {
+        'message': message,
+        'type': alert_type,
+        'timestamp': __import__('datetime').datetime.utcnow().isoformat()
+    }
+    socketio.emit('system_alert', payload)
+
+
+def broadcast_maintenance_toggle(enabled):
+    """Notify all panel users that maintenance mode changed."""
+    socketio.emit('maintenance_mode', {'enabled': enabled})
+

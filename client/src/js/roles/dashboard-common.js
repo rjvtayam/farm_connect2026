@@ -616,6 +616,43 @@ function initSocket() {
              showFlashMessage(data.message, data.type || 'info');
         }
     });
+
+    // ── System Alert Broadcast (from Admin) ──
+    socket.on('system_alert', (data) => {
+        _showSystemAlertBanner(data.message, data.type || 'warning');
+    });
+
+    // ── Maintenance Mode Toggle (from Admin) ──
+    socket.on('maintenance_mode', (data) => {
+        if (data.enabled && !window.location.pathname.includes('/admin')) {
+            // Non-admin panels — redirect to maintenance page
+            _showSystemAlertBanner('System is entering maintenance mode. Redirecting...', 'danger');
+            setTimeout(() => { window.location.href = '/'; }, 3000);
+        } else if (!data.enabled) {
+            _showSystemAlertBanner('Maintenance mode has been disabled. System is back online.', 'info');
+        }
+    });
+}
+
+/**
+ * Show a system-wide alert banner at the top of any panel.
+ * Auto-dismisses after 15 seconds or user clicks close.
+ */
+function _showSystemAlertBanner(message, type) {
+    // Remove existing banner if any
+    document.querySelectorAll('.system-alert-banner').forEach(b => b.remove());
+
+    const banner = document.createElement('div');
+    banner.className = `system-alert-banner ${type || 'warning'}`;
+    banner.innerHTML = `
+        <i class="fas ${type === 'danger' ? 'fa-exclamation-circle' : type === 'info' ? 'fa-info-circle' : 'fa-exclamation-triangle'}"></i>
+        <span>${message}</span>
+        <button class="close-alert" onclick="this.parentElement.remove()"><i class="fas fa-times"></i></button>
+    `;
+    document.body.prepend(banner);
+
+    // Auto-dismiss after 15s
+    setTimeout(() => { if (banner.parentElement) banner.remove(); }, 15000);
 }
 
 // ── Shared Stats Helpers (used by all panels) ──────────────────────────────
