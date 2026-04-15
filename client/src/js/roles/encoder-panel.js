@@ -274,9 +274,11 @@ function loadSubmissions(isBackground = false) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                const oldCount = currentSubmissions.length;
                 currentSubmissions = data.submissions;
-                // Re-apply current filters (preserve page on background refresh)
-                applyFilters(!isBackground);
+                // If data count changed during background refresh, reset to page 1
+                const dataChanged = isBackground && data.submissions.length !== oldCount;
+                applyFilters(!isBackground || dataChanged);
             }
         })
         .catch(error => {

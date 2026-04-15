@@ -282,7 +282,7 @@ def get_submissions():
     if status:
         query = query.filter(Registration.status == status)
         
-    submissions = query.order_by(Registration.created_at.asc()).limit(200).all()
+    submissions = query.order_by(Registration.created_at.desc()).limit(200).all()
     
     # Enrich with beneficiary and encoder names
     data = []

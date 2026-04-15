@@ -1150,9 +1150,12 @@ function loadRegistrations(isBackground = false) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                const oldCount = allRegistrations.length;
                 allRegistrations = data.registrations;
                 populateBarangayDropdown('brgyDropdownRegistrations');
-                applyFilters(); // Re-apply current filters seamlessly
+                // If data count changed during background refresh, reset to page 1
+                const dataChanged = isBackground && data.registrations.length !== oldCount;
+                applyFilters(dataChanged ? true : undefined);
             }
         })
         .catch(error => {

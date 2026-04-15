@@ -372,9 +372,13 @@ function loadPendingSubmissions(isBackground = false) {
         .then(response => response.json())
         .then(data => {
             if (data.success) {
+                const oldCount = allPendingSubmissions.length;
                 allPendingSubmissions = data.submissions;
                 populateVerifierBrgyFilter();
-                applyPendingFilters(!isBackground); // preserve page on background refresh
+                // If data count changed during background refresh, reset to page 1
+                // so the user immediately sees new/removed items
+                const dataChanged = isBackground && data.submissions.length !== oldCount;
+                applyPendingFilters(!isBackground || dataChanged);
             }
         })
         .catch(error => {

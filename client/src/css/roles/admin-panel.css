@@ -36,34 +36,7 @@
     gap: 0.75rem;
 }
 
-/* ── Activity Items ── */
-.activity-item .activity-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    flex-shrink: 0;
-    background: #EEF2FF;
-    color: #4F46E5;
-}
-
-.activity-item .activity-content {
-    flex: 1;
-}
-
-.activity-item .activity-content p {
-    margin: 0;
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-}
-
-.activity-item .activity-time {
-    color: var(--text-light);
-    font-size: 0.8rem;
-    margin-top: 0.25rem;
-}
+/* ── Activity Feed: admin overrides removed; now handled by shared dashboard.css ── */
 
 /* ── Button Outline Override ── */
 .btn-outline {

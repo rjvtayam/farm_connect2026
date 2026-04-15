@@ -278,6 +278,24 @@ function setupWelcomeBanner() {
 }
 
 // ── Activity Feed Timeline ──
+function formatRelativeTime(dateString) {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr  = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) return 'Just now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24)  return `${diffHr}h ago`;
+    if (diffDay < 7)  return `${diffDay}d ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+}
+
 function loadActivityFeed() {
     const feedContainer = document.getElementById('activityFeedList');
     const logContainer = document.getElementById('activityLog');
@@ -297,6 +315,12 @@ function loadActivityFeed() {
         .then(data => {
             const items = data.activities || [];
             
+            // Update count badge if present in the card header
+            const countBadge = document.querySelector('.activity-feed-card .activity-count-badge');
+            if (countBadge) {
+                countBadge.innerHTML = `<i class="fas fa-list-ul"></i> ${items.length} items`;
+            }
+            
             let htmlContent = '';
             
             if (items.length === 0) {
@@ -304,6 +328,7 @@ function loadActivityFeed() {
                     <div class="activity-empty">
                         <i class="fas fa-stream"></i>
                         <p>No recent activity to show.</p>
+                        <p class="activity-empty-sub">Activities will appear here as they happen.</p>
                     </div>`;
             } else {
                 htmlContent = items.map(item => {
@@ -312,12 +337,39 @@ function loadActivityFeed() {
                             : item.type === 'danger' ? 'dot-danger'
                                 : item.type === 'info' ? 'dot-info' : '';
 
+                    // Icon mapping
+                    const iconMap = {
+                        success: 'fas fa-check-circle',
+                        warning: 'fas fa-clock',
+                        danger:  'fas fa-times-circle',
+                        info:    'fas fa-info-circle'
+                    };
+                    const iconClass = iconMap[item.type] || 'fas fa-circle';
+                    const iconBadgeClass = item.type ? `icon-${item.type}` : 'icon-default';
+
+                    // Status label mapping
+                    const labelMap = {
+                        success: { text: 'Approved', cls: 'label-success' },
+                        warning: { text: 'Pending',  cls: 'label-warning' },
+                        danger:  { text: 'Rejected', cls: 'label-danger' },
+                        info:    { text: 'Info',     cls: 'label-info' }
+                    };
+                    const label = labelMap[item.type] || { text: 'Activity', cls: 'label-info' };
+
+                    const relTime = formatRelativeTime(item.timestamp);
+
                     return `
                         <div class="activity-item">
                             <div class="activity-dot ${dotClass}"></div>
+                            <div class="activity-icon-badge ${iconBadgeClass}">
+                                <i class="${iconClass}"></i>
+                            </div>
                             <div class="activity-content">
                                 <p class="activity-message">${item.message}</p>
-                                <span class="activity-time">${formatDateTime(item.timestamp)}</span>
+                                <div class="activity-meta">
+                                    <span class="activity-time"><i class="far fa-clock"></i> ${relTime}</span>
+                                    <span class="activity-type-label ${label.cls}">${label.text}</span>
+                                </div>
                             </div>
                         </div>`;
                 }).join('');
@@ -337,6 +389,7 @@ function loadActivityFeed() {
                 <div class="activity-empty">
                     <i class="fas fa-stream"></i>
                     <p>Activity feed coming soon.</p>
+                    <p class="activity-empty-sub">Check back later for updates.</p>
                 </div>`;
             if (feedContainer) feedContainer.innerHTML = errorHtml;
             if (logContainer) logContainer.innerHTML = errorHtml;
