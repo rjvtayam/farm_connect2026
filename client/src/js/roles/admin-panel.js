@@ -1103,7 +1103,7 @@ window.loadSystemHealth = function () {
             const cpuEl = document.getElementById('vitalCpuRam');
             if (cpuEl) {
                 cpuEl.textContent = `${h.system.cpu_percent}% / ${h.system.memory_percent}%`;
-                cpuEl.style.color = h.system.cpu_percent > 80 || h.system.memory_percent > 85 ? '#ef4444' : '#e2e8f0';
+                cpuEl.style.color = h.system.cpu_percent > 80 || h.system.memory_percent > 85 ? '#ef4444' : '';
             }
 
             const upEl = document.getElementById('vitalUptime');

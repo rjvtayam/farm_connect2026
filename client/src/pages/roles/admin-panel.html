@@ -372,13 +372,31 @@
 
             <!-- Activity Logs Section -->
             <div id="activity" class="content-section">
-                <div class="content-card">
-                    <div class="card-header">
-                        <h2><i class="fas fa-history"></i> Recent Activity</h2>
+                <!-- Activity Logs Header -->
+                <div class="activity-log-header">
+                    <div class="activity-log-header-left">
+                        <div class="activity-log-icon">
+                            <i class="fas fa-wave-square"></i>
+                        </div>
+                        <div>
+                            <h2 class="activity-log-title">Activity Logs</h2>
+                            <p class="activity-log-sub">Real-time audit trail of all system events and user actions</p>
+                        </div>
                     </div>
+                    <div class="activity-log-header-right">
+                        <span class="activity-log-badge"><i class="fas fa-circle" style="font-size:0.5rem;color:#10b981;"></i> Live Feed</span>
+                        <span class="activity-log-badge activity-log-badge--purple"><i class="fas fa-shield-alt"></i> Audit Trail</span>
+                    </div>
+                </div>
+
+                <!-- Activity Log Content Card -->
+                <div class="content-card activity-log-card">
                     <div class="card-body">
-                        <div class="activity-list" id="activityLog">
-                            <!-- Activity items will be loaded via JavaScript -->
+                        <div class="activity-feed-timeline" id="activityLog">
+                            <div class="activity-empty">
+                                <i class="fas fa-spinner fa-spin"></i>
+                                <p>Loading activity...</p>
+                            </div>
                         </div>
                     </div>
                 </div>
