@@ -82,17 +82,50 @@ function initCommandCenter() {
     const mapDiv = document.getElementById('adminCommandMap');
     if (!mapDiv) return;
 
-    // Use vibrant, colorful Standard Map tiles
+    // Satellite imagery with layer control
     commandMap = L.map('adminCommandMap', {
-        zoomControl: false // We'll put it in a better spot if needed
+        zoomControl: false
     }).setView([14.4284, 121.4285], 14);
-    
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(commandMap);
+
+    // ── Satellite Imagery (ESRI) — default "real" look ──
+    const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri, Maxar, Earthstar Geographics',
+        maxZoom: 22,
+        maxNativeZoom: 18
+    });
+
+    // ── Labels overlay ──
+    const labLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22,
+        maxNativeZoom: 18,
+        pane: 'overlayPane'
+    });
+
+    // ── Street / Topography layers ──
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 22,
+        maxNativeZoom: 19
+    });
+    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenTopoMap contributors',
+        maxZoom: 22,
+        maxNativeZoom: 17
+    });
+
+    // Default: Satellite + Labels
+    satLayer.addTo(commandMap);
+    labLayer.addTo(commandMap);
+
+    // Layer control
+    L.control.layers(
+        { '🛰️ Satellite': satLayer, '🗺️ Street': osmLayer, '🏔️ Topography': topoLayer },
+        { '🏷️ Labels': labLayer },
+        { position: 'topright', collapsed: true }
+    ).addTo(commandMap);
 
     L.control.zoom({ position: 'bottomright' }).addTo(commandMap);
+    L.control.scale({ position: 'bottomleft', imperial: false }).addTo(commandMap);
 
     gisLayerGroup = L.featureGroup().addTo(commandMap);
     staffLayerGroup = L.featureGroup().addTo(commandMap);

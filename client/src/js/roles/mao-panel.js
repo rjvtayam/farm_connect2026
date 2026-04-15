@@ -1853,18 +1853,54 @@ function initReviewMap(geoData, gisInfo) {
 
     // Initialize map
     reviewMap = L.map('reviewMapContainer', {
-        zoomControl: false, // Cleaner look
+        zoomControl: false,
         dragging: true,
         scrollWheelZoom: true
     }).setView([14.4335, 121.4333], 15);
 
-    // Add professional light tiles
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap contributors &copy; CARTO'
-    }).addTo(reviewMap);
+    // ── Satellite Imagery (ESRI) — default "real" look ──
+    // maxNativeZoom=18: beyond that Leaflet upscales the last tile instead of "data not available"
+    const satLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri, Maxar, Earthstar Geographics',
+        maxZoom: 22,
+        maxNativeZoom: 18
+    });
+
+    // ── Satellite Labels overlay ──
+    const labLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22,
+        maxNativeZoom: 18,
+        pane: 'overlayPane'
+    });
+
+    // ── Street / Topology layers for toggling ──
+    const osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 22,
+        maxNativeZoom: 19
+    });
+    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenTopoMap contributors',
+        maxZoom: 22,
+        maxNativeZoom: 17
+    });
+
+    // Default: Satellite + Labels
+    satLayer.addTo(reviewMap);
+    labLayer.addTo(reviewMap);
+
+    // Layer control
+    L.control.layers(
+        { '🛰️ Satellite': satLayer, '🗺️ Street': osmLayer, '🏔️ Topography': topoLayer },
+        { '🏷️ Labels': labLayer },
+        { position: 'topright', collapsed: true }
+    ).addTo(reviewMap);
 
     // Re-add zoom control at bottom right
     L.control.zoom({ position: 'bottomright' }).addTo(reviewMap);
+
+    // Scale bar
+    L.control.scale({ position: 'bottomleft', imperial: false }).addTo(reviewMap);
 
     reviewDrawnItems = new L.FeatureGroup().addTo(reviewMap);
 

@@ -247,6 +247,76 @@
     color: white;
 }
 
+/* ── Locate Pulse Animation ── */
+@keyframes locPulse {
+    0%   { transform: scale(1);   opacity: 0.35; }
+    70%  { transform: scale(2.5); opacity: 0; }
+    100% { transform: scale(2.5); opacity: 0; }
+}
+
+/* ── Landmark Popup Styling ── */
+.landmark-popup .leaflet-popup-content-wrapper {
+    padding: 0;
+    border-radius: 14px;
+    overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.1);
+    border: none;
+}
+.landmark-popup .leaflet-popup-content {
+    margin: 0;
+    line-height: 1.5;
+}
+.landmark-popup .leaflet-popup-tip {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+}
+
+/* ── Enhanced Map Wrapper (satellite glow) ── */
+.square-map-wrapper {
+    position: relative;
+    border: 2px solid #334155;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.05) inset;
+    background: #0f172a;
+}
+
+/* ── Leaflet Controls Dark Theme (match satellite) ── */
+#landMapContainer .leaflet-control-layers {
+    background: rgba(30, 41, 59, 0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    color: #e2e8f0;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.25);
+}
+#landMapContainer .leaflet-control-layers label {
+    color: #e2e8f0;
+    font-family: 'Inter', sans-serif;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+#landMapContainer .leaflet-control-layers-separator {
+    border-top-color: rgba(255,255,255,0.1);
+}
+#landMapContainer .leaflet-control-zoom a {
+    background: rgba(30, 41, 59, 0.92);
+    backdrop-filter: blur(8px);
+    color: #e2e8f0;
+    border-color: rgba(255,255,255,0.1);
+    font-weight: 700;
+}
+#landMapContainer .leaflet-control-zoom a:hover {
+    background: rgba(79, 70, 229, 0.8);
+    color: white;
+}
+#landMapContainer .leaflet-control-scale-line {
+    background: rgba(30, 41, 59, 0.8);
+    color: #e2e8f0;
+    border-color: rgba(255,255,255,0.2);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.7rem;
+    font-weight: 600;
+    backdrop-filter: blur(4px);
+}
+
 /* ── Responsive ── */
 @media (max-width: 768px) {
     .header-content {

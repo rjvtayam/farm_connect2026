@@ -155,8 +155,17 @@ function initGlobalMap() {
     // Center on municipality (assuming a general center if unknown)
     globalMap = L.map('globalParcelMap').setView([14.165, 121.24], 13);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri, Maxar, Earthstar Geographics',
+        maxZoom: 22,
+        maxNativeZoom: 18
+    }).addTo(globalMap);
+
+    // Add labels overlay for satellite readability
+    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22,
+        maxNativeZoom: 18,
+        pane: 'overlayPane'
     }).addTo(globalMap);
 
     loadGlobalParcels();
@@ -863,11 +872,53 @@ function initReviewMap(existingGeoData) {
     const defaultLat = 14.4333;
     const defaultLng = 121.4333;
 
-    landMap = L.map('landMapContainer').setView([defaultLat, defaultLng], 15);
+    landMap = L.map('landMapContainer', { zoomControl: false }).setView([defaultLat, defaultLng], 15);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-    }).addTo(landMap);
+    // ── Satellite Imagery (ESRI) — default "real" look ──
+    // maxNativeZoom=18: beyond that Leaflet upscales the last tile instead of showing "data not available"
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        attribution: '&copy; Esri, Maxar, Earthstar Geographics',
+        maxZoom: 22,
+        maxNativeZoom: 18
+    });
+
+    // ── Satellite Labels overlay ──
+    const labelsLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22,
+        maxNativeZoom: 18,
+        pane: 'overlayPane'
+    });
+
+    // ── Street / Topology layers for toggling ──
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 22,
+        maxNativeZoom: 19
+    });
+    const topoLayer = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenTopoMap contributors',
+        maxZoom: 22,
+        maxNativeZoom: 17
+    });
+
+    // Default: Satellite + Labels
+    satelliteLayer.addTo(landMap);
+    labelsLayer.addTo(landMap);
+
+    // Layer control
+    const baseLayers = {
+        '🛰️ Satellite': satelliteLayer,
+        '🗺️ Street': streetLayer,
+        '🏔️ Topography': topoLayer
+    };
+    const overlays = {
+        '🏷️ Labels': labelsLayer
+    };
+    L.control.layers(baseLayers, overlays, { position: 'topright', collapsed: true }).addTo(landMap);
+    L.control.zoom({ position: 'bottomright' }).addTo(landMap);
+
+    // ── Scale bar for professional GIS ──
+    L.control.scale({ position: 'bottomleft', imperial: false }).addTo(landMap);
 
     drawnItems = new L.FeatureGroup();
     landMap.addLayer(drawnItems);
@@ -1175,6 +1226,112 @@ function renderOwnershipChecklist(docs, parcels) {
     container.innerHTML = html;
 }
 
+// ── Landmark Helpers ──────────────────────────────────────────────────────────
+let _locateMarkerGroup = null;   // layerGroup holding marker + pulse + popup
+
+/** Remove previous locate visuals */
+function _clearLocateVisuals() {
+    if (locateHighlight) { landMap.removeLayer(locateHighlight); locateHighlight = null; }
+    if (_locateMarkerGroup) { landMap.removeLayer(_locateMarkerGroup); _locateMarkerGroup = null; }
+}
+
+/** Build a pulsing landmark icon */
+function _buildPulseIcon(color = '#10b981') {
+    return L.divIcon({
+        className: '',
+        iconSize: [28, 28],
+        iconAnchor: [14, 14],
+        html: `
+            <div style="position:relative;width:28px;height:28px;">
+                <div style="position:absolute;inset:0;border-radius:50%;background:${color};opacity:.25;animation:locPulse 2s ease-out infinite;"></div>
+                <div style="position:absolute;inset:4px;border-radius:50%;background:${color};box-shadow:0 0 8px ${color};"></div>
+                <div style="position:absolute;inset:8px;border-radius:50%;background:white;"></div>
+                <div style="position:absolute;inset:10px;border-radius:50%;background:${color};"></div>
+            </div>`
+    });
+}
+
+/** Build the rich landmark popup HTML */
+function _buildLandmarkPopup(lat, lng, locationData, parcelLabel) {
+    const addr = locationData?.address || {};
+    const displayName = locationData?.display_name || '';
+    const locality = addr.village || addr.town || addr.city || addr.municipality || '';
+    const region = addr.state || addr.county || addr.province || '';
+    const road = addr.road || addr.hamlet || '';
+    const neighbourhood = addr.neighbourhood || addr.suburb || '';
+
+    return `
+    <div style="font-family:'Inter','Segoe UI',sans-serif;min-width:260px;max-width:320px;">
+        <div style="background:linear-gradient(135deg,#10b981,#059669);color:white;padding:10px 14px;border-radius:12px 12px 0 0;margin:-1px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+                <i class="fas fa-map-pin" style="font-size:1rem;"></i>
+                <span style="font-weight:800;font-size:0.85rem;text-transform:uppercase;letter-spacing:0.5px;">${parcelLabel}</span>
+            </div>
+        </div>
+        <div style="padding:12px 14px;background:white;border-radius:0 0 12px 12px;">
+            ${locality ? `<div style="font-size:1rem;font-weight:700;color:#1e293b;margin-bottom:4px;"><i class="fas fa-landmark" style="color:#f59e0b;margin-right:6px;"></i>${locality}</div>` : ''}
+            ${road ? `<div style="font-size:0.8rem;color:#475569;margin-bottom:2px;"><i class="fas fa-road" style="width:16px;color:#94a3b8;"></i> ${road}${neighbourhood ? ', ' + neighbourhood : ''}</div>` : ''}
+            ${region ? `<div style="font-size:0.78rem;color:#64748b;margin-bottom:6px;"><i class="fas fa-map" style="width:16px;color:#94a3b8;"></i> ${region}</div>` : ''}
+            <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+                <span style="background:#f0fdf4;color:#166534;font-size:0.68rem;padding:3px 8px;border-radius:6px;font-weight:700;border:1px solid #bbf7d0;"><i class="fas fa-crosshairs"></i> ${lat.toFixed(6)}</span>
+                <span style="background:#eff6ff;color:#1e40af;font-size:0.68rem;padding:3px 8px;border-radius:6px;font-weight:700;border:1px solid #bfdbfe;"><i class="fas fa-crosshairs"></i> ${lng.toFixed(6)}</span>
+            </div>
+            ${displayName ? `<div style="font-size:0.7rem;color:#94a3b8;margin-top:8px;line-height:1.4;border-top:1px solid #f1f5f9;padding-top:8px;"><i class="fas fa-info-circle" style="margin-right:4px;"></i>${displayName}</div>` : ''}
+        </div>
+    </div>`;
+}
+
+/** Reverse-geocode and place landmark marker */
+async function _placeLocateLandmark(c, parcelLabel, color = '#10b981', zoom = 18) {
+    _clearLocateVisuals();
+    _locateMarkerGroup = L.layerGroup().addTo(landMap);
+
+    // Pulsing circle radius
+    locateHighlight = L.circle(c, {
+        radius: 40,
+        color: color,
+        weight: 2,
+        fillColor: color,
+        fillOpacity: 0.12,
+        dashArray: '6 4'
+    }).addTo(_locateMarkerGroup);
+
+    // Pulsing marker icon
+    const marker = L.marker(c, { icon: _buildPulseIcon(color) }).addTo(_locateMarkerGroup);
+
+    landMap.setView(c, zoom, { animate: true, duration: 1 });
+
+    // Reverse geocode to get landmark details
+    try {
+        const resp = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${c[0]}&lon=${c[1]}&format=json&addressdetails=1&zoom=18`,
+            { headers: { 'User-Agent': 'FarmConnectVerifier/2.0' } }
+        );
+        const data = await resp.json();
+        if (data && data.address) {
+            const popupHtml = _buildLandmarkPopup(c[0], c[1], data, parcelLabel);
+            marker.bindPopup(popupHtml, {
+                maxWidth: 340,
+                className: 'landmark-popup',
+                offset: [0, -8]
+            }).openPopup();
+
+            const addr = data.address;
+            const place = addr.village || addr.town || addr.city || addr.municipality || addr.county || '';
+            if (place) {
+                showFlashMessage(`📍 ${parcelLabel} — ${place}, ${addr.state || addr.province || ''}`, 'success');
+            }
+        }
+    } catch (e) {
+        // Geocoding failed — still show basic popup
+        marker.bindPopup(_buildLandmarkPopup(c[0], c[1], null, parcelLabel), {
+            maxWidth: 340,
+            className: 'landmark-popup',
+            offset: [0, -8]
+        }).openPopup();
+    }
+}
+
 window.locateParcel = async function (barangay, municipality, province, index, pLat = '', pLng = '') {
     try {
         if (!landMap) {
@@ -1187,7 +1344,7 @@ window.locateParcel = async function (barangay, municipality, province, index, p
         const prov = (province || 'Laguna').trim();
         const key = bgy.toLowerCase();
         
-        showFlashMessage(`Searching for ${bgy}...`, 'info');
+        showFlashMessage(`🔍 Searching for ${bgy}...`, 'info');
         if (typeof updateMapAddressLabel === 'function') updateMapAddressLabel(bgy, muni);
 
         // 1. Save current state
@@ -1226,11 +1383,7 @@ window.locateParcel = async function (barangay, municipality, province, index, p
             const c = [parcelLat, parcelLng];
             drawnItems.clearLayers();
             activeParcelIndex = index;
-            // High zoom for specific fields
-            landMap.setView(c, 18);
-            if (locateHighlight) landMap.removeLayer(locateHighlight);
-            locateHighlight = L.circle(c, { radius: 50, color: '#10b981', fillOpacity: 0.2 }).addTo(landMap);
-            showFlashMessage(`Precision Match: Parcel #${index + 1} located.`, 'success');
+            await _placeLocateLandmark(c, `Parcel #${index + 1}`, '#10b981', 18);
             return;
         }
 
@@ -1238,10 +1391,7 @@ window.locateParcel = async function (barangay, municipality, province, index, p
             const c = localMap[key];
             drawnItems.clearLayers();
             activeParcelIndex = index;
-            landMap.setView(c, 17);
-            if (locateHighlight) landMap.removeLayer(locateHighlight);
-            locateHighlight = L.circle(c, { radius: 100, color: '#10b981', fillOpacity: 0.15 }).addTo(landMap);
-            showFlashMessage(`Located ${bgy} (Instant Match)`, 'success');
+            await _placeLocateLandmark(c, `${bgy} Area`, '#10b981', 17);
             return;
         }
 
@@ -1252,15 +1402,12 @@ window.locateParcel = async function (barangay, municipality, province, index, p
             const c = [latVal, lngVal];
             drawnItems.clearLayers();
             activeParcelIndex = index;
-            landMap.setView(c, 18);
-            if (locateHighlight) landMap.removeLayer(locateHighlight);
-            locateHighlight = L.circle(c, { radius: 50, color: '#4f46e5', fillOpacity: 0.1 }).addTo(landMap);
-            showFlashMessage(`Centering on Encoded Coordinates`, 'success');
+            await _placeLocateLandmark(c, `Encoded Location`, '#4f46e5', 18);
             return;
         }
 
         // 5. GLOBAL SEARCH (Multi-Stage Fallback)
-        showFlashMessage('Querying Global GIS Database...', 'info');
+        showFlashMessage('🌐 Querying Global GIS Database...', 'info');
         
         const queries = [
             `${bgy}, ${muni}, ${prov}, Philippines`,
@@ -1270,18 +1417,16 @@ window.locateParcel = async function (barangay, municipality, province, index, p
 
         let foundC = null;
         let foundZoom = 17;
-        let foundMsg = '';
 
         for (let q of queries) {
             try {
                 const resp = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&limit=1`, {
-                    headers: { 'User-Agent': 'FarmConnectVerifier/1.1' }
+                    headers: { 'User-Agent': 'FarmConnectVerifier/2.0' }
                 });
                 const data = await resp.json();
                 if (data && data.length > 0) {
                     foundC = [parseFloat(data[0].lat), parseFloat(data[0].lon)];
                     foundZoom = q.includes(bgy) ? 17 : 14;
-                    foundMsg = `Located via: ${q}`;
                     break;
                 }
             } catch (e) { continue; }
@@ -1290,10 +1435,7 @@ window.locateParcel = async function (barangay, municipality, province, index, p
         if (foundC) {
             drawnItems.clearLayers();
             activeParcelIndex = index;
-            landMap.setView(foundC, foundZoom);
-            if (locateHighlight) landMap.removeLayer(locateHighlight);
-            locateHighlight = L.circle(foundC, { radius: 100, color: '#10b981', fillOpacity: 0.15 }).addTo(landMap);
-            showFlashMessage(foundMsg, 'success');
+            await _placeLocateLandmark(foundC, `${bgy || muni}`, '#10b981', foundZoom);
         } else {
             showFlashMessage(`Could not find specific location. Please use manual zoom.`, 'warning');
         }
