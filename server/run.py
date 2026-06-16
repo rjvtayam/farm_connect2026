@@ -1,6 +1,17 @@
 from gevent import monkey
 monkey.patch_all()
 
+# Suppress harmless gevent + Python 3.12 threading KeyError in Thread._delete()
+import threading
+_orig_delete = getattr(threading.Thread, '_delete', None)
+if _orig_delete:
+    def _safe_delete(self):
+        try:
+            _orig_delete(self)
+        except KeyError:
+            pass
+    threading.Thread._delete = _safe_delete
+
 import os
 from dotenv import load_dotenv
 
