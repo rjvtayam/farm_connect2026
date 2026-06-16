@@ -11,7 +11,6 @@ class Config:
     """Base configuration"""
     
     # Secret key for session management
-    # Falls back to a random key if not set — safe but forces re-login on restarts
     SECRET_KEY = os.environ.get('SECRET_KEY') or secrets.token_hex(32)
     if not os.environ.get('SECRET_KEY'):
         logging.getLogger(__name__).warning(
@@ -19,9 +18,12 @@ class Config:
             'Sessions will not persist across restarts. Set SECRET_KEY in .env for production.'
         )
     
-    # Database configuration for PostgreSQL (synchronous psycopg2 driver)
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
+    # Database configuration for PostgreSQL
+    # Render provides DATABASE_URL with sslmode=require — psycopg2 handles it natively
+    raw_db_url = os.environ.get('DATABASE_URL') or \
         'postgresql://postgres:postgre021600@localhost:5432/farm_connect_project2026'
+    # Render sometimes provides postgres:// instead of postgresql:// — SQLAlchemy 1.4+ rejects the former
+    SQLALCHEMY_DATABASE_URI = raw_db_url.replace('postgres://', 'postgresql://', 1)
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False  # Set to True for SQL debugging
     SQLALCHEMY_POOL_PRE_PING = True  # Test connections before using them
@@ -82,6 +84,7 @@ class ProductionConfig(Config):
     TESTING = False
     SESSION_COOKIE_SECURE = True  # Require HTTPS
     SESSION_COOKIE_SAMESITE = 'Lax'
+    RATELIMIT_STORAGE_URI = 'memory://'  # Keep in-process for free tier
     
 class TestingConfig(Config):
     """Testing configuration"""
