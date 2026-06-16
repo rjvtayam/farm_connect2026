@@ -3,6 +3,7 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/nfc_qr_feature/scanner.css') }}" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 {% endblock %}
 
 {% block content %}
@@ -272,7 +273,7 @@
 
                     <div class="purpose-image-container">
                         <img
-                            src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=800&q=80"
+                            src="{{ url_for('public.static', filename='images/features/team_collab.png') }}"
                             alt="Filipino Farmers Working Together"
                             class="purpose-image"
                             loading="lazy" />
@@ -354,7 +355,7 @@
                     enabling secure offline access even in remote barangays
                 </p>
                 <img
-                    src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=800&q=80"
+                    src="{{ url_for('public.static', filename='images/features/nfc_card.png') }}"
                     alt="NFC Card Authentication"
                     loading="lazy" />
             </div>
@@ -370,7 +371,7 @@
                     counts, and intervention metrics per municipality
                 </p>
                 <img
-                    src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=800&q=80"
+                    src="{{ url_for('public.static', filename='images/features/analytics.png') }}"
                     alt="Analytics Dashboard"
                     loading="lazy" />
             </div>
@@ -386,7 +387,7 @@
                     fishing zones, and barangay-level data visualization
                 </p>
                 <img
-                    src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=800&q=80"
+                    src="{{ url_for('public.static', filename='images/features/gis_map.png') }}"
                     alt="GIS Mapping"
                     loading="lazy" />
             </div>
@@ -402,7 +403,7 @@
                     programs with digital form processing
                 </p>
                 <img
-                    src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=800&q=80"
+                    src="{{ url_for('public.static', filename='images/features/registration.png') }}"
                     alt="Digital Registration"
                     loading="lazy" />
             </div>
@@ -418,7 +419,7 @@
                     with complete audit trail
                 </p>
                 <img
-                    src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=800&q=80"
+                    src="{{ url_for('public.static', filename='images/features/approval.png') }}"
                     alt="Team Workflow"
                     loading="lazy" />
             </div>
@@ -434,7 +435,7 @@
                     can only access their own beneficiary records
                 </p>
                 <img
-                    src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?auto=format&fit=crop&w=800&q=80"
+                    src="{{ url_for('public.static', filename='images/features/offline.png') }}"
                     alt="Data Security"
                     loading="lazy" />
             </div>
@@ -459,7 +460,7 @@
             <div class="feature-main">
                 <div class="feature-main-image-container">
                     <img
-                        src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=800&q=80"
+                        src="{{ url_for('public.static', filename='images/features/farm_mgmt.png') }}"
                         alt="Digital Agricultural Management"
                         class="feature-main-image"
                         id="mainFeatureImage" />
@@ -480,7 +481,7 @@
                 <!-- Feature 1 -->
                 <div class="feature-item active" data-feature="1">
                     <img
-                        src="https://images.unsplash.com/photo-1625246333195-78d9c38ad449?auto=format&fit=crop&w=400&q=80"
+                        src="{{ url_for('public.static', filename='images/features/unified_reg.png') }}"
                         alt="Unified Registration"
                         class="feature-item-image" />
                     <div class="feature-item-content">
@@ -493,7 +494,7 @@
                 <!-- Feature 2 -->
                 <div class="feature-item" data-feature="2">
                     <img
-                        src="https://images.unsplash.com/photo-1563986768494-4dee2763ff3f?auto=format&fit=crop&w=400&q=80"
+                        src="{{ url_for('public.static', filename='images/features/offline.png') }}"
                         alt="Offline Capability"
                         class="feature-item-image" />
                     <div class="feature-item-content">
@@ -506,7 +507,7 @@
                 <!-- Feature 3 -->
                 <div class="feature-item" data-feature="3">
                     <img
-                        src="https://images.unsplash.com/photo-1600880292203-757bb62b4baf?auto=format&fit=crop&w=400&q=80"
+                        src="{{ url_for('public.static', filename='images/features/approval.png') }}"
                         alt="Approval Workflow"
                         class="feature-item-image" />
                     <div class="feature-item-content">
@@ -519,7 +520,7 @@
                 <!-- Feature 4 -->
                 <div class="feature-item" data-feature="4">
                     <img
-                        src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=400&q=80"
+                        src="{{ url_for('public.static', filename='images/features/analytics.png') }}"
                         alt="Analytics Dashboard"
                         class="feature-item-image" />
                     <div class="feature-item-content">
@@ -532,7 +533,7 @@
                 <!-- Feature 5 -->
                 <div class="feature-item" data-feature="5">
                     <img
-                        src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=400&q=80"
+                        src="{{ url_for('public.static', filename='images/features/gis_map.png') }}"
                         alt="GIS Mapping"
                         class="feature-item-image" />
                     <div class="feature-item-content">
@@ -545,7 +546,7 @@
                 <!-- Feature 6 -->
                 <div class="feature-item" data-feature="6">
                     <img
-                        src="https://images.unsplash.com/photo-1563013544-824ae1b704d3?auto=format&fit=crop&w=400&q=80"
+                        src="{{ url_for('public.static', filename='images/features/nfc_card.png') }}"
                         alt="Multi-Factor Security"
                         class="feature-item-image" />
                     <div class="feature-item-content">
@@ -558,7 +559,7 @@
                 <!-- Feature 7 -->
                 <div class="feature-item" data-feature="7">
                     <img
-                        src="https://images.unsplash.com/photo-1450101499163-c8848c66ca85?auto=format&fit=crop&w=400&q=80"
+                        src="{{ url_for('public.static', filename='images/features/registration.png') }}"
                         alt="Document Management"
                         class="feature-item-image" />
                     <div class="feature-item-content">
@@ -571,7 +572,7 @@
                 <!-- Feature 8 -->
                 <div class="feature-item" data-feature="8">
                     <img
-                        src="https://images.unsplash.com/photo-1574943320219-553eb213f72d?auto=format&fit=crop&w=400&q=80"
+                        src="{{ url_for('public.static', filename='images/features/team_collab.png') }}"
                         alt="Municipality Isolation"
                         class="feature-item-image" />
                     <div class="feature-item-content">
@@ -1184,7 +1185,6 @@
 <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 <script src="{{ url_for('static', filename='js/nfc_qr_feature/scanner.js') }}"></script>
 <!-- Leaflet JS for Map (must load before main.js) -->
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 <!-- EmailJS -->

@@ -3093,3 +3093,302 @@ section {
     font-size: 1.25rem;
   }
 }
+
+/* ========================================
+   COMPREHENSIVE RESPONSIVE FIXES
+   ======================================== */
+
+/* Tablet landscape / small desktop */
+@media (max-width: 1024px) {
+  .capabilities-section h3 {
+    font-size: 2rem;
+  }
+
+  .newsletter-text h2 {
+    font-size: 2rem;
+  }
+
+  .showcase-heading h2 {
+    font-size: 2rem;
+  }
+
+  .hero-images {
+    gap: 1.5rem;
+  }
+}
+
+/* Tablet portrait */
+@media (max-width: 768px) {
+  .hero-content {
+    padding: 0 0.5rem;
+  }
+
+  .hero-badge {
+    font-size: 0.8rem;
+    padding: 0.6rem 1.2rem;
+  }
+
+  .hero-images {
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+
+  .hero-images .main-image,
+  .hero-images .floating-image {
+    max-width: 100%;
+    height: auto;
+  }
+
+  .capabilities-section h3 {
+    font-size: 1.75rem;
+    margin-bottom: 2rem;
+  }
+
+  .capabilities-section {
+    margin-top: 3rem;
+    padding: 2rem 0;
+    border-radius: 20px;
+  }
+
+  .capabilities-grid {
+    padding: 0 1rem;
+  }
+
+  .newsletter-text h2 {
+    font-size: 1.75rem;
+  }
+
+  .newsletter-text p {
+    font-size: 0.95rem;
+  }
+
+  .showcase-heading h2 {
+    font-size: 1.75rem;
+  }
+
+  .feature-main {
+    min-height: 300px;
+  }
+
+  .feature-main-image-container {
+    min-height: 300px;
+  }
+
+  .feature-item {
+    padding: 0.75rem;
+  }
+
+  .feature-item h3 {
+    font-size: 0.95rem;
+  }
+
+  .feature-item p {
+    font-size: 0.8rem;
+  }
+
+  .feature-item-image {
+    width: 60px;
+    height: 60px;
+  }
+
+  .purpose-image-container {
+    height: 350px;
+  }
+
+  .purpose-card {
+    padding: 1.25rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 576px) {
+  .hero h1 {
+    font-size: clamp(1.75rem, 6vw, 2.5rem);
+  }
+
+  .hero-badge {
+    font-size: 0.75rem;
+    padding: 0.5rem 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .hero-images {
+    margin-top: 1.5rem;
+    padding: 0;
+  }
+
+  .capabilities-section h3 {
+    font-size: 1.5rem;
+  }
+
+  .capabilities-grid {
+    gap: 0.75rem;
+    padding: 0 0.75rem;
+  }
+
+  .capability-card h4 {
+    font-size: 0.85rem;
+  }
+
+  .capability-card p {
+    font-size: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .capability-card img {
+    height: 70px;
+  }
+
+  .showcase-heading h2 {
+    font-size: 1.5rem;
+  }
+
+  .showcase-heading p {
+    font-size: 0.9rem;
+  }
+
+  .feature-main {
+    min-height: 250px;
+  }
+
+  .feature-main-image-container {
+    min-height: 250px;
+  }
+
+  .feature-main-overlay {
+    padding: 1rem;
+  }
+
+  .feature-main-overlay h2 {
+    font-size: 1.25rem;
+  }
+
+  .feature-main-overlay p {
+    font-size: 0.875rem;
+  }
+
+  .feature-list {
+    max-height: 350px;
+  }
+
+  .feature-item {
+    padding: 0.6rem;
+    gap: 0.6rem;
+  }
+
+  .feature-item-image {
+    width: 50px;
+    height: 50px;
+    border-radius: 8px;
+  }
+
+  .feature-item h3 {
+    font-size: 0.85rem;
+  }
+
+  .feature-item p {
+    font-size: 0.75rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .newsletter-content {
+    padding: 1.5rem;
+  }
+
+  .newsletter-text h2 {
+    font-size: 1.5rem;
+  }
+
+  .newsletter-text p {
+    font-size: 0.875rem;
+  }
+
+  .purpose-image-container {
+    height: 280px;
+  }
+
+  .purpose-card {
+    padding: 1rem;
+  }
+
+  .purpose-card h3 {
+    font-size: 1.25rem;
+  }
+
+  .purpose-card p {
+    font-size: 0.875rem;
+  }
+
+  .contact-top {
+    gap: 1.5rem;
+  }
+
+  .form-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .map-container {
+    height: 280px;
+  }
+
+  .community-cta-content h3 {
+    font-size: 1.1rem;
+  }
+
+  .community-cta-content p {
+    font-size: 0.875rem;
+  }
+}
+
+/* Small phones */
+@media (max-width: 380px) {
+  .hero h1 {
+    font-size: 1.5rem;
+  }
+
+  .hero-badge {
+    font-size: 0.7rem;
+  }
+
+  .capabilities-section h3 {
+    font-size: 1.35rem;
+  }
+
+  .capability-card {
+    padding: 0.75rem;
+  }
+
+  .capability-card img {
+    height: 60px;
+  }
+
+  .showcase-heading h2 {
+    font-size: 1.35rem;
+  }
+
+  .feature-item {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .feature-item-image {
+    width: 100%;
+    height: 100px;
+  }
+
+  .newsletter-text h2 {
+    font-size: 1.35rem;
+  }
+
+  .map-container {
+    height: 250px;
+  }
+}
