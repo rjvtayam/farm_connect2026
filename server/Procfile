@@ -1,1 +1,1 @@
-web: gunicorn run:flask_app --worker-class gevent --bind 0.0.0.0:$PORT --timeout 120
+web: flask init-db && gunicorn run:flask_app --worker-class gevent --bind 0.0.0.0:$PORT --timeout 120
