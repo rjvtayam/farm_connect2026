@@ -189,7 +189,7 @@ def login():
                 return response
 
             # ── Standard 2FA Flow (if enabled and not trusted) ────────
-            otp_code = ''.join(random.choices(string.digits, k=6))
+            otp_code = ''.join(secrets.choice(string.digits) for _ in range(6))
             
             # Store in session
             session['2fa_user_id'] = user.id
@@ -395,7 +395,7 @@ def api_login():
             return resp
 
         # ── Standard 2FA Flow (if enabled and not trusted) ────────
-        otp_code = ''.join(random.choices(string.digits, k=6))
+        otp_code = ''.join(secrets.choice(string.digits) for _ in range(6))
         
         # Store in session
         session['2fa_user_id'] = user.id
@@ -656,14 +656,13 @@ def resend_2fa():
         return jsonify({'success': False, 'message': 'User not found. Please login again.'}), 404
     
     try:
-        import random
         import string
         from threading import Thread
         from flask_mail import Message
         from app.extensions import mail
         
         # Generate new OTP
-        otp_code = ''.join(random.choices(string.digits, k=6))
+        otp_code = ''.join(secrets.choice(string.digits) for _ in range(6))
         session['login_otp'] = otp_code
         
         current_app.logger.info(f"Resend OTP for user '{user.username}' (role: {user.role})")

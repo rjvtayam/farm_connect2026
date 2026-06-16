@@ -370,43 +370,42 @@ def submit_registration():
     data = request.get_json()
     
     try:
-        # Create Beneficiary first (or find existing?)
-        # For simplicity, we assume new beneficiary creation or update logic here
-        # In a real app, we'd check if beneficiary exists by RSBSA ID or Name
+        # 1. Create/Update Beneficiary (with deduplication)
+        from app.utils.beneficiary_helpers import upsert_beneficiary
         
-        # 1. Create/Update Beneficiary
-        # Check if beneficiary data is nested or flat. 
-        # The form likely sends a mix. We need to extract beneficiary fields.
+        dob = None
+        if data.get('dateOfBirth'):
+            try:
+                dob = datetime.strptime(data.get('dateOfBirth'), '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                dob = None
         
-        # Simplified for now: Create new Beneficiary every time or check duplicates
-        # Ideally, we should check `rsbsa_id` if provided.
-        
-        beneficiary = Beneficiary(
+        beneficiary = upsert_beneficiary(
             first_name=data.get('firstName'),
             last_name=data.get('surname'),
-            middle_name=data.get('middleName'),
-            extension_name=data.get('extensionName'),
-            sex=data.get('sex'),
-            date_of_birth=datetime.strptime(data.get('dateOfBirth'), '%Y-%m-%d').date() if data.get('dateOfBirth') else None,
-            civil_status=data.get('civilStatus'),
-            spouse_name=data.get('spouseName'),
-            address_street=f"{data.get('houseNo', '')} {data.get('street', '')}".strip(),
-            barangay=data.get('barangay'),
-            municipality=data.get('municipality', current_user.municipality), # Allow cross-town registration if provided
-            province=data.get('province'),
-            region=data.get('region'),
-            mobile_number=data.get('mobileNumber'),
-            landline=data.get('landlineNumber'),
-            is_pwd=data.get('pwd') == 'Yes',
-            is_4ps=data.get('fourPs') == 'Yes',
-            is_ip=data.get('indigenous') == 'Yes',
-            ip_group=data.get('indigenousSpecify'),
-            religion=data.get('religion'),
-            emergency_contact_name=data.get('emergencyPerson'),
-            emergency_contact_no=data.get('emergencyContact')
+            date_of_birth=dob,
+            extra_fields={
+                'middle_name': data.get('middleName'),
+                'extension_name': data.get('extensionName'),
+                'sex': data.get('sex'),
+                'civil_status': data.get('civilStatus'),
+                'spouse_name': data.get('spouseName'),
+                'address_street': f"{data.get('houseNo', '')} {data.get('street', '')}".strip(),
+                'barangay': data.get('barangay'),
+                'municipality': data.get('municipality', current_user.municipality),
+                'province': data.get('province'),
+                'region': data.get('region'),
+                'mobile_number': data.get('mobileNumber'),
+                'landline': data.get('landlineNumber'),
+                'is_pwd': data.get('pwd') == 'Yes',
+                'is_4ps': data.get('fourPs') == 'Yes',
+                'is_ip': data.get('indigenous') == 'Yes',
+                'ip_group': data.get('indigenousSpecify'),
+                'religion': data.get('religion'),
+                'emergency_contact_name': data.get('emergencyPerson'),
+                'emergency_contact_no': data.get('emergencyContact'),
+            }
         )
-        db.session.add(beneficiary)
-        db.session.flush() # Get ID
         
         # 2. Create Registration — detect form type from payload
         form_type = data.get('formType', data.get('form_type', 'rsba')).lower()

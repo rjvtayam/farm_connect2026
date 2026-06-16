@@ -32,6 +32,8 @@ class CommunityMember(UserMixin, db.Model):
     # Status
     is_active = db.Column(db.Boolean, default=True)
     is_verified = db.Column(db.Boolean, default=False)
+    verification_token = db.Column(db.String(255), nullable=True)
+    verification_expires = db.Column(db.DateTime, nullable=True)
     last_login_at = db.Column(db.DateTime, nullable=True)
     last_activity = db.Column(db.DateTime, default=datetime.utcnow)
 

@@ -73,10 +73,13 @@ def get_posts():
 
 
 @community_bp.route('/api/posts', methods=['POST'])
-@csrf.exempt
 @login_required
 def create_post():
     """Create a new community post."""
+    # Require email verification for community members
+    if hasattr(current_user, 'is_verified') and not getattr(current_user, 'is_verified', True):
+        return jsonify({'success': False, 'message': 'Please verify your email before posting. Check your inbox for the verification link.'}), 403
+
     data = request.get_json(force=True) or {}
     content = (data.get('content') or '').strip()
 
@@ -107,7 +110,6 @@ def create_post():
 
 
 @community_bp.route('/api/posts/<int:post_id>', methods=['DELETE'])
-@csrf.exempt
 @login_required
 def delete_post(post_id):
     """Delete own post (or admin can delete any)."""
@@ -128,7 +130,6 @@ ALLOWED_REACTIONS = {'like', 'love', 'haha', 'wow', 'sad', 'angry'}
 
 
 @community_bp.route('/api/posts/<int:post_id>/react', methods=['POST'])
-@csrf.exempt
 @login_required
 def toggle_reaction(post_id):
     """Toggle a reaction on a post. Same type again = remove."""
@@ -196,7 +197,6 @@ def get_comments(post_id):
 
 
 @community_bp.route('/api/posts/<int:post_id>/comments', methods=['POST'])
-@csrf.exempt
 @login_required
 def add_comment(post_id):
     """Add a comment to a post."""
@@ -226,7 +226,6 @@ def add_comment(post_id):
 
 
 @community_bp.route('/api/comments/<int:comment_id>', methods=['DELETE'])
-@csrf.exempt
 @login_required
 def delete_comment(comment_id):
     """Delete own comment (or admin can delete any)."""

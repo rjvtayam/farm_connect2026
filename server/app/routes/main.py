@@ -3,10 +3,21 @@ Farm Connect - Main Routes
 Serves general pages and handles role-based redirects
 """
 
-from flask import Blueprint, render_template, redirect, url_for
+import os
+from flask import Blueprint, render_template, redirect, url_for, send_file, make_response
 from flask_login import current_user
 
 main_bp = Blueprint('main', __name__)
+
+
+@main_bp.route('/sw.js')
+def service_worker():
+    """Serve the service worker from root path (required for SW scope)."""
+    sw_path = os.path.join(os.path.dirname(__file__), '..', '..', '..', 'client', 'public', 'sw.js')
+    sw_path = os.path.normpath(sw_path)
+    response = make_response(send_file(sw_path, mimetype='application/javascript'))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    return response
 
 @main_bp.route('/')
 def index():

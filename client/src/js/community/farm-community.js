@@ -28,6 +28,11 @@ let currentPage = 1;
 let hasNextPage = false;
 let isLoading = false;
 let activeFilter = 'all';
+
+/* ── CSRF Helper ── */
+function getCsrfToken() {
+    return document.querySelector('meta[name="csrf-token"]')?.content || '';
+}
 let activeTopic = '';
 let searchQuery = '';
 let selectedPostTopic = '';
@@ -308,7 +313,10 @@ function createPost(textarea, submitBtn) {
     fetch('/community/api/posts', {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
         body: JSON.stringify(body),
     })
         .then(r => r.json())
@@ -362,7 +370,11 @@ function deletePost(postId, article) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`/community/api/posts/${postId}`, { method: 'DELETE', credentials: 'include' })
+            fetch(`/community/api/posts/${postId}`, { 
+                method: 'DELETE', 
+                credentials: 'include',
+                headers: { 'X-CSRFToken': getCsrfToken() }
+            })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {
@@ -384,7 +396,10 @@ function toggleReaction(postId, type, article) {
     fetch(`/community/api/posts/${postId}/react`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
         body: JSON.stringify({ type }),
     })
         .then(r => r.json())
@@ -455,7 +470,10 @@ function submitComment(postId, input, article) {
     fetch(`/community/api/posts/${postId}/comments`, {
         method: 'POST',
         credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCsrfToken()
+        },
         body: JSON.stringify({ content }),
     })
         .then(r => r.json())
@@ -489,7 +507,11 @@ window.deleteComment = function (commentId, btn) {
         confirmButtonText: 'Yes, delete it!'
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch(`/community/api/comments/${commentId}`, { method: 'DELETE', credentials: 'include' })
+            fetch(`/community/api/comments/${commentId}`, { 
+                method: 'DELETE', 
+                credentials: 'include',
+                headers: { 'X-CSRFToken': getCsrfToken() }
+            })
                 .then(r => r.json())
                 .then(data => {
                     if (data.success) {

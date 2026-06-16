@@ -9,7 +9,8 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from app.extensions import db, csrf
 from app.models.registration import Registration
-from app.routes.forms.forms import forms_bp, _upsert_beneficiary, _notify_roles, _safe_date
+from app.routes.forms.forms import forms_bp, _notify_roles, _safe_date
+from app.utils.beneficiary_helpers import upsert_beneficiary
 from app.socket_handlers import broadcast_new_submission
 
 ALLOWED_EXTENSIONS = {'csv', 'xlsx', 'xls'}
@@ -18,7 +19,6 @@ def _allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @forms_bp.route('/import/mass', methods=['POST'])
-@csrf.exempt
 @login_required
 def mass_import():
     """
@@ -110,7 +110,7 @@ def mass_import():
             first_name = first_name[:100]
             last_name = last_name[:100]
 
-            bene = _upsert_beneficiary(first_name, last_name, dob, {
+            bene = upsert_beneficiary(first_name, last_name, dob, {
                 'middle_name': middle_name,
                 'extension_name': ext_name,
                 'sex': sex,
@@ -198,10 +198,10 @@ def mass_import():
     if os.path.exists(file_path):
         os.remove(file_path)
         
-    print(f"DEBUG MASS IMPORT: {len(errors)} errors found.")
+    current_app.logger.debug(f"Mass import completed: {success_count} success, {len(errors)} errors.")
     if errors:
         for err in errors[:20]:
-            print(" ->", err)
+            current_app.logger.debug(f"Import error: {err}")
         
     summary = {
         'success': True,

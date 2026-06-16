@@ -23,6 +23,7 @@ from app.routes.forms.pdf_generator import (
     generate_ncfrs_pdf,
 )
 from app.socket_handlers import broadcast_new_submission, broadcast_new_notification
+from app.utils.beneficiary_helpers import upsert_beneficiary, _clean_name
 
 forms_bp = Blueprint('forms', __name__)
 
@@ -135,50 +136,6 @@ def _notify_roles(roles, municipality, message, notif_type, ref_id):
         db.session.rollback()
 
 
-def _clean_name(val):
-    """Clean name input: strip whitespace and convert 'None' or empty to None."""
-    if not val:
-        return None
-    s = str(val).strip()
-    if s.lower() == 'none' or not s:
-        return None
-    return s
-
-
-def _upsert_beneficiary(first_name, last_name, dob, extra_fields: dict) -> Beneficiary:
-    """
-    Find an existing beneficiary by name + DOB, or create a new one.
-    `extra_fields` contains any additional columns to set on the model.
-    """
-    first_name = _clean_name(first_name)
-    last_name = _clean_name(last_name)
-    
-    bene = Beneficiary.query.filter_by(
-        first_name=first_name,
-        last_name=last_name,
-        date_of_birth=dob,
-    ).first()
-
-    if bene is None:
-        bene = Beneficiary(
-            first_name=first_name,
-            last_name=last_name,
-            date_of_birth=dob,
-        )
-        db.session.add(bene)
-
-    # Apply / update extra fields
-    for col, val in extra_fields.items():
-        if hasattr(bene, col):
-            # Clean name-related fields
-            if col in ['middle_name', 'extension_name']:
-                val = _clean_name(val)
-            setattr(bene, col, val)
-
-    db.session.flush()   # gives bene.id without committing yet
-    return bene
-
-
 # ── Page rendering routes ────────────────────────────────────────────────────
 
 @forms_bp.route('/rsba-enrollment')
@@ -204,7 +161,7 @@ def ncfrs():
 # ── PDF Download routes ──────────────────────────────────────────────────────
 
 @forms_bp.route('/download/rsba-enrollment', methods=['POST'])
-@csrf.exempt
+@login_required
 def download_rsba():
     """Receive form JSON data and return a pre-filled RSBSA PDF."""
     data = request.get_json(force=True) or {}
@@ -222,7 +179,7 @@ def download_rsba():
 
 
 @forms_bp.route('/download/fish-registration', methods=['POST'])
-@csrf.exempt
+@login_required
 def download_fish():
     """Receive form JSON data and return a pre-filled Fish Registration PDF."""
     data = request.get_json(force=True) or {}
@@ -239,7 +196,7 @@ def download_fish():
 
 
 @forms_bp.route('/download/boat-registration', methods=['POST'])
-@csrf.exempt
+@login_required
 def download_boat():
     """Receive form JSON data and return a pre-filled Boat Registration PDF."""
     data = request.get_json(force=True) or {}
@@ -256,7 +213,7 @@ def download_boat():
 
 
 @forms_bp.route('/download/ncfrs', methods=['POST'])
-@csrf.exempt
+@login_required
 def download_ncfrs():
     """Receive form JSON data and return a pre-filled NCFRS PDF."""
     data = request.get_json(force=True) or {}
@@ -275,7 +232,6 @@ def download_ncfrs():
 # ── Form Submission routes (save to DB) ──────────────────────────────────────
 
 @forms_bp.route('/submit/rsbsa', methods=['POST'])
-@csrf.exempt
 @login_required
 def submit_rsbsa():
     """Save RSBSA enrollment to the database."""
@@ -292,7 +248,7 @@ def submit_rsbsa():
 
     try:
         dob = _safe_date(pi.get('dateOfBirth'))
-        bene = _upsert_beneficiary(first_name, last_name, dob, {
+        bene = upsert_beneficiary(first_name, last_name, dob, {
             'middle_name':    pi.get('middleName') or pi.get('middle_name'),
             'extension_name': pi.get('extensionName') or pi.get('extension_name') or pi.get('suffix') or pi.get('appellation'),
             'sex':            pi.get('sex'),
@@ -356,7 +312,6 @@ def submit_rsbsa():
 
 
 @forms_bp.route('/upload/gpx', methods=['POST'])
-@csrf.exempt
 @login_required
 def upload_gpx():
     """Upload a GPX track file and optionally link to a registration."""
@@ -393,7 +348,6 @@ def upload_gpx():
 
 
 @forms_bp.route('/submit/fish', methods=['POST'])
-@csrf.exempt
 @login_required
 def submit_fish():
     """Save Fisherfolk Registration to the database."""
@@ -408,7 +362,7 @@ def submit_fish():
 
     try:
         dob = _safe_date(pi.get('dateOfBirth'))
-        bene = _upsert_beneficiary(first_name, last_name, dob, {
+        bene = upsert_beneficiary(first_name, last_name, dob, {
             'middle_name':    pi.get('middleName') or pi.get('middle_name'),
             'extension_name': pi.get('appellation') or pi.get('extensionName') or pi.get('suffix'),
             'sex':            pi.get('gender'),
@@ -461,7 +415,6 @@ def submit_fish():
 
 
 @forms_bp.route('/submit/boat', methods=['POST'])
-@csrf.exempt
 @login_required
 def submit_boat():
     """Save Boat Registration to the database."""
@@ -478,7 +431,7 @@ def submit_boat():
     last_name  = parts[-1] if len(parts) > 1 else parts[0] if parts else ''
 
     try:
-        bene = _upsert_beneficiary(first_name, last_name, None, {
+        bene = upsert_beneficiary(first_name, last_name, None, {
             'address_street': owner.get('address'),
             'municipality':   d.get('municipality'),
             'province':       d.get('province'),
@@ -521,7 +474,6 @@ def submit_boat():
 
 
 @forms_bp.route('/submit/ncfrs', methods=['POST'])
-@csrf.exempt
 @login_required
 def submit_ncfrs():
     """Save NCFRS enrollment to the database."""
@@ -536,7 +488,7 @@ def submit_ncfrs():
 
     try:
         dob = _safe_date(pi.get('dateOfBirth'))
-        bene = _upsert_beneficiary(first_name, last_name, dob, {
+        bene = upsert_beneficiary(first_name, last_name, dob, {
             'middle_name':    pi.get('middleName') or pi.get('middle_name'),
             'extension_name': pi.get('suffix') or pi.get('extensionName') or pi.get('appellation'),
             'sex':            pi.get('sex'),

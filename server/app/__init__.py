@@ -78,7 +78,7 @@ def create_app(config_name='development'):
     @app.before_request
     def check_maintenance_mode():
         from flask_login import current_user
-        from flask import request as req
+        from flask import request as req, render_template
         if app.config.get('MAINTENANCE_MODE', False):
             # Allow admin panel, static files, auth routes, and the maintenance page itself
             allowed_prefixes = ('/admin', '/auth', '/static', '/public', '/health', '/maintenance')
@@ -128,6 +128,8 @@ def create_app(config_name='development'):
     from app.routes.community import community_bp
     from app.routes.auth.community_auth import community_auth_bp
     from app.routes.nfc_qr_feature.scanner import scanner_bp
+    from app.routes.api.search import search_bp
+    from app.routes.reports import reports_bp
     from flask import Blueprint
     
     # Register public folder as static asset source
@@ -152,6 +154,8 @@ def create_app(config_name='development'):
     app.register_blueprint(community_bp, url_prefix='/community')
     app.register_blueprint(community_auth_bp, url_prefix='/auth')
     app.register_blueprint(scanner_bp, url_prefix='/api/scanner')
+    app.register_blueprint(search_bp)
+    app.register_blueprint(reports_bp, url_prefix='/reports')
     
     # ── Error Handlers ────────────────────────────────────────────────────
     @app.errorhandler(400)

@@ -7,6 +7,12 @@
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>{% block title %}Farm Connect{% endblock %}</title>
 
+    <!-- PWA -->
+    <link rel="manifest" href="{{ url_for('public.static', filename='favicon/site.webmanifest') }}">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
     <!-- Fonts and Icons -->
     <link
       href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
@@ -213,6 +219,17 @@
     
     <!-- Page specific scripts -->
     {% block scripts %}{% endblock %}
+
+    <!-- Service Worker Registration -->
+    <script>
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/sw.js')
+                .then(reg => console.log('SW registered:', reg.scope))
+                .catch(() => {});
+        });
+    }
+    </script>
   </body>
 
 </html>

@@ -1,4 +1,5 @@
 from flask import Blueprint, jsonify, request
+from flask_login import login_required, current_user
 from app.models.registration import Beneficiary, Registration
 from sqlalchemy import or_
 
@@ -7,6 +8,7 @@ scanner_bp = Blueprint('scanner', __name__)
 from app.extensions import limiter
 
 @scanner_bp.route('/beneficiary/<uid>', methods=['GET'])
+@login_required
 @limiter.limit("20 per minute")
 def get_beneficiary_details(uid):
     """
@@ -24,6 +26,11 @@ def get_beneficiary_details(uid):
 
         if not beneficiary:
             return jsonify({'success': False, 'message': 'Beneficiary not found.'}), 404
+
+        # Municipality check — users can only access beneficiaries in their area
+        if hasattr(current_user, 'municipality') and current_user.municipality:
+            if beneficiary.municipality and beneficiary.municipality.lower() != current_user.municipality.lower():
+                return jsonify({'success': False, 'message': 'Beneficiary not found.'}), 404
 
         # Fetch registrations
         registrations = Registration.query.filter_by(
