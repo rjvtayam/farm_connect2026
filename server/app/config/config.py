@@ -20,10 +20,14 @@ class Config:
     
     # Database configuration for PostgreSQL
     # Render provides DATABASE_URL with sslmode=require — psycopg2 handles it natively
-    raw_db_url = os.environ.get('DATABASE_URL') or \
-        'postgresql://postgres:postgre021600@localhost:5432/farm_connect_project2026'
+    raw_db_url = (os.environ.get('DATABASE_URL') or '').strip()
     # Render sometimes provides postgres:// instead of postgresql:// — SQLAlchemy 1.4+ rejects the former
-    SQLALCHEMY_DATABASE_URI = raw_db_url.replace('postgres://', 'postgresql://', 1)
+    if raw_db_url:
+        raw_db_url = raw_db_url.replace('postgres://', 'postgresql://', 1)
+    else:
+        # Fallback for local development only
+        raw_db_url = 'postgresql://postgres:postgre021600@localhost:5432/farm_connect_project2026'
+    SQLALCHEMY_DATABASE_URI = raw_db_url
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     SQLALCHEMY_ECHO = False  # Set to True for SQL debugging
     SQLALCHEMY_POOL_PRE_PING = True  # Test connections before using them
