@@ -2,7 +2,7 @@
 Farm Connect - Verifier Panel Routes
 """
 
-from flask import Blueprint, render_template, jsonify, request, Response
+from flask import Blueprint, render_template, jsonify, request, Response, current_app
 from flask_login import login_required, current_user
 import io
 import csv
@@ -735,8 +735,8 @@ def activity_feed():
                 'timestamp': r.updated_at.isoformat() if r.updated_at else (r.created_at.isoformat() if r.created_at else None),
                 'type': act_type
             })
-    except Exception:
-        pass
+    except Exception as e:
+        current_app.logger.error("Error fetching verifier activity feed: %s", e, exc_info=True)
     
     result = {'success': True, 'activities': activities}
     cache.set(cache_key, result, timeout=120)

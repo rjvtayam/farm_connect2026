@@ -448,6 +448,39 @@ def activity_feed():
     cache.set(cache_key, result, timeout=120)
     return jsonify(result)
 
+@admin_bp.route('/api/activity-log/export', methods=['GET'])
+@admin_required
+def export_activity_log():
+    """Export full activity log as CSV (not limited to 10 items)"""
+    import csv
+    import io
+    from flask import Response
+
+    muni = current_user.municipality
+    logs = db.session.query(AuditLog, User).join(User, AuditLog.user_id == User.id).filter(
+        User.municipality == muni
+    ).order_by(AuditLog.timestamp.desc()).all()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Timestamp', 'User', 'Role', 'Action', 'Details', 'IP Address'])
+    for log, user in logs:
+        writer.writerow([
+            log.timestamp.strftime('%Y-%m-%d %H:%M:%S') if log.timestamp else '',
+            user.full_name,
+            user.role,
+            log.action,
+            log.details or '',
+            log.ip_address or ''
+        ])
+
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=activity_log_{datetime.utcnow().strftime("%Y%m%d")}.csv'}
+    )
+
 # ── Notification API Endpoints (Consolidated) ──────────────────────────────────
 from app.utils.notification_helpers import (
     get_user_notifications, get_unread_count,
@@ -516,23 +549,36 @@ def get_online_users():
 @admin_bp.route('/api/gis/activity-heatmap', methods=['GET'])
 @admin_required
 def activity_heatmap():
-    """Get heatmap points for staff activity and submissions"""
-    # In a real app, we would query the Registration model for counts per barangay
-    # and use that as the intensity. For now, we'll provide simulated intensities
-    # that feel realistic based on the municipality.
-    points = []
-    
-    # Simulation: Points with [lat, lng, intensity]
-    # In production: points = [[b.lat, b.lng, b.submission_count] for b in barangays]
-    for name, coords in BARANGAY_COORDS.items():
-        # Mix of intensities for visual variety
-        intensity = 0.4 if 'Mabitac' in name else 0.7 if 'Pag' in name else 0.5
-        points.append([coords[0], coords[1], intensity])
+    """Get heatmap points for staff activity and submissions — real data"""
+    muni = current_user.municipality
+    if not muni:
+        return jsonify({'success': False, 'message': 'Municipality not assigned'}), 400
 
-    return jsonify({
-        'success': True,
-        'points': points
-    })
+    # Count non-deleted registrations per barangay
+    rows = db.session.query(
+        Beneficiary.barangay,
+        func.count(Registration.id).label('cnt')
+    ).join(Beneficiary, Registration.beneficiary_id == Beneficiary.id).filter(
+        Beneficiary.municipality == muni,
+        Registration.is_deleted == False
+    ).group_by(Beneficiary.barangay).all()
+
+    max_count = max((r.cnt for r in rows), default=1) or 1
+
+    points = []
+    for row in rows:
+        coords = BARANGAY_COORDS.get(row.barangay)
+        if not coords:
+            continue
+        intensity = row.cnt / max_count
+        points.append([coords[0], coords[1], round(intensity, 2)])
+
+    # Include barangays with zero submissions as background
+    for name, coords in BARANGAY_COORDS.items():
+        if not any(r.barangay == name for r in rows):
+            points.append([coords[0], coords[1], 0.0])
+
+    return jsonify({'success': True, 'points': points})
 
 @admin_bp.route('/api/gis/all-submissions', methods=['GET'])
 @admin_required

@@ -560,8 +560,8 @@
                         </div>
                     </div>
 
-                    <!-- Card 3: Analytics PDF (Coming Soon) -->
-                    <div class="rpt-card rpt-card--muted">
+                    <!-- Card 3: Throughput Report PDF -->
+                    <div class="rpt-card">
                         <div class="rpt-card-accent" style="background: linear-gradient(135deg, #3b82f6, #06b6d4);"></div>
                         <div class="rpt-card-body">
                             <div class="rpt-card-header-row">
@@ -570,7 +570,6 @@
                                 </div>
                                 <div class="rpt-card-badges">
                                     <span class="rpt-badge rpt-badge--blue">PDF</span>
-                                    <span class="rpt-badge rpt-badge--coming">Coming Soon</span>
                                 </div>
                             </div>
                             <h3 class="rpt-card-title">Monthly Throughput Report</h3>
@@ -583,13 +582,12 @@
                             </ul>
                             <div class="rpt-card-meta">
                                 <span class="rpt-meta-item"><i class="fas fa-file-pdf"></i> .PDF format</span>
-                                <span class="rpt-meta-item"><i class="fas fa-hourglass-half"></i> Next release</span>
                             </div>
                         </div>
                         <div class="rpt-card-footer">
-                            <button class="rpt-btn rpt-btn--blue" onclick="showToast('Throughput PDF report is being prepared for the next release.', 'info')">
-                                <i class="fas fa-bell"></i>
-                                <span>Notify Me When Ready</span>
+                            <button class="rpt-btn rpt-btn--blue" onclick="window.location.href='/reports/verifier/throughput'">
+                                <i class="fas fa-download"></i>
+                                <span>Download Throughput PDF</span>
                                 <i class="fas fa-arrow-right rpt-btn-arrow"></i>
                             </button>
                         </div>
@@ -770,7 +768,7 @@
                                         <h4 class="settings-2fa-title">Authenticator App</h4>
                                         <p class="settings-2fa-desc">Add an extra layer of security to your account.</p>
                                     </div>
-                                    <button class="btn btn-secondary btn-sm" onclick="showFlashMessage('2FA will be available in the next security update.', 'info')">
+                                    <button class="btn btn-secondary btn-sm" onclick="window.location.href='/auth/enable-2fa'">
                                         Enable 2FA
                                     </button>
                                 </div>

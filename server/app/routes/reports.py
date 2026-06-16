@@ -19,7 +19,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from app.extensions import db, cache
 from app.models.registration import Registration, Beneficiary
 from app.models.user import User
-from app.routes.auth import mao_required, admin_required, encoder_required
+from app.routes.auth import mao_required, admin_required, encoder_required, verifier_required
 
 reports_bp = Blueprint('reports', __name__)
 
@@ -400,4 +400,87 @@ def encoder_productivity_report():
         mimetype='application/pdf',
         as_attachment=True,
         download_name=f'Encoder_Report_{current_user.full_name.replace(" ", "_")}_{datetime.utcnow().strftime("%Y%m%d")}.pdf'
+    )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Verifier Throughput Report
+# ─────────────────────────────────────────────────────────────────────────────
+
+@reports_bp.route('/verifier/throughput', methods=['GET'])
+@verifier_required
+def verifier_throughput_report():
+    """Generate verifier personal throughput PDF report."""
+    from sqlalchemy import func
+
+    user_id = current_user.id
+    muni = current_user.municipality
+
+    # Reviews performed by this verifier (via verified_by field)
+    base = Registration.query.filter(
+        Registration.verified_by == user_id,
+        Registration.is_deleted == False
+    )
+    total_reviewed = base.count()
+    approved = base.filter(Registration.status == 'approved').count()
+    rejected = base.filter(Registration.status == 'rejected').count()
+    pending = Registration.query.join(Beneficiary).filter(
+        Beneficiary.municipality.ilike(f'%{muni}%'),
+        Registration.status == 'verified',
+        Registration.is_deleted == False
+    ).count()
+
+    # By form type
+    type_stats = db.session.query(
+        Registration.form_type,
+        func.count(Registration.id).label('count')
+    ).filter(
+        Registration.verified_by == user_id,
+        Registration.is_deleted == False
+    ).group_by(Registration.form_type).all()
+
+    # Last 30 days
+    thirty_days_ago = datetime.utcnow() - timedelta(days=30)
+    recent_total = base.filter(Registration.updated_at >= thirty_days_ago).count()
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter, topMargin=30, bottomMargin=30)
+    styles = _build_styles()
+    elements = []
+
+    elements.append(Paragraph("Verifier Throughput Report", styles['ReportTitle']))
+    elements.append(Paragraph(f"Verifier: {current_user.full_name} | Generated: {datetime.utcnow().strftime('%B %d, %Y %H:%M UTC')}", styles['ReportSubtitle']))
+    elements.append(HRFlowable(width='100%', thickness=1, color=colors.HexColor('#d1d5db')))
+    elements.append(Spacer(1, 12))
+
+    elements.append(Paragraph("Review Summary", styles['SectionHeader']))
+    stats_data = [
+        ['Metric', 'Count'],
+        ['Total Reviews', str(total_reviewed)],
+        ['Approved', str(approved)],
+        ['Rejected', str(rejected)],
+        ['Pending Approval', str(pending)],
+        ['Last 30 Days', str(recent_total)],
+    ]
+    elements.append(_make_table(stats_data))
+    elements.append(Spacer(1, 12))
+
+    if type_stats:
+        elements.append(Paragraph("By Form Type", styles['SectionHeader']))
+        type_data = [['Form Type', 'Count']]
+        for row in type_stats:
+            type_data.append([row.form_type.upper() if row.form_type else 'Unknown', str(row.count)])
+        elements.append(_make_table(type_data))
+
+    elements.append(Spacer(1, 20))
+    elements.append(HRFlowable(width='100%', thickness=0.5, color=colors.HexColor('#d1d5db')))
+    elements.append(Paragraph(f"Farm Connect 2026 — {muni} Municipal Agriculture Office", styles['FooterNote']))
+
+    doc.build(elements)
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype='application/pdf',
+        as_attachment=True,
+        download_name=f'Verifier_Report_{current_user.full_name.replace(" ", "_")}_{datetime.utcnow().strftime("%Y%m%d")}.pdf'
     )
