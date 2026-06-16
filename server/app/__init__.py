@@ -209,5 +209,53 @@ def create_app(config_name='development'):
             status['database'] = 'error'
             status['status'] = 'degraded'
         return jsonify(status), 200 if status['status'] == 'ok' else 503
-    
+
+    # ── Flask CLI: flask init-db ────────────────────────────────────────
+    @app.cli.command('init-db')
+    def init_db_command():
+        """Create all tables and seed admin user. Run via: flask init-db"""
+        import os
+        from werkzeug.security import generate_password_hash
+
+        with app.app_context():
+            # Import all models so SQLAlchemy knows about them
+            from app.models.user import User
+            from app.models.registration import Registration, Beneficiary
+            from app.models.community_member import CommunityMember
+            from app.models.audit_log import AuditLog
+            from app.models.notification import Notification
+            from app.models.community import CommunityPost, PostReaction, PostComment
+
+            db.create_all()
+            print("[OK] All tables created.")
+
+            # Seed admin user if none exists
+            admin_username = os.environ.get('SEED_ADMIN_USERNAME', 'admin')
+            admin_password = os.environ.get('SEED_ADMIN_PASS', 'admin123')
+            admin_municipality = os.environ.get('SEED_ADMIN_MUNICIPALITY', 'Mabitac')
+            admin_email = os.environ.get('SEED_ADMIN_EMAIL', '')
+
+            existing = User.query.filter_by(role='admin').first()
+            if existing:
+                if not existing.municipality:
+                    existing.municipality = admin_municipality
+                    db.session.commit()
+                print(f"[OK] Admin user already exists (ID: {existing.id})")
+            else:
+                admin = User(
+                    username=admin_username,
+                    password_hash=generate_password_hash(admin_password),
+                    full_name='System Administrator',
+                    email=admin_email or None,
+                    role='admin',
+                    municipality=admin_municipality,
+                    contact_no='09123456789',
+                    is_active=True
+                )
+                db.session.add(admin)
+                db.session.commit()
+                print(f"[OK] Admin user created: {admin_username}")
+
+            print("[OK] Database initialization complete.")
+
     return app
